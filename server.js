@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const { scrapeProduct } = require('./scrapers');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -31,29 +32,51 @@ app.post('/scrape', async (req, res) => {
       });
     }
     
-    // TODO: Implement actual scraping logic
-    const mockProduct = {
-      product_name: 'Sample Product',
-      brand: 'Sample Brand',
-      original_price: 99.99,
-      sale_price: 79.99,
-      is_on_sale: true,
-      discount_percentage: 20,
-      sale_badge: '20% OFF',
-      image_urls: ['https://example.com/image1.jpg'],
-      description: 'Product description will be scraped here',
-      color: 'Black',
-      category: 'Electronics',
-      material: 'Plastic',
-      // Backward compatibility
-      name: 'Sample Product',
-      price: 79.99,
-      images: ['https://example.com/image1.jpg']
+    console.log('🔍 Scraping URL:', url);
+    
+    // Use actual scraper
+    const scrapeResult = await scrapeProduct(url);
+    
+    // If scraping failed, return the error
+    if (!scrapeResult.success) {
+      return res.status(400).json(scrapeResult);
+    }
+    
+    // Extract product data from scrape result
+    const productData = scrapeResult.product || {};
+    
+    // Ensure all database schema fields are present with correct names
+    const normalizedProduct = {
+      // Primary fields matching database schema
+      product_name: productData.product_name || productData.name || '',
+      brand: productData.brand || 'Unknown Brand',
+      original_price: productData.original_price || productData.originalPrice || productData.price || 0,
+      sale_price: productData.sale_price || productData.price || 0,
+      is_on_sale: productData.is_on_sale || productData.isOnSale || false,
+      discount_percentage: productData.discount_percentage || productData.discountPercentage || null,
+      sale_badge: productData.sale_badge || productData.saleBadge || null,
+      image_urls: productData.image_urls || productData.images || [],
+      vendor_url: url, // Always use the requested URL
+      description: productData.description || '',
+      color: productData.color || '',
+      category: productData.category || '',
+      material: productData.material || '',
+      
+      // Legacy fields for backward compatibility
+      name: productData.product_name || productData.name || '',
+      price: productData.sale_price || productData.price || 0,
+      images: productData.image_urls || productData.images || [],
+      originalPrice: productData.original_price || productData.originalPrice || 0,
+      isOnSale: productData.is_on_sale || productData.isOnSale || false,
+      discountPercentage: productData.discount_percentage || productData.discountPercentage || null,
+      saleBadge: productData.sale_badge || productData.saleBadge || null
     };
     
-    res.json({ 
+    console.log('✅ Returning normalized product data');
+    
+    res.json({
       success: true,
-      product: mockProduct
+      product: normalizedProduct
     });
   } catch (error) {
     console.error('Scraping error:', error);
