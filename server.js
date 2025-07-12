@@ -11,6 +11,15 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', service: 'bluestock-parser' });
 });
 
+app.get('/test', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    service: 'bluestock-parser',
+    timestamp: new Date().toISOString(),
+    message: 'Parser service is running and accessible!'
+  });
+});
+
 app.post('/scrape', async (req, res) => {
   try {
     const { url } = req.body;
