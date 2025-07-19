@@ -1,4 +1,5 @@
 const { scrapeAmazonProduct } = require('./amazon');
+const { scrapeGarmentory } = require('./garmentory');
 
 // Site detection function
 const detectSite = (url) => {
@@ -12,6 +13,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('etsy.')) {
     return 'etsy';
+  }
+  if (hostname.includes('garmentory.')) {
+    return 'garmentory';
   }
   
   return 'generic';
@@ -29,6 +33,10 @@ const scrapeProduct = async (url) => {
       case 'amazon':
         console.log('🛒 Using Amazon scraper');
         return await scrapeAmazonProduct(url);
+        
+      case 'garmentory':
+        console.log('👗 Using Garmentory scraper');
+        return await scrapeGarmentory(url);
         
       case 'farfetch':
         console.log('👗 Farfetch scraper not implemented yet');
