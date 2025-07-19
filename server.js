@@ -5,6 +5,17 @@ const { scrapeProduct } = require('./scrapers');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Add error handling for uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (error) => {
+  console.error('Unhandled Rejection:', error);
+  process.exit(1);
+});
+
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
