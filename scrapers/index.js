@@ -1,5 +1,6 @@
 const { scrapeAmazonProduct } = require('./amazon');
 const { scrapeGarmentory } = require('./garmentory');
+const { scrapeEbay } = require('./ebay');
 
 // Site detection function
 const detectSite = (url) => {
@@ -16,6 +17,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('garmentory.')) {
     return 'garmentory';
+  }
+  if (hostname.includes('ebay.')) {
+    return 'ebay';
   }
   
   return 'generic';
@@ -37,6 +41,46 @@ const scrapeProduct = async (url) => {
       case 'garmentory':
         console.log('👗 Using Garmentory scraper');
         return await scrapeGarmentory(url);
+        
+      case 'ebay':
+        console.log('🛍️ Using eBay scraper');
+        const ebayProduct = await scrapeEbay(url);
+        return {
+          success: true,
+          product: {
+            // Database schema fields
+            product_name: ebayProduct.title,
+            brand: ebayProduct.brand || 'Unknown Brand',
+            original_price: ebayProduct.originalPrice ? ebayProduct.priceNumeric : ebayProduct.priceNumeric,
+            sale_price: ebayProduct.priceNumeric || 0,
+            is_on_sale: ebayProduct.onSale || false,
+            discount_percentage: ebayProduct.discount || null,
+            sale_badge: ebayProduct.onSale ? `${ebayProduct.discount}% OFF` : null,
+            image_urls: ebayProduct.images || [],
+            vendor_url: ebayProduct.url,
+            description: ebayProduct.description || '',
+            color: ebayProduct.specifics?.Color || '',
+            category: ebayProduct.specifics?.Category || '',
+            material: ebayProduct.specifics?.Material || '',
+            
+            // Additional eBay-specific data
+            condition: ebayProduct.condition,
+            seller: ebayProduct.seller,
+            shipping: ebayProduct.shipping,
+            availability: ebayProduct.availability,
+            itemId: ebayProduct.itemId,
+            specifics: ebayProduct.specifics,
+            
+            // Legacy fields for backward compatibility
+            name: ebayProduct.title,
+            price: ebayProduct.priceNumeric || 0,
+            images: ebayProduct.images || [],
+            originalPrice: ebayProduct.originalPrice ? ebayProduct.priceNumeric : ebayProduct.priceNumeric,
+            isOnSale: ebayProduct.onSale || false,
+            discountPercentage: ebayProduct.discount || null,
+            saleBadge: ebayProduct.onSale ? `${ebayProduct.discount}% OFF` : null
+          }
+        };
         
       case 'farfetch':
         console.log('👗 Farfetch scraper not implemented yet');
