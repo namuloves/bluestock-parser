@@ -39,10 +39,15 @@ async function scrapeEbay(url) {
                    $('h1.it-ttl').text().trim() ||
                    $('[data-testid="x-item-title"]').text().trim();
 
-    // Extract brand name
-    product.brand = $('span[itemprop="brand"]').text().trim() ||
-                   $('.u-flL.iti-act-num').text().trim() ||
-                   $('div.u-flL h2 span[itemprop="brand"]').text().trim();
+    // Extract brand name - look in item specifics
+    let brand = '';
+    $('.ux-labels-values').each((i, el) => {
+      const label = $(el).find('.ux-labels-values__labels span').first().text().trim();
+      if (label === 'Brand') {
+        brand = $(el).find('.ux-labels-values__values span').first().text().trim();
+      }
+    });
+    product.brand = brand || $('span[itemprop="brand"]').text().trim();
 
     // Extract price
     const priceText = $('div.x-price-primary span.ux-textspans').first().text().trim() ||
@@ -58,8 +63,8 @@ async function scrapeEbay(url) {
       product.priceNumeric = parseFloat(priceMatch[0].replace(/,/g, ''));
     }
 
-    // Extract images
-    product.images = [];
+    // Extract images - use Set to avoid duplicates
+    const imageSet = new Set();
     
     // Try different image selectors
     $('div.ux-image-carousel-item img').each((i, el) => {
@@ -67,28 +72,30 @@ async function scrapeEbay(url) {
       if (src && !src.includes('s-l64')) {
         // Convert to high resolution
         const highResSrc = src.replace(/s-l\d+/, 's-l1600');
-        product.images.push(highResSrc);
+        imageSet.add(highResSrc);
       }
     });
 
     // Alternative image selector
-    if (product.images.length === 0) {
+    if (imageSet.size === 0) {
       $('img.img-magnify').each((i, el) => {
         const src = $(el).attr('src') || $(el).attr('data-src');
         if (src) {
-          product.images.push(src);
+          imageSet.add(src);
         }
       });
     }
 
     // Get main image if no carousel images found
-    if (product.images.length === 0) {
+    if (imageSet.size === 0) {
       const mainImg = $('div.ux-image-carousel img').first().attr('src') ||
                      $('img#icImg').attr('src');
       if (mainImg) {
-        product.images.push(mainImg);
+        imageSet.add(mainImg);
       }
     }
+    
+    product.images = Array.from(imageSet);
 
     // Extract item condition
     product.condition = $('div.u-flL.condText').text().trim() ||
@@ -98,11 +105,16 @@ async function scrapeEbay(url) {
     // Extract item description
     const descriptionFrame = $('iframe#desc_ifr');
     if (descriptionFrame.length > 0) {
-      // Description is in iframe, we'll note this
+      // Description is in iframe - eBay loads this separately
+      // We could fetch the iframe URL but it requires additional requests
+      const iframeSrc = descriptionFrame.attr('src');
       product.description = 'Full description available on eBay page';
+      product.descriptionNote = 'Description is loaded in iframe from: ' + (iframeSrc || 'dynamic source');
     } else {
+      // Try to get description from main page
       product.description = $('div.ux-layout-section__item--description').text().trim() ||
                            $('.section-desc').text().trim() ||
+                           $('#viTabs_0_is').text().trim() ||
                            'See full description on eBay';
     }
 
@@ -117,17 +129,23 @@ async function scrapeEbay(url) {
     product.shipping = $('span.vi-acc-del-range').text().trim() ||
                       $('.ux-labels-values__values-content span').filter(':contains("shipping")').text().trim();
 
-    // Extract item specifics
+    // Extract item specifics - improved to handle the nested structure properly
     product.specifics = {};
-    $('div.ux-layout-section-evo__item').each((i, el) => {
-      const label = $(el).find('.ux-labels-values__labels-content span').text().trim();
-      const value = $(el).find('.ux-labels-values__values-content span').text().trim();
-      if (label && value) {
+    $('.ux-labels-values').each((i, el) => {
+      const label = $(el).find('.ux-labels-values__labels span').first().text().trim();
+      const value = $(el).find('.ux-labels-values__values span').first().text().trim();
+      
+      // Skip empty labels (like payment info sections)
+      if (label && value && 
+          !label.includes('Shipping') && 
+          !label.includes('Delivery') && 
+          !label.includes('Returns') && 
+          !label.includes('Payments')) {
         product.specifics[label] = value;
       }
     });
 
-    // Alternative specifics selector
+    // Alternative specifics selector if nothing found
     if (Object.keys(product.specifics).length === 0) {
       $('.viSNotesCnt table tr').each((i, el) => {
         const label = $(el).find('td.attrLabels').text().replace(':', '').trim();
