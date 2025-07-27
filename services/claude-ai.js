@@ -57,7 +57,9 @@ Item Specifications:`;
 - Highlight the item's condition and any unique features
 - Mention the brand prominently
 - Be factual and avoid hyperbole
-- Don't mention price or seller information`;
+- Don't mention price or seller information
+- NEVER write placeholder text like "no description provided" or "description not available"
+- If you cannot generate a meaningful description, just describe the basic item type and condition`;
 
     return prompt;
   }

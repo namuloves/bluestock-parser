@@ -185,23 +185,80 @@ async function scrapeEbay(url) {
       product.onSale = false;
     }
 
-    // AI Description Structure
-    // Instead of trying to extract description from iframe, we'll prepare data for AI
-    product.aiContext = {
-      needsDescription: true,
-      productInfo: {
-        title: product.title,
-        brand: product.brand,
-        condition: product.condition,
-        specifics: product.specifics,
-        price: product.price,
-        images: product.images.slice(0, 3) // First 3 images for AI context
-      },
-      // Placeholder for AI-generated description
-      description: null
-    };
+    // Try to extract description from iframe
+    const iframeSrc = $('#desc_ifr').attr('src');
+    if (iframeSrc) {
+      try {
+        console.log('Fetching eBay description from iframe:', iframeSrc);
+        const descResponse = await axios.get(iframeSrc, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive'
+          },
+          timeout: 5000
+        });
+        
+        const desc$ = cheerio.load(descResponse.data);
+        
+        // Remove scripts and styles
+        desc$('script').remove();
+        desc$('style').remove();
+        
+        // Get text content from body
+        const descriptionText = desc$('body').text().trim();
+        
+        // Check if this is a real description or just template/instructions
+        const isTemplateText = descriptionText.toLowerCase().includes("click the 'see full description'") ||
+                              descriptionText.toLowerCase().includes("see full description link below") ||
+                              descriptionText.length < 20 ||
+                              descriptionText.toLowerCase().includes("no description available");
+        
+        if (descriptionText && descriptionText.length > 10 && !isTemplateText) {
+          // Clean up common template artifacts
+          let cleanedDescription = descriptionText
+            .replace(/\s+/g, ' ')
+            .replace(/×.*?Buy now and save!.*$/i, '') // Remove template footer
+            .replace(/Tell a friend.*$/i, '')
+            .replace(/Visit store.*$/i, '')
+            .replace(/Watch now.*$/i, '')
+            .replace(/You might also like.*$/i, '')
+            .replace(/Contact To contact.*$/i, '')
+            .replace(/Postage Shipping.*$/i, '')
+            .replace(/Payment Accepted.*$/i, '')
+            .replace(/Returns Returns.*$/i, '')
+            .replace(/Additional Information.*$/i, '')
+            .replace(/eBay integration by.*$/i, '')
+            .trim();
+          
+          // Only use if there's meaningful content left
+          if (cleanedDescription.length > 30) {
+            product.description = cleanedDescription;
+            console.log('Found seller description:', product.description.substring(0, 100) + '...');
+          }
+        }
+      } catch (error) {
+        console.log('Could not fetch description from iframe:', error.message);
+      }
+    }
 
-    // Only set description if one exists (some listings don't have descriptions)
+    // AI Description Structure - only if no seller description exists
+    if (!product.description) {
+      product.aiContext = {
+        needsDescription: true,
+        productInfo: {
+          title: product.title,
+          brand: product.brand,
+          condition: product.condition,
+          specifics: product.specifics,
+          price: product.price,
+          images: product.images.slice(0, 3) // First 3 images for AI context
+        },
+        description: null
+      };
+    }
 
     // Clean up empty fields
     Object.keys(product).forEach(key => {
