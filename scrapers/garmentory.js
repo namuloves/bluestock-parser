@@ -6,25 +6,15 @@ async function scrapeGarmentory(url) {
   
   try {
     // Launch browser with stealth settings
-    const launchOptions = {
+    browser = await puppeteer.launch({
       headless: 'new',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-blink-features=AutomationControlled',
-        '--disable-features=IsolateOrigins,site-per-process',
-        '--disable-gpu',
-        '--disable-dev-shm-usage'
+        '--disable-features=IsolateOrigins,site-per-process'
       ]
-    };
-    
-    // In Docker environment, use the pre-installed Chrome
-    if (process.env.PUPPETEER_SKIP_DOWNLOAD === 'true') {
-      // Don't set executablePath - Puppeteer will find Chrome automatically in the Docker image
-      // The Docker image has Chrome installed in the correct location for Puppeteer
-    }
-    
-    browser = await puppeteer.launch(launchOptions);
+    });
 
     const page = await browser.newPage();
     
