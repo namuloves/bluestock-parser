@@ -61,9 +61,16 @@ async function scrapeGarmentory(url) {
       }
     }
     
+    // Also wait for description content to potentially load
+    try {
+      await page.waitForSelector('.product-detail__tab-main, [class*="description"], .tab-content', { timeout: 3000 });
+    } catch (e) {
+      // Continue anyway
+    }
+    
     if (!titleFound) {
       // Just wait a bit for any content to load
-      await page.waitForTimeout(3000);
+      await page.waitForTimeout(5000);
     }
     
     // Extract product data
@@ -178,31 +185,92 @@ async function scrapeGarmentory(url) {
       // Remove duplicates and limit to reasonable number
       const uniqueImages = [...new Set(images)].slice(0, 8);
       
-      // Extract description - look for fabric information and details
+      // Extract description - look for product details
       let description = '';
       
-      // Look for fabric composition (e.g., "100% linen")
-      const fabricMatch = allText.match(/\d+%\s+[a-zA-Z]+[^\.]*\./);
-      if (fabricMatch) {
-        description = fabricMatch[0];
-      }
-      
-      // Look for additional details in specific patterns
-      const detailPatterns = [
-        /side slits and pockets/i,
-        /front button closure/i,
-        /back button closure/i,
-        /machine wash/i,
-        /dry clean/i,
-        /made in [a-zA-Z]+/i
+      // First try to get the structured description from specific elements
+      const descriptionSelectors = [
+        '.product-detail__tab-main', // Main product description tab
+        '[class*="product-detail__tab-main"]',
+        '.product-description',
+        '[data-hook="product-description"]',
+        '[itemprop="description"]',
+        'div[class*="description"]',
+        '.tab-content'
       ];
       
-      detailPatterns.forEach(pattern => {
-        const match = allText.match(pattern);
-        if (match) {
-          description += (description ? ' ' : '') + match[0];
+      let descriptionElement = null;
+      for (const selector of descriptionSelectors) {
+        const elem = document.querySelector(selector);
+        if (elem && elem.textContent.trim().length > 20) {
+          descriptionElement = elem;
+          break;
         }
-      });
+      }
+      
+      if (descriptionElement) {
+        // Get text content and clean it up
+        description = descriptionElement.textContent
+          .replace(/\s+/g, ' ')
+          .replace(/clearItemsBrandsCategoriesBoutiques/gi, '')
+          .replace(/CloseShopWomenMenHomeKidsMy feed/gi, '')
+          .replace(/Make it personal\./gi, '')
+          .replace(/Shop\s*Women\s*Men\s*Home\s*Kids/gi, '')
+          .replace(/My feed/gi, '')
+          .trim();
+          
+        // Look for key sections in the description
+        const sections = ['Fit Tip', 'Fabric / Material', 'Country Of Manufacture'];
+        sections.forEach(section => {
+          const sectionMatch = description.match(new RegExp(section + '[^.]*\\.', 'i'));
+          if (sectionMatch && !description.includes(sectionMatch[0])) {
+            description += ' ' + sectionMatch[0];
+          }
+        });
+      } 
+      
+      // If still no description, look for common product description patterns
+      if (!description || description.length < 20) {
+        // Look for sentences that describe the product
+        const productPatterns = [
+          /The [A-Z][a-z]+ (?:top|tee|shirt|dress|pant|jean|skirt) is[^.]+\./gi,
+          /This [a-z\s]+ (?:top|tee|shirt|dress|pant|jean|skirt)[^.]+\./gi,
+          /Part of our[^.]+\./gi,
+          /Features[^.]+\./gi,
+          /Designed in[^.]+\./gi,
+          /Made from[^.]+\./gi,
+          /Crafted from[^.]+\./gi,
+          /\d+%\s+[a-zA-Z\s]+(?:Cotton|Linen|Silk|Wool|Polyester)[^.]*\./gi,
+          /Made in [a-zA-Z]+/gi,
+          /Fits (?:true to size|small|large)/gi,
+          /(?:sleeveless|short-sleeve|long-sleeve)[^.]+\./gi,
+          /with a (?:twist|touch|hint) of[^.]+\./gi,
+          /sitting (?:right )?at[^.]+\./gi
+        ];
+        
+        const foundDescriptions = [];
+        productPatterns.forEach(pattern => {
+          const matches = allText.match(pattern);
+          if (matches) {
+            matches.forEach(match => {
+              if (!foundDescriptions.includes(match)) {
+                foundDescriptions.push(match);
+              }
+            });
+          }
+        });
+        
+        // Join found descriptions
+        if (foundDescriptions.length > 0) {
+          description = foundDescriptions.join(' ').replace(/\s+/g, ' ').trim();
+        }
+      }
+      
+      // Clean up any remaining navigation text
+      description = description
+        .replace(/\s+/g, ' ')
+        .replace(/^\s*\d+\s*$/, '') // Remove lone numbers
+        .trim();
       
       // Extract currency - Garmentory typically uses USD
       const currency = 'USD';
