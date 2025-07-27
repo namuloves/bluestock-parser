@@ -169,34 +169,50 @@ async function scrapeGarmentory(url) {
         }
       }
       
-      // Extract images - filter for product images only
+      // Extract images - only from product gallery
       const images = [];
-      const imageElements = document.querySelectorAll('img');
-      imageElements.forEach(img => {
-        // Check if image is inside a recommended products section
-        let isInRecommended = false;
-        let parent = img.parentElement;
-        while (parent && parent !== document.body) {
-          if (parent.className && parent.className.includes && 
-              (parent.className.includes('recommended-products') || 
-               parent.className.includes('picked-for-you'))) {
-            isInRecommended = true;
-            break;
+      
+      // First try to find images in the main product gallery
+      const galleryContainer = document.querySelector('.product-detail__gallery');
+      if (galleryContainer) {
+        const galleryImages = galleryContainer.querySelectorAll('img');
+        galleryImages.forEach(img => {
+          const src = img.src || img.getAttribute('data-src');
+          if (src && src.includes('garmentory.com/images')) {
+            images.push(src);
           }
-          parent = parent.parentElement;
-        }
-        
-        // Skip if in recommended section
-        if (isInRecommended) return;
-        
-        const src = img.src || img.getAttribute('data-src');
-        if (src && src.includes('garmentory.com/images') && 
-            !src.includes('logo') && !src.includes('icon') && 
-            !src.includes('tracking') && !src.includes('lantern') &&
-            !src.includes('bat.bing.com')) {
-          images.push(src);
-        }
-      });
+        });
+      }
+      
+      // If no gallery found or no images, fall back to more general search
+      if (images.length === 0) {
+        const imageElements = document.querySelectorAll('.product-detail img');
+        imageElements.forEach(img => {
+          // Check if image is inside a recommended products section
+          let isInRecommended = false;
+          let parent = img.parentElement;
+          while (parent && parent !== document.body) {
+            if (parent.className && parent.className.includes && 
+                (parent.className.includes('recommended-products') || 
+                 parent.className.includes('picked-for-you'))) {
+              isInRecommended = true;
+              break;
+            }
+            parent = parent.parentElement;
+          }
+          
+          // Skip if in recommended section
+          if (isInRecommended) return;
+          
+          const src = img.src || img.getAttribute('data-src');
+          if (src && src.includes('garmentory.com/images') && 
+              !src.includes('logo') && !src.includes('icon') && 
+              !src.includes('tracking') && !src.includes('lantern') &&
+              !src.includes('bat.bing.com')) {
+            images.push(src);
+          }
+        });
+      }
       
       // Remove duplicates and limit to reasonable number
       const uniqueImages = [...new Set(images)].slice(0, 8);

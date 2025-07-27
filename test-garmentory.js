@@ -20,6 +20,10 @@ async function testGarmentory() {
       console.log('- On Sale:', result.product.on_sale);
       console.log('- Description:', result.product.description ? result.product.description.substring(0, 100) + '...' : 'None');
       console.log('- Images:', result.product.images.length);
+      console.log('\nImage URLs:');
+      result.product.images.forEach((img, index) => {
+        console.log(`${index + 1}. ${img}`);
+      });
     } else {
       console.log('❌ Scraping failed:', result.error);
     }
