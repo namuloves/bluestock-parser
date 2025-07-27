@@ -20,7 +20,8 @@ async function scrapeGarmentory(url) {
     
     // In Docker environment, use the pre-installed Chrome
     if (process.env.PUPPETEER_SKIP_DOWNLOAD === 'true') {
-      launchOptions.executablePath = '/usr/bin/google-chrome-stable';
+      // Don't set executablePath - Puppeteer will find Chrome automatically in the Docker image
+      // The Docker image has Chrome installed in the correct location for Puppeteer
     }
     
     browser = await puppeteer.launch(launchOptions);
