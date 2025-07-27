@@ -173,6 +173,22 @@ async function scrapeGarmentory(url) {
       const images = [];
       const imageElements = document.querySelectorAll('img');
       imageElements.forEach(img => {
+        // Check if image is inside a recommended products section
+        let isInRecommended = false;
+        let parent = img.parentElement;
+        while (parent && parent !== document.body) {
+          if (parent.className && parent.className.includes && 
+              (parent.className.includes('recommended-products') || 
+               parent.className.includes('picked-for-you'))) {
+            isInRecommended = true;
+            break;
+          }
+          parent = parent.parentElement;
+        }
+        
+        // Skip if in recommended section
+        if (isInRecommended) return;
+        
         const src = img.src || img.getAttribute('data-src');
         if (src && src.includes('garmentory.com/images') && 
             !src.includes('logo') && !src.includes('icon') && 
