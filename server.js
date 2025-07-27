@@ -1,6 +1,17 @@
 const express = require('express');
 const cors = require('cors');
 const { scrapeProduct } = require('./scrapers');
+const { enhanceWithAI } = require('./scrapers/ebay');
+const ClaudeAIService = require('./services/claude-ai');
+
+// Initialize AI service if API key is available
+let aiService = null;
+if (process.env.ANTHROPIC_API_KEY) {
+  aiService = new ClaudeAIService();
+  console.log('Claude AI service initialized');
+} else {
+  console.log('Claude AI service not initialized (no API key)');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -82,17 +93,32 @@ app.post('/scrape', async (req, res) => {
     }
     
     // Extract product data from scrape result
-    const productData = scrapeResult.product || {};
+    let productData = scrapeResult.product || {};
+    
+    // If it's an eBay product with AI context and we have AI service, enhance it
+    console.log('Product platform:', productData.platform);
+    console.log('Has AI context:', !!productData.aiContext);
+    console.log('AI service available:', !!aiService);
+    
+    if (productData.platform === 'ebay' && productData.aiContext && aiService) {
+      console.log('🤖 Enhancing eBay product with AI description...');
+      try {
+        productData = await enhanceWithAI(productData, aiService);
+        console.log('✅ AI description added:', productData.description);
+      } catch (error) {
+        console.error('AI enhancement failed:', error);
+      }
+    }
     
     // Ensure all database schema fields are present with correct names
     const normalizedProduct = {
       // Primary fields matching database schema
-      product_name: productData.product_name || productData.name || '',
+      product_name: productData.product_name || productData.name || productData.title || '',
       brand: productData.brand || 'Unknown Brand',
       original_price: productData.original_price || productData.originalPrice || productData.price || 0,
       sale_price: productData.sale_price || productData.price || 0,
-      is_on_sale: productData.is_on_sale || productData.isOnSale || false,
-      discount_percentage: productData.discount_percentage || productData.discountPercentage || null,
+      is_on_sale: productData.is_on_sale || productData.isOnSale || productData.onSale || false,
+      discount_percentage: productData.discount_percentage || productData.discountPercentage || productData.discount || null,
       sale_badge: productData.sale_badge || productData.saleBadge || null,
       image_urls: productData.image_urls || productData.images || [],
       vendor_url: url, // Always use the requested URL
@@ -100,6 +126,7 @@ app.post('/scrape', async (req, res) => {
       color: productData.color || '',
       category: productData.category || '',
       material: productData.material || '',
+      platform: productData.platform || '',
       
       // Legacy fields for backward compatibility
       name: productData.product_name || productData.name || '',

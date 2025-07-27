@@ -98,36 +98,43 @@ async function scrapeEbay(url) {
     product.images = Array.from(imageSet);
 
     // Extract item condition
-    product.condition = $('div.u-flL.condText').text().trim() ||
-                       $('span.ux-textspans--SECONDARY').text().trim() ||
-                       $('.u-flL.condText').text().trim();
-
-    // Extract item description
-    const descriptionFrame = $('iframe#desc_ifr');
-    if (descriptionFrame.length > 0) {
-      // Description is in iframe - eBay loads this separately
-      // We could fetch the iframe URL but it requires additional requests
-      const iframeSrc = descriptionFrame.attr('src');
-      product.description = 'Full description available on eBay page';
-      product.descriptionNote = 'Description is loaded in iframe from: ' + (iframeSrc || 'dynamic source');
-    } else {
-      // Try to get description from main page
-      product.description = $('div.ux-layout-section__item--description').text().trim() ||
-                           $('.section-desc').text().trim() ||
-                           $('#viTabs_0_is').text().trim() ||
-                           'See full description on eBay';
-    }
+    let condition = '';
+    $('.ux-labels-values').each((i, el) => {
+      const label = $(el).find('.ux-labels-values__labels span').first().text().trim();
+      if (label === 'Condition') {
+        // Get just the first text to avoid "Read more" text
+        const valueEl = $(el).find('.ux-labels-values__values span').first();
+        condition = valueEl.contents().filter(function() {
+          return this.nodeType === 3; // Text node only
+        }).first().text().trim();
+      }
+    });
+    product.condition = condition || $('div.u-flL.condText').text().trim();
 
     // Extract seller information
+    let sellerName = '';
+    $('.ux-labels-values').each((i, el) => {
+      const label = $(el).find('.ux-labels-values__labels span').first().text().trim();
+      if (label === 'Seller:') {
+        sellerName = $(el).find('.ux-labels-values__values span a').text().trim() || 
+                    $(el).find('.ux-labels-values__values span').first().text().trim();
+      }
+    });
+    
     product.seller = {
-      name: $('span.ux-textspans--BOLD').filter(':contains("Seller:")').next().text().trim() ||
-            $('a.mbg-id').text().trim(),
+      name: sellerName || $('a.mbg-id').text().trim(),
       feedback: $('span.mbg-l').text().trim()
     };
 
     // Extract shipping information
-    product.shipping = $('span.vi-acc-del-range').text().trim() ||
-                      $('.ux-labels-values__values-content span').filter(':contains("shipping")').text().trim();
+    let shipping = '';
+    $('.ux-labels-values').each((i, el) => {
+      const label = $(el).find('.ux-labels-values__labels span').first().text().trim();
+      if (label === 'Shipping:') {
+        shipping = $(el).find('.ux-labels-values__values span').first().text().trim();
+      }
+    });
+    product.shipping = shipping || $('span.vi-acc-del-range').text().trim();
 
     // Extract item specifics - improved to handle the nested structure properly
     product.specifics = {};
@@ -140,7 +147,10 @@ async function scrapeEbay(url) {
           !label.includes('Shipping') && 
           !label.includes('Delivery') && 
           !label.includes('Returns') && 
-          !label.includes('Payments')) {
+          !label.includes('Payments') &&
+          label !== 'Condition' && // Already handled separately
+          label !== 'Brand' && // Already handled separately  
+          label !== 'Seller:') { // Already handled separately
         product.specifics[label] = value;
       }
     });
@@ -175,6 +185,25 @@ async function scrapeEbay(url) {
       product.onSale = false;
     }
 
+    // AI Description Structure
+    // Instead of trying to extract description from iframe, we'll prepare data for AI
+    product.aiContext = {
+      needsDescription: true,
+      productInfo: {
+        title: product.title,
+        brand: product.brand,
+        condition: product.condition,
+        specifics: product.specifics,
+        price: product.price,
+        images: product.images.slice(0, 3) // First 3 images for AI context
+      },
+      // Placeholder for AI-generated description
+      description: null
+    };
+
+    // For now, set a placeholder description
+    product.description = 'AI description pending...';
+
     // Clean up empty fields
     Object.keys(product).forEach(key => {
       if (product[key] === '' || product[key] === null || product[key] === undefined) {
@@ -189,4 +218,23 @@ async function scrapeEbay(url) {
   }
 }
 
-module.exports = { scrapeEbay };
+// Function to enhance product with AI description
+async function enhanceWithAI(product, aiService) {
+  if (!product.aiContext || !product.aiContext.needsDescription) {
+    return product;
+  }
+
+  if (!aiService) {
+    console.log('No AI service provided, returning product without AI description');
+    return product;
+  }
+
+  try {
+    return await aiService.enhanceProductWithDescription(product);
+  } catch (error) {
+    console.error('AI enhancement error:', error);
+    return product;
+  }
+}
+
+module.exports = { scrapeEbay, enhanceWithAI };

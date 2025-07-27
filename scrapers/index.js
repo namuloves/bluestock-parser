@@ -48,6 +48,9 @@ const scrapeProduct = async (url) => {
         return {
           success: true,
           product: {
+            // Keep all original fields
+            ...ebayProduct,
+            
             // Database schema fields
             product_name: ebayProduct.title,
             brand: ebayProduct.brand || 'Unknown Brand',
@@ -58,18 +61,9 @@ const scrapeProduct = async (url) => {
             sale_badge: ebayProduct.onSale ? `${ebayProduct.discount}% OFF` : null,
             image_urls: ebayProduct.images || [],
             vendor_url: ebayProduct.url,
-            description: ebayProduct.description || '',
             color: ebayProduct.specifics?.Color || '',
             category: ebayProduct.specifics?.Category || '',
             material: ebayProduct.specifics?.Material || '',
-            
-            // Additional eBay-specific data
-            condition: ebayProduct.condition,
-            seller: ebayProduct.seller,
-            shipping: ebayProduct.shipping,
-            availability: ebayProduct.availability,
-            itemId: ebayProduct.itemId,
-            specifics: ebayProduct.specifics,
             
             // Legacy fields for backward compatibility
             name: ebayProduct.title,
