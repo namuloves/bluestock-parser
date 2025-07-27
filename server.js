@@ -122,7 +122,7 @@ app.post('/scrape', async (req, res) => {
       sale_badge: productData.sale_badge || productData.saleBadge || null,
       image_urls: productData.image_urls || productData.images || [],
       vendor_url: url, // Always use the requested URL
-      description: productData.description || '',
+      description: productData.description,
       color: productData.color || '',
       category: productData.category || '',
       material: productData.material || '',

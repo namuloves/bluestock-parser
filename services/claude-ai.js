@@ -78,8 +78,7 @@ Item Specifications:`;
       return product;
     } catch (error) {
       console.error('Failed to generate AI description:', error);
-      // Return product with fallback description
-      product.description = 'Description not available';
+      // Return product without description
       return product;
     }
   }
