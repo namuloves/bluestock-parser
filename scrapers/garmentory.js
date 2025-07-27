@@ -31,47 +31,14 @@ async function scrapeGarmentory(url) {
       'Upgrade-Insecure-Requests': '1'
     });
     
-    // Block unnecessary resources to speed up loading
-    await page.setRequestInterception(true);
-    page.on('request', (req) => {
-      if (['image', 'font'].includes(req.resourceType())) {
-        req.abort();
-      } else {
-        req.continue();
-      }
-    });
-    
-    // Navigate with timeout
+    // Navigate to page
     await page.goto(url, { 
-      waitUntil: 'networkidle2',
+      waitUntil: 'domcontentloaded',
       timeout: 30000 
     });
     
-    // Wait for content to load - try multiple selectors
-    const titleSelectors = ['h1', '.product-title', '[data-hook="product-title"]', 'h1[class*="title"]'];
-    let titleFound = false;
-    
-    for (const selector of titleSelectors) {
-      try {
-        await page.waitForSelector(selector, { timeout: 3000 });
-        titleFound = true;
-        break;
-      } catch (e) {
-        continue;
-      }
-    }
-    
-    // Also wait for description content to potentially load
-    try {
-      await page.waitForSelector('.product-detail__tab-main, [class*="description"], .tab-content', { timeout: 3000 });
-    } catch (e) {
-      // Continue anyway
-    }
-    
-    if (!titleFound) {
-      // Just wait a bit for any content to load
-      await page.waitForTimeout(5000);
-    }
+    // Wait a bit for dynamic content to load
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Extract product data
     const productData = await page.evaluate(() => {
