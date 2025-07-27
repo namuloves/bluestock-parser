@@ -201,8 +201,7 @@ async function scrapeEbay(url) {
       description: null
     };
 
-    // For now, set a placeholder description
-    product.description = 'AI description pending...';
+    // Only set description if one exists (some listings don't have descriptions)
 
     // Clean up empty fields
     Object.keys(product).forEach(key => {
