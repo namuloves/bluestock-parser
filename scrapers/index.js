@@ -1,7 +1,8 @@
 const { scrapeAmazonProduct } = require('./amazon');
 const { scrapeGarmentory } = require('./garmentory');
 const { scrapeEbay } = require('./ebay');
-const { scrapeRalphLauren } = require('../src/scrapers/ralphlauren');
+const { scrapeRalphLauren } = require('./ralphlauren');
+const { scrapeCOS } = require('./cos');
 
 // Site detection function
 const detectSite = (url) => {
@@ -24,6 +25,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('ralphlauren.')) {
     return 'ralphlauren';
+  }
+  if (hostname.includes('cos.')) {
+    return 'cos';
   }
   
   return 'generic';
@@ -82,9 +86,7 @@ const scrapeProduct = async (url) => {
         
       case 'ralphlauren':
         console.log('👔 Using Ralph Lauren HTML scraper');
-        const { scrapeRalphLaurenHTML } = require('../src/scrapers/ralphlauren-html');
-        
-        const rlProduct = await scrapeRalphLaurenHTML(url);
+        const rlProduct = await scrapeRalphLauren(url);
         
         // Extract price number from string (e.g., "$395" -> 395)
         const priceMatch = rlProduct.price?.match(/[\d,]+\.?\d*/);
@@ -125,6 +127,49 @@ const scrapeProduct = async (url) => {
             isOnSale: rlProduct.isOnSale || false,
             discountPercentage: rlProduct.isOnSale ? Math.round((1 - priceNumeric / originalPriceNumeric) * 100) : null,
             saleBadge: rlProduct.isOnSale ? 'SALE' : null
+          }
+        };
+        
+      case 'cos':
+        console.log('🛍️ Using COS HTML scraper');
+        const cosProduct = await scrapeCOS(url);
+        
+        // Extract price number from string (e.g., "$59" -> 59)
+        const cosPriceMatch = cosProduct.price?.match(/[\d,]+\.?\d*/);
+        const cosPriceNumeric = cosPriceMatch ? parseFloat(cosPriceMatch[0].replace(',', '')) : 0;
+        
+        return {
+          success: true,
+          product: {
+            // Keep all original fields
+            ...cosProduct,
+            
+            // Database schema fields
+            product_name: cosProduct.name,
+            brand: cosProduct.brand || 'COS',
+            original_price: cosProduct.originalPrice ? parseFloat(cosProduct.originalPrice.replace(/[^0-9.]/g, '')) : cosPriceNumeric,
+            sale_price: cosPriceNumeric,
+            is_on_sale: cosProduct.isOnSale || false,
+            discount_percentage: null,
+            sale_badge: cosProduct.isOnSale ? 'SALE' : null,
+            image_urls: cosProduct.images || [],
+            vendor_url: cosProduct.url || url,
+            color: cosProduct.color || '',
+            category: cosProduct.category || 'Fashion',
+            material: '',
+            description: cosProduct.description || '',
+            sizes: cosProduct.sizes || [],
+            sku: cosProduct.sku || '',
+            in_stock: cosProduct.inStock !== false,
+            
+            // Legacy fields for backward compatibility
+            name: cosProduct.name,
+            price: cosPriceNumeric,
+            images: cosProduct.images || [],
+            originalPrice: cosPriceNumeric,
+            isOnSale: cosProduct.isOnSale || false,
+            discountPercentage: null,
+            saleBadge: cosProduct.isOnSale ? 'SALE' : null
           }
         };
         

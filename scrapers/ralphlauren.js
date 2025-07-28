@@ -144,4 +144,4 @@ async function scrapeRalphLaurenHTML(url) {
   }
 }
 
-module.exports = { scrapeRalphLaurenHTML };
+module.exports = { scrapeRalphLauren: scrapeRalphLaurenHTML };
