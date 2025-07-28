@@ -1,6 +1,7 @@
 const { scrapeAmazonProduct } = require('./amazon');
 const { scrapeGarmentory } = require('./garmentory');
 const { scrapeEbay } = require('./ebay');
+const { scrapeRalphLauren } = require('./ralphlauren');
 
 // Site detection function
 const detectSite = (url) => {
@@ -20,6 +21,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('ebay.')) {
     return 'ebay';
+  }
+  if (hostname.includes('ralphlauren.')) {
+    return 'ralphlauren';
   }
   
   return 'generic';
@@ -75,6 +79,93 @@ const scrapeProduct = async (url) => {
             saleBadge: ebayProduct.onSale ? `${ebayProduct.discount}% OFF` : null
           }
         };
+        
+      case 'ralphlauren':
+        console.log('👔 Using Ralph Lauren AI scraper');
+        const { scrapeRalphLaurenWithAI } = require('./ralphlauren');
+        
+        try {
+          // Try AI-powered scraper first
+          const rlProduct = await scrapeRalphLaurenWithAI(url);
+          
+          // Extract price number from string (e.g., "$298.00" -> 298)
+          const priceMatch = rlProduct.price?.match(/[\d,]+\.?\d*/);
+          const priceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+          
+          const originalPriceMatch = rlProduct.originalPrice?.match(/[\d,]+\.?\d*/);
+          const originalPriceNumeric = originalPriceMatch ? parseFloat(originalPriceMatch[0].replace(',', '')) : priceNumeric;
+          
+          return {
+            success: true,
+            product: {
+              // Keep all original fields
+              ...rlProduct,
+              
+              // Database schema fields
+              product_name: rlProduct.name,
+              brand: rlProduct.brand || 'Ralph Lauren',
+              original_price: originalPriceNumeric,
+              sale_price: priceNumeric,
+              is_on_sale: rlProduct.isOnSale || false,
+              discount_percentage: rlProduct.isOnSale ? Math.round((1 - priceNumeric / originalPriceNumeric) * 100) : null,
+              sale_badge: rlProduct.saleBadge || null,
+              image_urls: rlProduct.images || [],
+              vendor_url: rlProduct.url || url,
+              color: rlProduct.color || '',
+              category: 'Apparel',
+              material: '',
+              description: rlProduct.description || '',
+              sizes: rlProduct.sizes || [],
+              sku: rlProduct.sku || '',
+              
+              // Legacy fields for backward compatibility
+              name: rlProduct.name,
+              price: priceNumeric,
+              images: rlProduct.images || [],
+              originalPrice: originalPriceNumeric,
+              isOnSale: rlProduct.isOnSale || false,
+              discountPercentage: rlProduct.isOnSale ? Math.round((1 - priceNumeric / originalPriceNumeric) * 100) : null,
+              saleBadge: rlProduct.saleBadge || null
+            }
+          };
+        } catch (aiError) {
+          console.error('AI scraper failed:', aiError.message);
+          // Fallback to regular scraper
+          const { scrapeRalphLauren } = require('./ralphlauren');
+          const rlProduct = await scrapeRalphLauren(url);
+          
+          const priceMatch = rlProduct.price?.match(/[\d,]+\.?\d*/);
+          const priceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+          
+          return {
+            success: true,
+            product: {
+              ...rlProduct,
+              product_name: rlProduct.name,
+              brand: rlProduct.brand || 'Ralph Lauren',
+              original_price: priceNumeric,
+              sale_price: priceNumeric,
+              is_on_sale: false,
+              discount_percentage: null,
+              sale_badge: null,
+              image_urls: rlProduct.images || [],
+              vendor_url: rlProduct.url || url,
+              color: rlProduct.color || '',
+              category: 'Apparel',
+              material: '',
+              description: rlProduct.description || '',
+              sizes: rlProduct.sizes || [],
+              sku: rlProduct.sku || '',
+              name: rlProduct.name,
+              price: priceNumeric,
+              images: rlProduct.images || [],
+              originalPrice: priceNumeric,
+              isOnSale: false,
+              discountPercentage: null,
+              saleBadge: null
+            }
+          };
+        }
         
       case 'farfetch':
         console.log('👗 Farfetch scraper not implemented yet');

@@ -84,6 +84,40 @@ Item Specifications:`;
       return product;
     }
   }
+  
+  async analyzeImage(base64Image, prompt) {
+    try {
+      const message = await this.client.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1000,
+        temperature: 0,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: 'image/jpeg',
+                  data: base64Image
+                }
+              },
+              {
+                type: 'text',
+                text: prompt
+              }
+            ]
+          }
+        ]
+      });
+
+      return message.content[0].text.trim();
+    } catch (error) {
+      console.error('Claude AI image analysis error:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = ClaudeAIService;
