@@ -98,6 +98,7 @@ async function scrapeRalphLaurenHTML(url) {
     
     // Build the final product object
     if (productData) {
+      console.log('✅ Found digitalData product info');
       return {
         name: productData.productName || metaData.name,
         price: `$${productData.productPrice}`,
@@ -115,6 +116,8 @@ async function scrapeRalphLaurenHTML(url) {
       };
     } else {
       // Fallback to basic extraction
+      console.log('⚠️ No digitalData found, using fallback extraction');
+      console.log('Meta data:', metaData);
       return {
         name: metaData.name,
         price: metaData.price || 'Price not available',
@@ -136,8 +139,27 @@ async function scrapeRalphLaurenHTML(url) {
     console.error('Ralph Lauren HTML scraper error:', error.message);
     
     // If it's a 403 or similar, we might be blocked
-    if (error.response && error.response.status === 403) {
-      throw new Error('Access denied - site may be blocking requests');
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response headers:', error.response.headers);
+      
+      // Return empty data structure instead of throwing
+      return {
+        name: '',
+        price: '$0',
+        originalPrice: null,
+        images: [],
+        description: '',
+        sizes: [],
+        color: '',
+        sku: url.match(/\/(\d+)\.html/)?.[1] || '',
+        brand: 'Ralph Lauren',
+        category: '',
+        isOnSale: false,
+        inStock: false,
+        url: url,
+        error: `Blocked: ${error.response.status}`
+      };
     }
     
     throw error;
