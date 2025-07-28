@@ -1,7 +1,7 @@
 const { scrapeAmazonProduct } = require('./amazon');
 const { scrapeGarmentory } = require('./garmentory');
 const { scrapeEbay } = require('./ebay');
-const { scrapeRalphLauren } = require('./ralphlauren');
+const { scrapeRalphLauren } = require('../src/scrapers/ralphlauren');
 
 // Site detection function
 const detectSite = (url) => {
@@ -82,7 +82,7 @@ const scrapeProduct = async (url) => {
         
       case 'ralphlauren':
         console.log('👔 Using Ralph Lauren AI scraper');
-        const { scrapeRalphLaurenWithAI } = require('./ralphlauren');
+        const { scrapeRalphLaurenWithAI } = require('../src/scrapers/ralphlauren-ai');
         
         try {
           // Try AI-powered scraper first
@@ -131,7 +131,7 @@ const scrapeProduct = async (url) => {
         } catch (aiError) {
           console.error('AI scraper failed:', aiError.message);
           // Fallback to regular scraper
-          const { scrapeRalphLauren } = require('./ralphlauren');
+          const { scrapeRalphLauren } = require('../src/scrapers/ralphlauren');
           const rlProduct = await scrapeRalphLauren(url);
           
           const priceMatch = rlProduct.price?.match(/[\d,]+\.?\d*/);
