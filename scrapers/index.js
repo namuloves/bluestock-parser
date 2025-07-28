@@ -3,6 +3,7 @@ const { scrapeGarmentory } = require('./garmentory');
 const { scrapeEbay } = require('./ebay');
 const { scrapeRalphLauren } = require('./ralphlauren');
 const { scrapeCOS } = require('./cos');
+const { scrapeSezane } = require('./sezane');
 
 // Site detection function
 const detectSite = (url) => {
@@ -28,6 +29,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('cos.')) {
     return 'cos';
+  }
+  if (hostname.includes('sezane.')) {
+    return 'sezane';
   }
   
   return 'generic';
@@ -170,6 +174,49 @@ const scrapeProduct = async (url) => {
             isOnSale: cosProduct.isOnSale || false,
             discountPercentage: null,
             saleBadge: cosProduct.isOnSale ? 'SALE' : null
+          }
+        };
+        
+      case 'sezane':
+        console.log('🇫🇷 Using Sezane scraper');
+        const sezaneProduct = await scrapeSezane(url);
+        
+        // Extract price number from string
+        const sezanePriceMatch = sezaneProduct.price?.match(/[\d,]+\.?\d*/);
+        const sezanePriceNumeric = sezanePriceMatch ? parseFloat(sezanePriceMatch[0].replace(',', '')) : 0;
+        
+        return {
+          success: true,
+          product: {
+            // Keep all original fields
+            ...sezaneProduct,
+            
+            // Database schema fields
+            product_name: sezaneProduct.name,
+            brand: sezaneProduct.brand || 'Sézane',
+            original_price: sezanePriceNumeric,
+            sale_price: sezanePriceNumeric,
+            is_on_sale: sezaneProduct.isOnSale || false,
+            discount_percentage: null,
+            sale_badge: null,
+            image_urls: sezaneProduct.images || [],
+            vendor_url: sezaneProduct.url || url,
+            color: sezaneProduct.color || '',
+            category: sezaneProduct.category || 'Fashion',
+            material: '',
+            description: sezaneProduct.description || '',
+            sizes: sezaneProduct.sizes || [],
+            sku: sezaneProduct.sku || '',
+            in_stock: sezaneProduct.inStock !== false,
+            
+            // Legacy fields for backward compatibility
+            name: sezaneProduct.name,
+            price: sezanePriceNumeric,
+            images: sezaneProduct.images || [],
+            originalPrice: sezanePriceNumeric,
+            isOnSale: sezaneProduct.isOnSale || false,
+            discountPercentage: null,
+            saleBadge: null
           }
         };
         
