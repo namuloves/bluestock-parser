@@ -1,12 +1,13 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const { getAxiosConfig } = require('../config/proxy');
 
 async function scrapeRalphLaurenHTML(url) {
   try {
     console.log('🔍 Fetching Ralph Lauren page directly...');
     
-    // Make a simple HTTP request - no Puppeteer needed
-    const response = await axios.get(url, {
+    // Base configuration
+    const baseConfig = {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -18,7 +19,13 @@ async function scrapeRalphLaurenHTML(url) {
       timeout: 15000,
       maxRedirects: 5,
       validateStatus: (status) => status < 400
-    });
+    };
+    
+    // Get config with proxy if enabled
+    const config = getAxiosConfig(url, baseConfig);
+    
+    // Make request
+    const response = await axios.get(url, config);
     
     const html = response.data;
     const $ = cheerio.load(html);

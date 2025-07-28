@@ -1,12 +1,13 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const { getAxiosConfig } = require('../config/proxy');
 
 async function scrapeCOSHTML(url) {
   try {
     console.log('🔍 Fetching COS page directly...');
     
-    // Make a simple HTTP request with browser-like headers
-    const response = await axios.get(url, {
+    // Base configuration
+    const baseConfig = {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
@@ -22,7 +23,13 @@ async function scrapeCOSHTML(url) {
       timeout: 15000,
       maxRedirects: 5,
       validateStatus: (status) => status < 400
-    });
+    };
+    
+    // Get config with proxy if enabled
+    const config = getAxiosConfig(url, baseConfig);
+    
+    // Make request
+    const response = await axios.get(url, config);
     
     const html = response.data;
     const $ = cheerio.load(html);
