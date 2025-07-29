@@ -170,8 +170,29 @@ async function scrapeCOSHTML(url) {
     console.error('COS HTML scraper error:', error.message);
     
     // If it's a 403 or similar, we might be blocked
-    if (error.response && error.response.status === 403) {
-      throw new Error('Access denied - bot protection triggered. Try again later.');
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response headers:', error.response.headers);
+      
+      if (error.response.status === 403) {
+        // Return minimal data instead of throwing
+        return {
+          name: 'COS Product',
+          price: 'Price unavailable (blocked)',
+          originalPrice: null,
+          images: [],
+          description: 'Unable to fetch product details due to site protection',
+          sizes: [],
+          color: '',
+          sku: url.match(/(\d+)$/)?.[1] || '',
+          brand: 'COS',
+          category: 'Fashion',
+          isOnSale: false,
+          inStock: false,
+          url: url,
+          error: `Blocked: ${error.response.status}`
+        };
+      }
     }
     
     throw error;
