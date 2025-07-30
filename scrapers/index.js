@@ -4,6 +4,8 @@ const { scrapeEbay } = require('./ebay');
 const { scrapeRalphLauren } = require('./ralphlauren');
 const { scrapeCOS } = require('./cos');
 const { scrapeSezane } = require('./sezane');
+const { scrapeNordstrom } = require('./nordstrom');
+const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
 const detectSite = (url) => {
@@ -33,6 +35,9 @@ const detectSite = (url) => {
   if (hostname.includes('sezane.')) {
     return 'sezane';
   }
+  if (hostname.includes('nordstrom.')) {
+    return 'nordstrom';
+  }
   
   return 'generic';
 };
@@ -52,7 +57,27 @@ const scrapeProduct = async (url) => {
         
       case 'garmentory':
         console.log('👗 Using Garmentory scraper');
-        return await scrapeGarmentory(url);
+        const garmentoryResult = await scrapeGarmentory(url);
+        if (garmentoryResult.success && garmentoryResult.product) {
+          const product = garmentoryResult.product;
+          // Detect category using our intelligent detection
+          const productName = product.product_name || product.name || '';
+          console.log('🔍 Detecting category for:', productName);
+          console.log('📝 Description:', product.description || 'No description');
+          console.log('🏷️ Brand:', product.brand || 'No brand');
+          
+          const detectedCategory = detectCategory(
+            productName,
+            product.description || '',
+            product.brand || '',
+            product.category
+          );
+          console.log('✅ Detected category:', detectedCategory);
+          
+          // Add category to the product
+          product.category = detectedCategory;
+        }
+        return garmentoryResult;
         
       case 'ebay':
         console.log('🛍️ Using eBay scraper');
@@ -74,7 +99,12 @@ const scrapeProduct = async (url) => {
             image_urls: ebayProduct.images || [],
             vendor_url: ebayProduct.url,
             color: ebayProduct.specifics?.Color || '',
-            category: ebayProduct.specifics?.Category || '',
+            category: detectCategory(
+              ebayProduct.title || '',
+              ebayProduct.description || '',
+              ebayProduct.brand || 'Unknown Brand',
+              ebayProduct.specifics?.Category
+            ),
             material: ebayProduct.specifics?.Material || '',
             
             // Legacy fields for backward compatibility
@@ -116,7 +146,12 @@ const scrapeProduct = async (url) => {
             image_urls: rlProduct.images || [],
             vendor_url: rlProduct.url || url,
             color: rlProduct.color || '',
-            category: rlProduct.category || 'Apparel',
+            category: detectCategory(
+              rlProduct.name || '',
+              rlProduct.description || '',
+              'Ralph Lauren',
+              rlProduct.category
+            ),
             material: '',
             description: rlProduct.description || '',
             sizes: rlProduct.sizes || [],
@@ -159,7 +194,12 @@ const scrapeProduct = async (url) => {
             image_urls: cosProduct.images || [],
             vendor_url: cosProduct.url || url,
             color: cosProduct.color || '',
-            category: cosProduct.category || 'Fashion',
+            category: detectCategory(
+              cosProduct.name || '',
+              cosProduct.description || '',
+              'COS',
+              cosProduct.category
+            ),
             material: '',
             description: cosProduct.description || '',
             sizes: cosProduct.sizes || [],
@@ -202,7 +242,12 @@ const scrapeProduct = async (url) => {
             image_urls: sezaneProduct.images || [],
             vendor_url: sezaneProduct.url || url,
             color: sezaneProduct.color || '',
-            category: sezaneProduct.category || 'Fashion',
+            category: detectCategory(
+              sezaneProduct.name || '',
+              sezaneProduct.description || '',
+              'Sézane',
+              sezaneProduct.category
+            ),
             material: '',
             description: sezaneProduct.description || '',
             sizes: sezaneProduct.sizes || [],
@@ -217,6 +262,57 @@ const scrapeProduct = async (url) => {
             isOnSale: sezaneProduct.isOnSale || false,
             discountPercentage: null,
             saleBadge: null
+          }
+        };
+        
+      case 'nordstrom':
+        console.log('🛍️ Using Nordstrom scraper');
+        const nordstromProduct = await scrapeNordstrom(url);
+        
+        // Extract price number from string
+        const nordstromPriceMatch = nordstromProduct.price?.match(/[\d,]+\.?\d*/);
+        const nordstromPriceNumeric = nordstromPriceMatch ? parseFloat(nordstromPriceMatch[0].replace(',', '')) : 0;
+        
+        const nordstromOriginalPriceMatch = nordstromProduct.originalPrice?.match(/[\d,]+\.?\d*/);
+        const nordstromOriginalPriceNumeric = nordstromOriginalPriceMatch ? parseFloat(nordstromOriginalPriceMatch[0].replace(',', '')) : nordstromPriceNumeric;
+        
+        return {
+          success: true,
+          product: {
+            // Keep all original fields
+            ...nordstromProduct,
+            
+            // Database schema fields
+            product_name: nordstromProduct.name,
+            brand: nordstromProduct.brand || 'Nordstrom',
+            original_price: nordstromOriginalPriceNumeric,
+            sale_price: nordstromPriceNumeric,
+            is_on_sale: nordstromProduct.isOnSale || false,
+            discount_percentage: nordstromProduct.isOnSale ? Math.round((1 - nordstromPriceNumeric / nordstromOriginalPriceNumeric) * 100) : null,
+            sale_badge: nordstromProduct.isOnSale ? 'SALE' : null,
+            image_urls: nordstromProduct.images || [],
+            vendor_url: nordstromProduct.url || url,
+            color: nordstromProduct.color || '',
+            category: detectCategory(
+              nordstromProduct.name || '',
+              nordstromProduct.description || '',
+              nordstromProduct.brand || 'Nordstrom',
+              nordstromProduct.category
+            ),
+            material: '',
+            description: nordstromProduct.description || '',
+            sizes: nordstromProduct.sizes || [],
+            sku: nordstromProduct.sku || '',
+            in_stock: nordstromProduct.inStock !== false,
+            
+            // Legacy fields for backward compatibility
+            name: nordstromProduct.name,
+            price: nordstromPriceNumeric,
+            images: nordstromProduct.images || [],
+            originalPrice: nordstromOriginalPriceNumeric,
+            isOnSale: nordstromProduct.isOnSale || false,
+            discountPercentage: nordstromProduct.isOnSale ? Math.round((1 - nordstromPriceNumeric / nordstromOriginalPriceNumeric) * 100) : null,
+            saleBadge: nordstromProduct.isOnSale ? 'SALE' : null
           }
         };
         

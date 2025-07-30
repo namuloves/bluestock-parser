@@ -304,11 +304,20 @@ async function scrapeGarmentory(url) {
         originalPrice: productData.original_price,
         isOnSale: productData.on_sale,
         saleBadge: productData.on_sale ? 'Sale' : null,
-        // Amazon format fields
-        image_urls: productData.images,
-        availability: productData.in_stock ? 'in_stock' : 'out_of_stock',
+        // Database schema fields
+        brand: productData.brand,
+        original_price: productData.original_price || productData.current_price,
+        sale_price: productData.current_price,
         is_on_sale: productData.on_sale,
-        sale_badge: productData.on_sale ? 'Sale' : null
+        discount_percentage: productData.on_sale && productData.original_price ? 
+          Math.round((1 - parseFloat(productData.current_price) / parseFloat(productData.original_price)) * 100) : null,
+        sale_badge: productData.on_sale ? 'Sale' : null,
+        image_urls: productData.images,
+        vendor_url: productData.product_url,
+        color: null,
+        category: '', // Will be added by index.js
+        material: '',
+        availability: productData.in_stock ? 'in_stock' : 'out_of_stock'
       }
     };
     

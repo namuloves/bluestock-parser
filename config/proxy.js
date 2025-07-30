@@ -19,7 +19,8 @@ const getProxyConfig = () => {
   const proxySites = [
     'ralphlauren.com',
     'cos.com',
-    'sezane.com'
+    'sezane.com',
+    'nordstrom.com'
   ];
 
   // Create proxy agent
