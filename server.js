@@ -87,9 +87,17 @@ app.post('/scrape', async (req, res) => {
     }
     
     console.log('🔍 Scraping URL:', url);
+    console.log('🔍 Scraping started at:', new Date().toISOString());
     
     // Use actual scraper
     const scrapeResult = await scrapeProduct(url);
+    
+    console.log('🔍 Scrape result:', {
+      success: scrapeResult.success,
+      hasProduct: !!scrapeResult.product,
+      productName: scrapeResult.product?.name || scrapeResult.product?.product_name || 'No name',
+      error: scrapeResult.error
+    });
     
     // If scraping failed, return the error
     if (!scrapeResult.success) {
