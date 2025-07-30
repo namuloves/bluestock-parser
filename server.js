@@ -193,7 +193,12 @@ app.post('/scrape', async (req, res) => {
 // Handle preflight requests
 app.options('*', cors(corsOptions));
 
-// Try without specifying host - let Railway handle it
-app.listen(PORT, () => {
-  console.log(`✅ Server started on port ${PORT}`);
+// Railway needs 0.0.0.0 
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server started on 0.0.0.0:${PORT}`);
 });
+
+// Add timeout to keep process alive
+setInterval(() => {
+  console.log(`💓 Server heartbeat - still running on port ${PORT}`);
+}, 30000);
