@@ -23,15 +23,28 @@ if (process.env.ANTHROPIC_API_KEY) {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+console.log('🚀 Starting Express server...');
+
 // Add error handling for uncaught exceptions
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  process.exit(1);
+  console.error('❌ Uncaught Exception:', error);
+  console.error('Stack:', error.stack);
+  // Don't exit in production - try to recover
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Attempting to continue despite error...');
+  } else {
+    process.exit(1);
+  }
 });
 
 process.on('unhandledRejection', (error) => {
-  console.error('Unhandled Rejection:', error);
-  process.exit(1);
+  console.error('❌ Unhandled Rejection:', error);
+  // Don't exit in production - try to recover
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Attempting to continue despite rejection...');
+  } else {
+    process.exit(1);
+  }
 });
 
 // CORS configuration
@@ -79,6 +92,7 @@ app.get('/test', (req, res) => {
 
 // Main scraping endpoint
 app.post('/scrape', async (req, res) => {
+  console.log('📥 /scrape endpoint hit');
   try {
     const { url } = req.body;
     
