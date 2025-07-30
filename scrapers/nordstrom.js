@@ -268,12 +268,18 @@ async function scrapeNordstrom(url) {
     if (isPuppeteerAvailable) {
       // Try Puppeteer first for better results
       console.log('🚀 Attempting Puppeteer scraping for Nordstrom...');
-      const puppeteerResult = await scrapeNordstromWithPuppeteer(url);
       
-      // If we got good data from Puppeteer, return it
-      if (puppeteerResult.name && puppeteerResult.name !== 'Nordstrom Product') {
-        console.log('✅ Puppeteer scraping successful');
-        return puppeteerResult;
+      try {
+        const puppeteerResult = await scrapeNordstromWithPuppeteer(url);
+        
+        // If we got good data from Puppeteer, return it
+        if (puppeteerResult.name && puppeteerResult.name !== 'Nordstrom Product') {
+          console.log('✅ Puppeteer scraping successful');
+          return puppeteerResult;
+        }
+      } catch (puppeteerError) {
+        console.error('⚠️ Puppeteer failed:', puppeteerError.message);
+        console.log('⚠️ Falling back to HTML scraping...');
       }
     } else {
       console.log('⚠️ Puppeteer disabled in production, using HTML scraping');

@@ -5,6 +5,7 @@ async function scrapeNordstromWithPuppeteer(url) {
   
   try {
     console.log('🔍 Launching Puppeteer for Nordstrom...');
+    console.log('🔍 Memory usage:', process.memoryUsage());
     
     // Launch browser with optimized settings
     browser = await puppeteer.launch({
@@ -195,6 +196,7 @@ async function scrapeNordstromWithPuppeteer(url) {
     
   } catch (error) {
     console.error('Nordstrom Puppeteer scraper error:', error.message);
+    console.error('Error stack:', error.stack);
     
     // Return minimal data on error
     return {
