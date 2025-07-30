@@ -10,22 +10,19 @@ const ClaudeAIService = require('./services/claude-ai');
 
 // Initialize AI service if API key is available
 let aiService = null;
-console.log('🔍 Checking for ANTHROPIC_API_KEY:', process.env.ANTHROPIC_API_KEY ? 'Found (hidden)' : 'Not found');
-console.log('🔍 All env vars:', Object.keys(process.env).filter(key => key.includes('ANTHROP') || key.includes('CLAUDE')));
-
-if (process.env.ANTHROPIC_API_KEY) {
-  aiService = new ClaudeAIService();
-  console.log('✅ Claude AI service initialized');
+if (process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim()) {
+  try {
+    aiService = new ClaudeAIService();
+    console.log('Claude AI service initialized');
+  } catch (error) {
+    console.log('Claude AI service not initialized:', error.message);
+  }
 } else {
-  console.log('⚠️ Claude AI service not initialized (no API key)');
+  console.log('Claude AI service not initialized (no API key)');
 }
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-console.log(`🔍 PORT from environment: ${process.env.PORT}`);
-console.log(`🔍 Using PORT: ${PORT}`);
-
-console.log('🚀 Starting Express server...');
 
 // Add error handling for uncaught exceptions
 process.on('uncaughtException', (error) => {
@@ -193,12 +190,8 @@ app.post('/scrape', async (req, res) => {
 // Handle preflight requests
 app.options('*', cors(corsOptions));
 
-// Railway needs 0.0.0.0 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server started on 0.0.0.0:${PORT}`);
+// Listen on all interfaces for Railway
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Bluestock Parser API running on port ${PORT}`);
+  console.log(`CORS enabled for: ${process.env.FRONTEND_URL || 'https://bluestock-bay.vercel.app'}`);
 });
-
-// Add timeout to keep process alive
-setInterval(() => {
-  console.log(`💓 Server heartbeat - still running on port ${PORT}`);
-}, 30000);

@@ -258,8 +258,8 @@ async function scrapeNordstromHTML(url) {
 
 // Main scraper function that tries Puppeteer first, then falls back to HTML
 async function scrapeNordstrom(url) {
-  // Disable Puppeteer for now to prevent crashes
-  const isPuppeteerAvailable = false; // process.env.ENABLE_PUPPETEER === 'true';
+  // Check if Puppeteer is enabled
+  const isPuppeteerAvailable = process.env.ENABLE_PUPPETEER === 'true';
   
   console.log(`🔍 Nordstrom scraper - Puppeteer available: ${isPuppeteerAvailable}`);
   console.log(`🔍 Environment: ${process.env.NODE_ENV}, ENABLE_PUPPETEER: ${process.env.ENABLE_PUPPETEER}`);
