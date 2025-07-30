@@ -7,8 +7,19 @@ const getProxyConfig = () => {
     return null;
   }
 
-  // Proxy URL from environment
-  const proxyUrl = process.env.PROXY_URL; // Format: http://user:pass@host:port
+  // Proxy configuration
+  let proxyUrl = process.env.PROXY_URL; // Format: http://user:pass@host:port
+  
+  // Support for Decodo proxy
+  if (process.env.DECODO_USERNAME && process.env.DECODO_PASSWORD) {
+    // Standard username:password format
+    proxyUrl = `http://${process.env.DECODO_USERNAME}:${process.env.DECODO_PASSWORD}@gate.decodo.com:10001`;
+    console.log('🔐 Using Decodo proxy service');
+  } else if (process.env.DECODO_API_KEY) {
+    // If only API key is provided, try as password with 'user' as username
+    proxyUrl = `http://user:${process.env.DECODO_API_KEY}@gate.decodo.com:10001`;
+    console.log('🔐 Using Decodo proxy service (API key mode)');
+  }
   
   if (!proxyUrl) {
     console.warn('USE_PROXY is true but PROXY_URL is not set');
