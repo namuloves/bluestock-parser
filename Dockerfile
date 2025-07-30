@@ -64,14 +64,14 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 # Copy app source
 COPY . .
 
-# Create a non-root user to run Puppeteer
-RUN groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
-    && mkdir -p /home/pptruser/Downloads \
-    && chown -R pptruser:pptruser /home/pptruser \
-    && chown -R pptruser:pptruser /app
+# Create a non-root user to run Puppeteer (commented out for now)
+# RUN groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
+#     && mkdir -p /home/pptruser/Downloads \
+#     && chown -R pptruser:pptruser /home/pptruser \
+#     && chown -R pptruser:pptruser /app
 
-# Run as non-root user
-USER pptruser
+# Run as root for now to debug Railway issue
+# USER pptruser
 
 # Expose port - Railway needs this
 EXPOSE ${PORT:-3001}
