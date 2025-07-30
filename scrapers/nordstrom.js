@@ -234,11 +234,11 @@ async function scrapeNordstromHTML(url) {
       if (error.response.status === 403 || error.response.status === 429) {
         // Return minimal data instead of throwing
         return {
-          name: 'Nordstrom Product',
-          price: 'Price unavailable (blocked)',
+          name: 'Product temporarily unavailable',
+          price: 'Unable to fetch price',
           originalPrice: null,
           images: [],
-          description: 'Unable to fetch product details due to site protection',
+          description: 'Nordstrom is currently blocking automated requests. Please try again later or use a proxy service.',
           sizes: [],
           color: '',
           sku: url.match(/\/(\d+)$/)?.[1] || '',
@@ -247,7 +247,8 @@ async function scrapeNordstromHTML(url) {
           isOnSale: false,
           inStock: false,
           url: url,
-          error: `Blocked: ${error.response.status}`
+          error: `Blocked: ${error.response.status}`,
+          blocked: true
         };
       }
     }

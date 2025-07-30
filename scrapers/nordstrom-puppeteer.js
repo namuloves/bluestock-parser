@@ -1,4 +1,8 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+// Add stealth plugin to avoid detection
+puppeteer.use(StealthPlugin());
 
 async function scrapeNordstromWithPuppeteer(url) {
   let browser;
@@ -7,7 +11,7 @@ async function scrapeNordstromWithPuppeteer(url) {
     console.log('🔍 Launching Puppeteer for Nordstrom...');
     console.log('🔍 Memory usage:', process.memoryUsage());
     
-    // Launch browser with optimized settings
+    // Launch browser with optimized settings and stealth mode
     browser = await puppeteer.launch({
       headless: 'new',
       args: [
@@ -20,7 +24,10 @@ async function scrapeNordstromWithPuppeteer(url) {
         '--disable-gpu',
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding'
+        '--disable-renderer-backgrounding',
+        '--disable-blink-features=AutomationControlled',
+        '--disable-features=IsolateOrigins,site-per-process',
+        '--window-size=1920,1080'
       ],
       // For Docker environments
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
@@ -28,12 +35,40 @@ async function scrapeNordstromWithPuppeteer(url) {
     
     const page = await browser.newPage();
     
-    // Set viewport and user agent
+    // Set viewport
     await page.setViewport({ width: 1920, height: 1080 });
-    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
     
-    // Navigate to the page
+    // Additional anti-detection measures
+    await page.evaluateOnNewDocument(() => {
+      // Override the navigator.webdriver property
+      Object.defineProperty(navigator, 'webdriver', {
+        get: () => undefined
+      });
+      
+      // Mock plugins
+      Object.defineProperty(navigator, 'plugins', {
+        get: () => [1, 2, 3, 4, 5]
+      });
+      
+      // Mock languages
+      Object.defineProperty(navigator, 'languages', {
+        get: () => ['en-US', 'en']
+      });
+    });
+    
+    // Navigate to the page with more natural behavior
     console.log('📄 Navigating to Nordstrom page...');
+    
+    // First go to Nordstrom homepage
+    await page.goto('https://www.nordstrom.com', { 
+      waitUntil: 'networkidle2',
+      timeout: 30000 
+    });
+    
+    // Wait a bit to appear more human-like
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Then navigate to the product page
     await page.goto(url, { 
       waitUntil: 'domcontentloaded',
       timeout: 60000 
@@ -60,11 +95,23 @@ async function scrapeNordstromWithPuppeteer(url) {
     // Additional wait for dynamic content
     await new Promise(resolve => setTimeout(resolve, 3000));
     
-    // Scroll down to trigger lazy loading of images and prices
+    // Check if we're blocked
+    const pageContent = await page.content();
+    if (pageContent.includes('unusual activity') || pageContent.includes('Access Denied')) {
+      console.log('⚠️ Detected blocking page, attempting to wait it out...');
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+    
+    // Scroll down to trigger lazy loading of images and prices with human-like behavior
     await page.evaluate(() => {
-      window.scrollTo(0, 500);
+      window.scrollTo({ top: 300, behavior: 'smooth' });
     });
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    await page.evaluate(() => {
+      window.scrollTo({ top: 600, behavior: 'smooth' });
+    });
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
     // Extract product data
     console.log('📊 Extracting product data...');
@@ -74,6 +121,34 @@ async function scrapeNordstromWithPuppeteer(url) {
     const pageUrl = await page.url();
     console.log('📄 Page title:', pageTitle);
     console.log('📄 Page URL:', pageUrl);
+    
+    // Check if we're on a blocking page
+    const pageContent = await page.content();
+    if (pageTitle.includes('Access Denied') || 
+        pageContent.includes('unusual activity') || 
+        pageContent.includes('Access Denied') ||
+        pageContent.includes('security check')) {
+      console.log('⚠️ Nordstrom is blocking the request');
+      
+      // Return a specific error response
+      return {
+        name: 'Product temporarily unavailable',
+        price: 'Unable to fetch price',
+        originalPrice: null,
+        images: [],
+        description: 'Nordstrom is currently blocking automated requests. Please try again later or use a proxy service.',
+        sizes: [],
+        color: '',
+        sku: url.match(/\/(\d+)$/)?.[1] || '',
+        brand: 'Nordstrom',
+        category: '',
+        isOnSale: false,
+        inStock: false,
+        url: url,
+        error: 'Blocked by anti-bot protection',
+        blocked: true
+      };
+    }
     
     const productData = await page.evaluate(() => {
       // Helper function to get text content safely
