@@ -43,21 +43,38 @@ async function scrapeNordstromWithPuppeteer(url) {
     console.log('⏳ Waiting for product content...');
     
     // Wait for the page to stabilize
-    await page.waitForTimeout(5000);
+    await new Promise(resolve => setTimeout(resolve, 5000));
     
     // Try to wait for common product elements
     try {
       await Promise.race([
         page.waitForSelector('h1', { timeout: 10000 }),
         page.waitForSelector('[data-element="product-title"]', { timeout: 10000 }),
-        page.waitForSelector('.product-title', { timeout: 10000 })
+        page.waitForSelector('.product-title', { timeout: 10000 }),
+        page.waitForSelector('[class*="ProductTitle"]', { timeout: 10000 })
       ]);
     } catch (e) {
       console.log('⚠️ Could not find product title elements, continuing...');
     }
     
+    // Additional wait for dynamic content
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    // Scroll down to trigger lazy loading of images and prices
+    await page.evaluate(() => {
+      window.scrollTo(0, 500);
+    });
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
     // Extract product data
     console.log('📊 Extracting product data...');
+    
+    // Debug: Log page title and URL
+    const pageTitle = await page.title();
+    const pageUrl = await page.url();
+    console.log('📄 Page title:', pageTitle);
+    console.log('📄 Page URL:', pageUrl);
+    
     const productData = await page.evaluate(() => {
       // Helper function to get text content safely
       const getText = (selector) => {
@@ -72,24 +89,39 @@ async function scrapeNordstromWithPuppeteer(url) {
           .filter(text => text.length > 0);
       };
       
-      // Extract product name - try multiple selectors
+      // Extract product name - h1 works on Nordstrom
       const name = getText('h1') || 
-                   getText('[data-element="product-title"]') ||
-                   getText('.product-title') ||
-                   getText('[aria-label*="Product"]') ||
                    document.title.split('|')[0].trim();
       
-      // Extract brand
-      const brand = getText('[data-element="product-brand"]') ||
+      // Extract brand - first h2 is often the brand on Nordstrom
+      const brand = getText('h2') ||
+                    getText('[data-element="product-brand"]') ||
                     getText('.product-brand') ||
+                    getText('[class*="ProductBrand"]') ||
+                    getText('[class*="brand-name"]') ||
+                    getText('a[href*="/browse/"]') ||
                     getText('[aria-label*="Brand"]') ||
                     'Nordstrom';
       
-      // Extract price
-      const priceText = getText('[aria-label*="Price"]') ||
-                        getText('.price-display-item') ||
-                        getText('[class*="price"]:not([class*="original"])') ||
-                        '';
+      // Extract price - look for any element containing dollar sign
+      let priceText = '';
+      const priceElements = document.querySelectorAll('*');
+      for (let el of priceElements) {
+        const text = el.textContent.trim();
+        if (text.match(/^\$[\d,]+\.?\d*$/) && !el.querySelector('*')) {
+          priceText = text;
+          break;
+        }
+      }
+      
+      if (!priceText) {
+        priceText = getText('[aria-label*="Price"]') ||
+                    getText('.price-display-item') ||
+                    getText('[class*="PriceDisplay"]') ||
+                    getText('[class*="price-display"]') ||
+                    getText('[class*="price"]:not([class*="original"]):not([class*="was"])') ||
+                    '';
+      }
       
       // Extract original price (for sale items)
       const originalPriceText = getText('[aria-label*="Original"]') ||
@@ -100,12 +132,41 @@ async function scrapeNordstromWithPuppeteer(url) {
       // Extract images
       const images = [];
       
-      // Try to get main product images
+      // Try to get main product images - check all img elements
       document.querySelectorAll('img').forEach(img => {
-        const src = img.src || img.dataset.src;
-        if (src && src.includes('nordstromimage.com') && !src.includes('icon')) {
+        const src = img.src || img.dataset.src || img.getAttribute('data-src');
+        if (src && (src.includes('nordstromimage.com') || src.includes('n.nordstrommedia.com')) && 
+            !src.includes('icon') && !src.includes('logo') && !src.includes('pixel')) {
           // Convert to high resolution
           const highResSrc = src.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
+          if (!images.includes(highResSrc)) {
+            images.push(highResSrc);
+          }
+        }
+      });
+      
+      // Check srcset attributes
+      document.querySelectorAll('[srcset]').forEach(el => {
+        const srcset = el.getAttribute('srcset');
+        if (srcset && (srcset.includes('nordstromimage.com') || srcset.includes('n.nordstrommedia.com'))) {
+          const urls = srcset.split(',').map(s => s.trim().split(' ')[0]);
+          urls.forEach(url => {
+            if (!url.includes('icon') && !url.includes('logo')) {
+              const highResSrc = url.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
+              if (!images.includes(highResSrc)) {
+                images.push(highResSrc);
+              }
+            }
+          });
+        }
+      });
+      
+      // Also check div backgrounds
+      document.querySelectorAll('[style*="background-image"]').forEach(div => {
+        const style = div.getAttribute('style');
+        const match = style.match(/url\(["']?([^"'\)]+)["']?\)/);
+        if (match && (match[1].includes('nordstromimage.com') || match[1].includes('n.nordstrommedia.com'))) {
+          const highResSrc = match[1].replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
           if (!images.includes(highResSrc)) {
             images.push(highResSrc);
           }

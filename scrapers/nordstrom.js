@@ -258,31 +258,24 @@ async function scrapeNordstromHTML(url) {
 
 // Main scraper function that tries Puppeteer first, then falls back to HTML
 async function scrapeNordstrom(url) {
-  // Check if Puppeteer is enabled
-  const isPuppeteerAvailable = process.env.ENABLE_PUPPETEER === 'true';
-  
-  console.log(`🔍 Nordstrom scraper - Puppeteer available: ${isPuppeteerAvailable}`);
-  console.log(`🔍 Environment: ${process.env.NODE_ENV}, ENABLE_PUPPETEER: ${process.env.ENABLE_PUPPETEER}`);
+  // Always use Puppeteer for Nordstrom
+  console.log('🔍 Nordstrom scraper - Using Puppeteer');
   
   try {
-    if (isPuppeteerAvailable) {
-      // Try Puppeteer first for better results
-      console.log('🚀 Attempting Puppeteer scraping for Nordstrom...');
+    // Try Puppeteer first for better results
+    console.log('🚀 Attempting Puppeteer scraping for Nordstrom...');
+    
+    try {
+      const puppeteerResult = await scrapeNordstromWithPuppeteer(url);
       
-      try {
-        const puppeteerResult = await scrapeNordstromWithPuppeteer(url);
-        
-        // If we got good data from Puppeteer, return it
-        if (puppeteerResult.name && puppeteerResult.name !== 'Nordstrom Product') {
-          console.log('✅ Puppeteer scraping successful');
-          return puppeteerResult;
-        }
-      } catch (puppeteerError) {
-        console.error('⚠️ Puppeteer failed:', puppeteerError.message);
-        console.log('⚠️ Falling back to HTML scraping...');
+      // If we got good data from Puppeteer, return it
+      if (puppeteerResult.name && puppeteerResult.name !== 'Nordstrom Product') {
+        console.log('✅ Puppeteer scraping successful');
+        return puppeteerResult;
       }
-    } else {
-      console.log('⚠️ Puppeteer disabled in production, using HTML scraping');
+    } catch (puppeteerError) {
+      console.error('⚠️ Puppeteer failed:', puppeteerError.message);
+      console.log('⚠️ Falling back to HTML scraping...');
     }
     
     // Otherwise, fall back to HTML scraping
