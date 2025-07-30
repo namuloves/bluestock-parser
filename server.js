@@ -75,6 +75,11 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.send('Bluestock Parser API is running!');
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', service: 'bluestock-parser' });
@@ -189,7 +194,23 @@ app.options('*', cors(corsOptions));
 // Railway requires binding to 0.0.0.0
 const HOST = '0.0.0.0';
 
-app.listen(PORT, HOST, () => {
-  console.log(`Bluestock Parser API running on ${HOST}:${PORT}`);
-  console.log(`CORS enabled for: ${process.env.FRONTEND_URL || 'https://bluestock-bay.vercel.app'}`);
+const server = app.listen(PORT, HOST, (err) => {
+  if (err) {
+    console.error('❌ Failed to start server:', err);
+    process.exit(1);
+  }
+  console.log(`✅ Bluestock Parser API running on ${HOST}:${PORT}`);
+  console.log(`✅ CORS enabled for: ${process.env.FRONTEND_URL || 'https://bluestock-bay.vercel.app'}`);
+  console.log(`✅ Server is ready to accept connections`);
+});
+
+// Add server error handling
+server.on('error', (err) => {
+  console.error('❌ Server error:', err);
+});
+
+// Log when server is actually listening
+server.on('listening', () => {
+  const addr = server.address();
+  console.log(`✅ Server listening on ${addr.address}:${addr.port}`);
 });
