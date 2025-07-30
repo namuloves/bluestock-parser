@@ -258,15 +258,22 @@ async function scrapeNordstromHTML(url) {
 
 // Main scraper function that tries Puppeteer first, then falls back to HTML
 async function scrapeNordstrom(url) {
+  // Check if we're in production and Puppeteer might not work
+  const isPuppeteerAvailable = process.env.NODE_ENV !== 'production' || process.env.ENABLE_PUPPETEER === 'true';
+  
   try {
-    // Try Puppeteer first for better results
-    console.log('🚀 Attempting Puppeteer scraping for Nordstrom...');
-    const puppeteerResult = await scrapeNordstromWithPuppeteer(url);
-    
-    // If we got good data from Puppeteer, return it
-    if (puppeteerResult.name && puppeteerResult.name !== 'Nordstrom Product') {
-      console.log('✅ Puppeteer scraping successful');
-      return puppeteerResult;
+    if (isPuppeteerAvailable) {
+      // Try Puppeteer first for better results
+      console.log('🚀 Attempting Puppeteer scraping for Nordstrom...');
+      const puppeteerResult = await scrapeNordstromWithPuppeteer(url);
+      
+      // If we got good data from Puppeteer, return it
+      if (puppeteerResult.name && puppeteerResult.name !== 'Nordstrom Product') {
+        console.log('✅ Puppeteer scraping successful');
+        return puppeteerResult;
+      }
+    } else {
+      console.log('⚠️ Puppeteer disabled in production, using HTML scraping');
     }
     
     // Otherwise, fall back to HTML scraping
