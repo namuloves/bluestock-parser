@@ -1,16 +1,20 @@
 const express = require('express');
 const cors = require('cors');
+require('dotenv').config(); // Load environment variables
 const { scrapeProduct } = require('./scrapers');
 const { enhanceWithAI } = require('./scrapers/ebay');
 const ClaudeAIService = require('./services/claude-ai');
 
 // Initialize AI service if API key is available
 let aiService = null;
+console.log('🔍 Checking for ANTHROPIC_API_KEY:', process.env.ANTHROPIC_API_KEY ? 'Found (hidden)' : 'Not found');
+console.log('🔍 All env vars:', Object.keys(process.env).filter(key => key.includes('ANTHROP') || key.includes('CLAUDE')));
+
 if (process.env.ANTHROPIC_API_KEY) {
   aiService = new ClaudeAIService();
-  console.log('Claude AI service initialized');
+  console.log('✅ Claude AI service initialized');
 } else {
-  console.log('Claude AI service not initialized (no API key)');
+  console.log('⚠️ Claude AI service not initialized (no API key)');
 }
 
 const app = express();
