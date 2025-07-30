@@ -186,7 +186,10 @@ app.post('/scrape', async (req, res) => {
 // Handle preflight requests
 app.options('*', cors(corsOptions));
 
-app.listen(PORT, () => {
-  console.log(`Bluestock Parser API running on port ${PORT}`);
+// Railway requires binding to 0.0.0.0
+const HOST = '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+  console.log(`Bluestock Parser API running on ${HOST}:${PORT}`);
   console.log(`CORS enabled for: ${process.env.FRONTEND_URL || 'https://bluestock-bay.vercel.app'}`);
 });
