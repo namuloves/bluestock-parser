@@ -22,6 +22,8 @@ if (process.env.ANTHROPIC_API_KEY) {
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+console.log(`🔍 PORT from environment: ${process.env.PORT}`);
+console.log(`🔍 Using PORT: ${PORT}`);
 
 console.log('🚀 Starting Express server...');
 
@@ -191,26 +193,7 @@ app.post('/scrape', async (req, res) => {
 // Handle preflight requests
 app.options('*', cors(corsOptions));
 
-// Railway requires binding to 0.0.0.0
-const HOST = '0.0.0.0';
-
-const server = app.listen(PORT, HOST, (err) => {
-  if (err) {
-    console.error('❌ Failed to start server:', err);
-    process.exit(1);
-  }
-  console.log(`✅ Bluestock Parser API running on ${HOST}:${PORT}`);
-  console.log(`✅ CORS enabled for: ${process.env.FRONTEND_URL || 'https://bluestock-bay.vercel.app'}`);
-  console.log(`✅ Server is ready to accept connections`);
-});
-
-// Add server error handling
-server.on('error', (err) => {
-  console.error('❌ Server error:', err);
-});
-
-// Log when server is actually listening
-server.on('listening', () => {
-  const addr = server.address();
-  console.log(`✅ Server listening on ${addr.address}:${addr.port}`);
+// Try without specifying host - let Railway handle it
+app.listen(PORT, () => {
+  console.log(`✅ Server started on port ${PORT}`);
 });
