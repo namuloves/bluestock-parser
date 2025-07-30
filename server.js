@@ -1,6 +1,9 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config(); // Load environment variables
+// Only load dotenv in development
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 const { scrapeProduct } = require('./scrapers');
 const { enhanceWithAI } = require('./scrapers/ebay');
 const ClaudeAIService = require('./services/claude-ai');

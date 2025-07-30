@@ -1,5 +1,8 @@
 const Anthropic = require('@anthropic-ai/sdk');
-require('dotenv').config();
+// Only load dotenv in development
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 class ClaudeAIService {
   constructor() {
