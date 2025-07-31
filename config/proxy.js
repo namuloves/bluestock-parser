@@ -12,12 +12,14 @@ const getProxyConfig = () => {
   
   // Support for Decodo proxy
   if (process.env.DECODO_USERNAME && process.env.DECODO_PASSWORD) {
-    // Standard username:password format
-    proxyUrl = `http://${process.env.DECODO_USERNAME}:${process.env.DECODO_PASSWORD}@gate.decodo.com:10001`;
+    // URL encode credentials to handle special characters
+    const username = encodeURIComponent(process.env.DECODO_USERNAME);
+    const password = encodeURIComponent(process.env.DECODO_PASSWORD);
+    proxyUrl = `http://${username}:${password}@gate.decodo.com:10001`;
     console.log('🔐 Using Decodo proxy service');
   } else if (process.env.DECODO_API_KEY) {
     // If only API key is provided, try as password with 'user' as username
-    proxyUrl = `http://user:${process.env.DECODO_API_KEY}@gate.decodo.com:10001`;
+    proxyUrl = `http://user:${encodeURIComponent(process.env.DECODO_API_KEY)}@gate.decodo.com:10001`;
     console.log('🔐 Using Decodo proxy service (API key mode)');
   }
   

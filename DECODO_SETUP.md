@@ -2,12 +2,14 @@
 
 ## Environment Variables to Add on Railway
 
-### Option 1: If you have username and password from Decodo
+### Option 1: Username and Password Authentication (RECOMMENDED)
 ```
 USE_PROXY=true
-DECODO_USERNAME=your_username
-DECODO_PASSWORD=your_password
+DECODO_USERNAME=spubcuhdc9
+DECODO_PASSWORD=nTDf2hlhI96r=eaNk4
 ```
+
+Note: The password contains special characters that will be automatically URL-encoded by the parser.
 
 ### Option 2: If you only have an API key
 ```

@@ -96,8 +96,8 @@ async function scrapeNordstromWithPuppeteer(url) {
     await new Promise(resolve => setTimeout(resolve, 3000));
     
     // Check if we're blocked
-    const pageContent = await page.content();
-    if (pageContent.includes('unusual activity') || pageContent.includes('Access Denied')) {
+    const pageContentCheck = await page.content();
+    if (pageContentCheck.includes('unusual activity') || pageContentCheck.includes('Access Denied')) {
       console.log('⚠️ Detected blocking page, attempting to wait it out...');
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
