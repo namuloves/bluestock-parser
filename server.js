@@ -95,7 +95,8 @@ app.get('/test', (req, res) => {
       USE_PROXY: process.env.USE_PROXY,
       hasDecodoUsername: !!process.env.DECODO_USERNAME,
       hasDecodoPassword: !!process.env.DECODO_PASSWORD,
-      proxyEnabled: process.env.USE_PROXY === 'true'
+      proxyEnabled: process.env.USE_PROXY === 'true' || (!!process.env.DECODO_USERNAME && !!process.env.DECODO_PASSWORD),
+      note: 'Proxy auto-enables when Decodo credentials are present'
     }
   });
 });

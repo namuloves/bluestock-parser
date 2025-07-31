@@ -2,8 +2,11 @@ const { HttpsProxyAgent } = require('https-proxy-agent');
 
 // Proxy configuration
 const getProxyConfig = () => {
-  // Check if proxy is enabled
-  if (process.env.USE_PROXY !== 'true') {
+  // Force enable proxy if Decodo credentials are present
+  const hasDecodoCredentials = process.env.DECODO_USERNAME && process.env.DECODO_PASSWORD;
+  
+  // Check if proxy is enabled (or if we have Decodo credentials)
+  if (process.env.USE_PROXY !== 'true' && !hasDecodoCredentials) {
     return null;
   }
 
