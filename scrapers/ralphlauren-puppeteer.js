@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const selectors = require('../config/ralph-lauren-selectors');
 
 // Add stealth plugin to avoid detection
 puppeteer.use(StealthPlugin());
@@ -172,43 +173,70 @@ async function scrapeRalphLaurenWithPuppeteer(url) {
     // Get images if not found in digitalData
     let images = productData.images || [];
     if (images.length === 0) {
-      images = await page.evaluate(() => {
+      // Pass selectors to page context
+      images = await page.evaluate((config) => {
         const imgs = [];
-        // Look for main product images
-        const imageSelectors = [
-          '.product-image-main img',
-          '.product-images img',
-          '[class*="gallery"] img',
-          'img[alt*="lifestyle"]',
-          'img[alt*="main"]'
-        ];
+        const foundUrls = new Set();
         
-        imageSelectors.forEach(selector => {
-          document.querySelectorAll(selector).forEach(img => {
-            const src = img.src || img.dataset.src;
-            if (src && src.includes('scene7.com') && 
-                !src.includes('swatch') && 
-                !src.includes('logo')) {
-              const highResSrc = src.replace(/\$rl_[^$]+\$/, '$rl_df_zoom$');
-              if (!imgs.includes(highResSrc)) {
-                imgs.push(highResSrc);
+        // Helper function to check if image should be excluded
+        const shouldExclude = (src) => {
+          return config.imageExclusions.some(exclusion => 
+            src.toLowerCase().includes(exclusion.toLowerCase())
+          );
+        };
+        
+        // Helper function to make high-res URL
+        const makeHighRes = (src) => {
+          let highRes = src;
+          // Simple replacements without regex in evaluate context
+          if (highRes.includes('$rl_')) {
+            highRes = highRes.replace(/\$rl_[^$]+\$/, '$rl_df_zoom$');
+          }
+          return highRes;
+        };
+        
+        // First, try to find images in specific containers
+        config.imageContainers.forEach(containerSelector => {
+          const containers = document.querySelectorAll(containerSelector);
+          containers.forEach(container => {
+            // Look for images within this container
+            container.querySelectorAll('img').forEach(img => {
+              const src = img.src || img.dataset.src || img.getAttribute('data-src');
+              if (src && src.includes('scene7.com') && !shouldExclude(src) && !foundUrls.has(src)) {
+                foundUrls.add(src);
+                imgs.push(makeHighRes(src));
               }
-            }
+            });
           });
         });
         
-        // If still no images, get any scene7 images (excluding swatches)
+        // If no images found in containers, search globally with selectors
         if (imgs.length === 0) {
-          document.querySelectorAll('img[src*=\"scene7.com\"]').forEach(img => {
+          config.imageSelectors.forEach(imgSelector => {
+            document.querySelectorAll(imgSelector).forEach(img => {
+              const src = img.src || img.dataset.src || img.getAttribute('data-src');
+              if (src && !shouldExclude(src) && !foundUrls.has(src)) {
+                foundUrls.add(src);
+                imgs.push(makeHighRes(src));
+              }
+            });
+          });
+        }
+        
+        // Final fallback: any scene7 images
+        if (imgs.length === 0) {
+          document.querySelectorAll('img[src*="scene7.com"]').forEach(img => {
             const src = img.src;
-            if (src && !src.includes('swatch') && !src.includes('$rl_df_40_swatch$')) {
-              imgs.push(src);
+            if (src && !shouldExclude(src) && !foundUrls.has(src)) {
+              foundUrls.add(src);
+              imgs.push(makeHighRes(src));
             }
           });
         }
         
+        console.log(`Found ${imgs.length} images`);
         return imgs.slice(0, 10);
-      });
+      }, selectors);
     }
     
     return {
