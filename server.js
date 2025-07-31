@@ -90,7 +90,13 @@ app.get('/test', (req, res) => {
     status: 'OK',
     service: 'bluestock-parser',
     timestamp: new Date().toISOString(),
-    message: 'Parser service is running and accessible!'
+    message: 'Parser service is running and accessible!',
+    proxy: {
+      USE_PROXY: process.env.USE_PROXY,
+      hasDecodoUsername: !!process.env.DECODO_USERNAME,
+      hasDecodoPassword: !!process.env.DECODO_PASSWORD,
+      proxyEnabled: process.env.USE_PROXY === 'true'
+    }
   });
 });
 
