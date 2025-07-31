@@ -50,6 +50,12 @@ async function scrapeRalphLaurenWithPuppeteer(url) {
     // Wait for content to load
     await new Promise(resolve => setTimeout(resolve, 5000));
     
+    // Scroll to trigger image loading
+    await page.evaluate(() => {
+      window.scrollTo(0, 500);
+    });
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
     // Check if blocked
     const pageTitle = await page.title();
     console.log('📄 Page title:', pageTitle);
@@ -79,12 +85,12 @@ async function scrapeRalphLaurenWithPuppeteer(url) {
         const item = window.digitalData.product.item[0];
         return {
           name: item.productName,
-          brand: item.brand,
-          price: item.price,
-          sku: item.productId,
+          brand: item.productBrand || item.brand,
+          price: item.productPrice || item.price,
+          sku: item.productID || item.productId,
           color: item.color,
           size: item.size,
-          category: item.category,
+          category: item.productCategory || item.category,
           fromDigitalData: true
         };
       }
@@ -95,20 +101,54 @@ async function scrapeRalphLaurenWithPuppeteer(url) {
                    getText('[class*="ProductName"]') ||
                    document.title.split('|')[0].trim();
       
-      const price = getText('[class*="price"]:not([class*="strike"])') ||
-                    getText('[class*="Price"]') ||
-                    '';
+      // Extract price - look for elements with dollar signs
+      let price = '';
+      const priceSelectors = [
+        '.product-price',
+        '[class*="price"]:not([class*="strike"]):not([class*="was"])',
+        '[class*="Price"]:not([class*="Original"])',
+        'span[itemprop="price"]'
+      ];
+      
+      for (const selector of priceSelectors) {
+        const elem = document.querySelector(selector);
+        if (elem) {
+          const text = elem.textContent.trim();
+          if (text.includes('$')) {
+            price = text;
+            break;
+          }
+        }
+      }
       
       const brand = getText('[class*="brand"]') ||
                     getText('[itemprop="brand"]') ||
                     'Ralph Lauren';
       
-      // Extract images
+      // Extract images - filter out swatches and non-product images
       const images = [];
       document.querySelectorAll('img[src*="scene7.com"]').forEach(img => {
         const src = img.src;
-        if (src && !src.includes('logo') && !src.includes('icon')) {
-          images.push(src);
+        const alt = img.alt || '';
+        
+        // Skip swatches, logos, icons
+        if (src && 
+            !src.includes('swatch') && 
+            !src.includes('logo') && 
+            !src.includes('icon') &&
+            !src.includes('$rl_df_40_swatch$') &&
+            (src.includes('lifestyle') || 
+             src.includes('main') || 
+             src.includes('detail') ||
+             src.includes('$rl_') ||
+             alt.toLowerCase().includes('pant') ||
+             alt.toLowerCase().includes('shirt'))) {
+          // Convert to high resolution
+          const highResSrc = src.replace(/\$rl_[^$]+\$/, '$rl_df_zoom$')
+                                .replace(/\?.*$/, '?$rl_df_zoom$');
+          if (!images.includes(highResSrc)) {
+            images.push(highResSrc);
+          }
         }
       });
       
@@ -125,7 +165,7 @@ async function scrapeRalphLaurenWithPuppeteer(url) {
     
     // Process price
     let finalPrice = productData.price;
-    if (typeof finalPrice === 'number') {
+    if (finalPrice && !String(finalPrice).includes('$')) {
       finalPrice = `$${finalPrice}`;
     }
     
@@ -134,13 +174,40 @@ async function scrapeRalphLaurenWithPuppeteer(url) {
     if (images.length === 0) {
       images = await page.evaluate(() => {
         const imgs = [];
-        document.querySelectorAll('img').forEach(img => {
-          const src = img.src || img.dataset.src;
-          if (src && src.includes('scene7.com') && !src.includes('logo')) {
-            imgs.push(src);
-          }
+        // Look for main product images
+        const imageSelectors = [
+          '.product-image-main img',
+          '.product-images img',
+          '[class*="gallery"] img',
+          'img[alt*="lifestyle"]',
+          'img[alt*="main"]'
+        ];
+        
+        imageSelectors.forEach(selector => {
+          document.querySelectorAll(selector).forEach(img => {
+            const src = img.src || img.dataset.src;
+            if (src && src.includes('scene7.com') && 
+                !src.includes('swatch') && 
+                !src.includes('logo')) {
+              const highResSrc = src.replace(/\$rl_[^$]+\$/, '$rl_df_zoom$');
+              if (!imgs.includes(highResSrc)) {
+                imgs.push(highResSrc);
+              }
+            }
+          });
         });
-        return imgs;
+        
+        // If still no images, get any scene7 images (excluding swatches)
+        if (imgs.length === 0) {
+          document.querySelectorAll('img[src*=\"scene7.com\"]').forEach(img => {
+            const src = img.src;
+            if (src && !src.includes('swatch') && !src.includes('$rl_df_40_swatch$')) {
+              imgs.push(src);
+            }
+          });
+        }
+        
+        return imgs.slice(0, 10);
       });
     }
     
