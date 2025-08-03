@@ -3,6 +3,7 @@ const axios = require('axios');
 async function scrapeSsenseSimple(url) {
   try {
     console.log('🔍 Fetching SSENSE page (simple method)...');
+    console.log('URL:', url);
     
     // Try to fetch with different user agents
     const userAgents = [

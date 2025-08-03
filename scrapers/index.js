@@ -6,6 +6,7 @@ const { scrapeCOS } = require('./cos');
 const { scrapeSezane } = require('./sezane');
 const { scrapeNordstrom } = require('./nordstrom');
 const { scrapeSsense } = require('./ssense');
+const { scrapeSsenseSimple } = require('./ssense-simple');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -323,13 +324,14 @@ const scrapeProduct = async (url) => {
       case 'ssense':
         console.log('🎨 Using SSENSE scraper');
         // Try simple scraper first (faster, works on Railway)
-        const { scrapeSsenseSimple } = require('./ssense-simple');
         let ssenseProduct;
         try {
           ssenseProduct = await scrapeSsenseSimple(url);
           console.log('✅ Simple SSENSE scraper succeeded');
+          console.log('Product extracted:', ssenseProduct.name, 'Price:', ssenseProduct.price);
         } catch (error) {
-          console.log('⚠️ Simple scraper failed, trying Puppeteer...');
+          console.log('⚠️ Simple scraper failed:', error.message);
+          console.log('Trying Puppeteer...');
           ssenseProduct = await scrapeSsense(url);
         }
         
