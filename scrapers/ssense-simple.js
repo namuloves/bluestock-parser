@@ -66,18 +66,77 @@ async function scrapeSsenseSimple(url) {
     // Extract all image URLs from the HTML
     const extractImages = (html) => {
       const images = [];
-      // Look for SSENSE CDN images
-      const imgRegex = /https:\/\/img\.ssensemedia\.com\/images\/[^"'\s]+\.jpg/gi;
-      const matches = html.match(imgRegex) || [];
       
-      for (const url of matches) {
-        // Clean URL and avoid duplicates
-        const cleanUrl = url.split('?')[0];
-        if (!images.includes(cleanUrl) && !cleanUrl.includes('_e1')) {
-          images.push(cleanUrl);
+      // Multiple patterns to find SSENSE images
+      const patterns = [
+        // Direct image URLs
+        /https:\/\/img\.ssensemedia\.com\/images\/[^"'\s,]+\.jpg/gi,
+        // In data attributes
+        /data-\w+="([^"]*ssensemedia[^"]*\.jpg[^"]*)"/gi,
+        // In srcset attributes
+        /srcset="([^"]*)"/gi,
+        // In JSON strings
+        /"https:\\\/\\\/img\.ssensemedia\.com\\\/images\\\/[^"]+\.jpg"/gi,
+        // URL encoded
+        /https%3A%2F%2Fimg\.ssensemedia\.com%2Fimages%2F[^"'\s]+\.jpg/gi
+      ];
+      
+      for (const pattern of patterns) {
+        const matches = [...(html.matchAll(pattern) || [])];
+        for (const match of matches) {
+          const content = match[1] || match[0];
+          
+          // Handle srcset (multiple URLs with sizes)
+          if (content.includes(',') && content.includes('ssensemedia')) {
+            const urls = content.split(',');
+            for (const url of urls) {
+              const cleanUrl = url.trim().split(' ')[0];
+              if (cleanUrl.includes('ssensemedia') && cleanUrl.includes('.jpg')) {
+                const finalUrl = cleanUrl
+                  .replace(/\\/g, '')
+                  .replace(/^["']|["']$/g, '')
+                  .split('?')[0];
+                if (!images.includes(finalUrl) && !finalUrl.includes('_e1')) {
+                  images.push(finalUrl);
+                }
+              }
+            }
+          } else if (content.includes('ssensemedia') && content.includes('.jpg')) {
+            const finalUrl = content
+              .replace(/\\/g, '')
+              .replace(/^["']|["']$/g, '')
+              .replace(/%2F/g, '/')
+              .replace(/%3A/g, ':')
+              .split('?')[0];
+            if (finalUrl.startsWith('http') && !images.includes(finalUrl) && !finalUrl.includes('_e1')) {
+              images.push(finalUrl);
+            }
+          }
         }
       }
       
+      // SSENSE uses predictable URL patterns for multiple images
+      // Format: /images/[SKU]_[number]/[product-name].jpg
+      if (images.length > 0) {
+        const firstImage = images[0];
+        // Extract pattern from first image
+        const patternMatch = firstImage.match(/\/images\/(\d+[A-Z]\d+)_1\//);
+        if (patternMatch) {
+          const baseSku = patternMatch[1];
+          const baseUrl = firstImage.replace(/_1\//, '_X/');
+          
+          // SSENSE typically has 1-6 images per product
+          for (let i = 2; i <= 6; i++) {
+            const additionalUrl = baseUrl.replace('_X/', `_${i}/`);
+            if (!images.includes(additionalUrl)) {
+              images.push(additionalUrl);
+            }
+          }
+          console.log(`🎯 Generated additional URLs using pattern: ${baseSku}_[1-6]`);
+        }
+      }
+      
+      console.log(`📸 Extracted ${images.length} potential images`);
       return images;
     };
     
