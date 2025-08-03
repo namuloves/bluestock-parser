@@ -17,7 +17,9 @@ async function scrapeSsense(url) {
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--disable-blink-features=AutomationControlled',
-        '--window-size=1920,1080'
+        '--window-size=1920,1080',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process'
       ],
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
     });

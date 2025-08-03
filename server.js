@@ -84,6 +84,28 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', service: 'bluestock-parser' });
 });
 
+// Debug SSENSE endpoint
+app.get('/debug-ssense', async (req, res) => {
+  try {
+    const { scrapeSsense } = require('./scrapers/ssense');
+    const testUrl = 'https://www.ssense.com/en-us/women/product/still-kelly/black-workwear-trousers/18061791';
+    console.log('🔍 Debug: Testing SSENSE scraper directly');
+    const result = await scrapeSsense(testUrl);
+    res.json({
+      success: true,
+      message: 'SSENSE scraper test',
+      result
+    });
+  } catch (error) {
+    console.error('Debug SSENSE error:', error);
+    res.json({
+      success: false,
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // Test endpoint
 app.get('/test', (req, res) => {
   res.json({
