@@ -87,13 +87,13 @@ app.get('/health', (req, res) => {
 // Debug SSENSE endpoint
 app.get('/debug-ssense', async (req, res) => {
   try {
-    const { scrapeSsense } = require('./scrapers/ssense');
+    const { scrapeSsenseSimple } = require('./scrapers/ssense-simple');
     const testUrl = 'https://www.ssense.com/en-us/women/product/still-kelly/black-workwear-trousers/18061791';
-    console.log('🔍 Debug: Testing SSENSE scraper directly');
-    const result = await scrapeSsense(testUrl);
+    console.log('🔍 Debug: Testing SSENSE simple scraper directly');
+    const result = await scrapeSsenseSimple(testUrl);
     res.json({
       success: true,
-      message: 'SSENSE scraper test',
+      message: 'SSENSE simple scraper test',
       result
     });
   } catch (error) {

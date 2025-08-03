@@ -129,26 +129,10 @@ async function scrapeSsenseSimple(url) {
     
   } catch (error) {
     console.error('❌ Error scraping SSENSE (simple):', error.message);
+    console.error('Stack:', error.stack);
     
-    // Return fallback data
-    return {
-      url,
-      name: 'SSENSE Product',
-      brand: 'SSENSE',
-      price: 0,
-      originalPrice: null,
-      currency: 'USD',
-      description: error.message,
-      images: [],
-      sizes: [],
-      color: '',
-      productId: '',
-      materials: [],
-      inStock: false,
-      source: 'ssense',
-      scrapedAt: new Date().toISOString(),
-      error: error.message
-    };
+    // Re-throw the error so we can see what's happening
+    throw error;
   }
 }
 
