@@ -7,6 +7,7 @@ const { scrapeSezane } = require('./sezane');
 const { scrapeNordstrom } = require('./nordstrom');
 const { scrapeSsense } = require('./ssense');
 const { scrapeSsenseSimple } = require('./ssense-simple');
+const { scrapeSsenseFallback } = require('./ssense-fallback');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -323,16 +324,30 @@ const scrapeProduct = async (url) => {
         
       case 'ssense':
         console.log('🎨 Using SSENSE scraper');
-        // Try simple scraper first (faster, works on Railway)
         let ssenseProduct;
-        try {
-          ssenseProduct = await scrapeSsenseSimple(url);
-          console.log('✅ Simple SSENSE scraper succeeded');
-          console.log('Product extracted:', ssenseProduct.name, 'Price:', ssenseProduct.price);
-        } catch (error) {
-          console.log('⚠️ Simple scraper failed:', error.message);
-          console.log('Trying Puppeteer...');
-          ssenseProduct = await scrapeSsense(url);
+        
+        // Check if running on Railway (production)
+        const isRailway = process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID;
+        
+        if (isRailway) {
+          console.log('⚠️ Running on Railway - SSENSE blocks Railway IPs, using fallback');
+          ssenseProduct = scrapeSsenseFallback(url);
+        } else {
+          // Try simple scraper first (faster, works locally)
+          try {
+            ssenseProduct = await scrapeSsenseSimple(url);
+            console.log('✅ Simple SSENSE scraper succeeded');
+            console.log('Product extracted:', ssenseProduct.name, 'Price:', ssenseProduct.price);
+          } catch (error) {
+            console.log('⚠️ Simple scraper failed:', error.message);
+            try {
+              console.log('Trying Puppeteer...');
+              ssenseProduct = await scrapeSsense(url);
+            } catch (puppeteerError) {
+              console.log('❌ Puppeteer also failed, using fallback');
+              ssenseProduct = scrapeSsenseFallback(url);
+            }
+          }
         }
         
         return {
