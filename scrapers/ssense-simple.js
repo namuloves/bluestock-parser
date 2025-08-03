@@ -63,6 +63,27 @@ async function scrapeSsenseSimple(url) {
     const html = response.data;
     console.log('📄 HTML length:', html.length);
     
+    // Extract all image URLs from the HTML
+    const extractImages = (html) => {
+      const images = [];
+      // Look for SSENSE CDN images
+      const imgRegex = /https:\/\/img\.ssensemedia\.com\/images\/[^"'\s]+\.jpg/gi;
+      const matches = html.match(imgRegex) || [];
+      
+      for (const url of matches) {
+        // Clean URL and avoid duplicates
+        const cleanUrl = url.split('?')[0];
+        if (!images.includes(cleanUrl) && !cleanUrl.includes('_e1')) {
+          images.push(cleanUrl);
+        }
+      }
+      
+      return images;
+    };
+    
+    const allImages = extractImages(html);
+    console.log(`📸 Found ${allImages.length} images in HTML`);
+    
     // Extract JSON-LD
     const jsonLdMatch = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/i);
     
@@ -92,7 +113,7 @@ async function scrapeSsenseSimple(url) {
         originalPrice: null,
         currency: 'USD',
         description,
-        images: image ? [image] : [],
+        images: allImages.length > 0 ? allImages : (image ? [image] : []),
         sizes: [],
         color: '',
         productId: url.split('/').pop(),
@@ -129,7 +150,7 @@ async function scrapeSsenseSimple(url) {
       originalPrice: null,
       currency: productData.offers?.priceCurrency || 'USD',
       description: productData.description || '',
-      images: productData.image ? [productData.image] : [],
+      images: allImages.length > 0 ? allImages : (productData.image ? [productData.image] : []),
       sizes: [],
       color,
       productId: productData.sku || productData.productID?.toString() || '',
