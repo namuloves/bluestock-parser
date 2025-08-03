@@ -322,7 +322,16 @@ const scrapeProduct = async (url) => {
         
       case 'ssense':
         console.log('🎨 Using SSENSE scraper');
-        const ssenseProduct = await scrapeSsense(url);
+        // Try simple scraper first (faster, works on Railway)
+        const { scrapeSsenseSimple } = require('./ssense-simple');
+        let ssenseProduct;
+        try {
+          ssenseProduct = await scrapeSsenseSimple(url);
+          console.log('✅ Simple SSENSE scraper succeeded');
+        } catch (error) {
+          console.log('⚠️ Simple scraper failed, trying Puppeteer...');
+          ssenseProduct = await scrapeSsense(url);
+        }
         
         return {
           success: true,
