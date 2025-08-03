@@ -326,28 +326,15 @@ const scrapeProduct = async (url) => {
         console.log('🎨 Using SSENSE scraper');
         let ssenseProduct;
         
-        // Check if running on Railway (production)
-        const isRailway = process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID;
-        
-        if (isRailway) {
-          console.log('⚠️ Running on Railway - SSENSE blocks Railway IPs, using fallback');
+        // Try simple scraper with proxy
+        try {
+          ssenseProduct = await scrapeSsenseSimple(url);
+          console.log('✅ SSENSE scraper succeeded');
+          console.log('Product extracted:', ssenseProduct.name, 'Price:', ssenseProduct.price);
+        } catch (error) {
+          console.log('⚠️ SSENSE scraper failed:', error.message);
+          console.log('Using fallback data');
           ssenseProduct = scrapeSsenseFallback(url);
-        } else {
-          // Try simple scraper first (faster, works locally)
-          try {
-            ssenseProduct = await scrapeSsenseSimple(url);
-            console.log('✅ Simple SSENSE scraper succeeded');
-            console.log('Product extracted:', ssenseProduct.name, 'Price:', ssenseProduct.price);
-          } catch (error) {
-            console.log('⚠️ Simple scraper failed:', error.message);
-            try {
-              console.log('Trying Puppeteer...');
-              ssenseProduct = await scrapeSsense(url);
-            } catch (puppeteerError) {
-              console.log('❌ Puppeteer also failed, using fallback');
-              ssenseProduct = scrapeSsenseFallback(url);
-            }
-          }
         }
         
         return {

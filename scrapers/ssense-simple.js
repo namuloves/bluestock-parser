@@ -1,9 +1,18 @@
 const axios = require('axios');
+const { HttpsProxyAgent } = require('https-proxy-agent');
 
 async function scrapeSsenseSimple(url) {
   try {
     console.log('🔍 Fetching SSENSE page (simple method)...');
     console.log('URL:', url);
+    
+    // Check if proxy is configured
+    let axiosConfig = {};
+    if (process.env.USE_PROXY === 'true' && process.env.DECODO_USERNAME && process.env.DECODO_PASSWORD) {
+      const proxyUrl = `http://${process.env.DECODO_USERNAME}:${process.env.DECODO_PASSWORD}@proxy.decodo.com:30000`;
+      console.log('🔄 Using Decodo proxy for SSENSE');
+      axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl);
+    }
     
     // Try to fetch with different user agents
     const userAgents = [
@@ -18,6 +27,7 @@ async function scrapeSsenseSimple(url) {
     for (const userAgent of userAgents) {
       try {
         response = await axios.get(url, {
+          ...axiosConfig,
           headers: {
             'User-Agent': userAgent,
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
