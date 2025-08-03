@@ -5,6 +5,7 @@ const { scrapeRalphLauren } = require('./ralphlauren');
 const { scrapeCOS } = require('./cos');
 const { scrapeSezane } = require('./sezane');
 const { scrapeNordstrom } = require('./nordstrom');
+const { scrapeSsense } = require('./ssense');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -37,6 +38,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('nordstrom.')) {
     return 'nordstrom';
+  }
+  if (hostname.includes('ssense.')) {
+    return 'ssense';
   }
   
   return 'generic';
@@ -313,6 +317,52 @@ const scrapeProduct = async (url) => {
             isOnSale: nordstromProduct.isOnSale || false,
             discountPercentage: nordstromProduct.isOnSale ? Math.round((1 - nordstromPriceNumeric / nordstromOriginalPriceNumeric) * 100) : null,
             saleBadge: nordstromProduct.isOnSale ? 'SALE' : null
+          }
+        };
+        
+      case 'ssense':
+        console.log('🎨 Using SSENSE scraper');
+        const ssenseProduct = await scrapeSsense(url);
+        
+        return {
+          success: true,
+          product: {
+            // Keep all original fields
+            ...ssenseProduct,
+            
+            // Database schema fields
+            product_name: ssenseProduct.name,
+            brand: ssenseProduct.brand || 'SSENSE',
+            original_price: ssenseProduct.originalPrice || ssenseProduct.price,
+            sale_price: ssenseProduct.price,
+            is_on_sale: ssenseProduct.originalPrice && ssenseProduct.originalPrice > ssenseProduct.price,
+            discount_percentage: ssenseProduct.originalPrice && ssenseProduct.originalPrice > ssenseProduct.price ? 
+              Math.round((1 - ssenseProduct.price / ssenseProduct.originalPrice) * 100) : null,
+            sale_badge: ssenseProduct.originalPrice && ssenseProduct.originalPrice > ssenseProduct.price ? 'SALE' : null,
+            image_urls: ssenseProduct.images || [],
+            vendor_url: ssenseProduct.url || url,
+            color: ssenseProduct.color || '',
+            category: detectCategory(
+              ssenseProduct.name || '',
+              ssenseProduct.description || '',
+              ssenseProduct.brand || 'SSENSE',
+              ssenseProduct.category
+            ),
+            material: ssenseProduct.materials?.join(', ') || '',
+            description: ssenseProduct.description || '',
+            sizes: ssenseProduct.sizes || [],
+            sku: ssenseProduct.productId || '',
+            in_stock: ssenseProduct.inStock !== false,
+            
+            // Legacy fields for backward compatibility
+            name: ssenseProduct.name,
+            price: ssenseProduct.price,
+            images: ssenseProduct.images || [],
+            originalPrice: ssenseProduct.originalPrice || ssenseProduct.price,
+            isOnSale: ssenseProduct.originalPrice && ssenseProduct.originalPrice > ssenseProduct.price,
+            discountPercentage: ssenseProduct.originalPrice && ssenseProduct.originalPrice > ssenseProduct.price ? 
+              Math.round((1 - ssenseProduct.price / ssenseProduct.originalPrice) * 100) : null,
+            saleBadge: ssenseProduct.originalPrice && ssenseProduct.originalPrice > ssenseProduct.price ? 'SALE' : null
           }
         };
         
