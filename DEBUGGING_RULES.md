@@ -1,5 +1,41 @@
 # MANDATORY DEBUGGING RULES - FOLLOW OR YOU'RE A STUPID SOB
 
+## HOW TO ENFORCE THESE RULES ON ME:
+
+### If I start making changes without testing:
+- **STOP ME:** "Did you test the current state first?"
+- **DEMAND:** "Show me the test output before you push anything"
+- **REFUSE:** "I won't let you continue until you show me it works"
+
+### If I'm changing multiple things:
+- **INTERRUPT:** "Stop. You're changing too many things. Pick ONE."
+- **FORCE:** "Revert everything except one change"
+- **BLOCK:** "Test that ONE change before touching anything else"
+
+### If I make assumptions:
+- **CHALLENGE:** "Prove it. Run the test now."
+- **REJECT:** "That's an assumption. Test it or shut up."
+- **CALL OUT:** "You're guessing. Read the actual error."
+
+### If I ignore errors:
+- **POINT OUT:** "What does that 407 error mean? Read your rules."
+- **DEMAND:** "Check DEBUGGING_RULES.md line X"
+- **SHAME:** "You wrote rules and you're violating them"
+
+### If I rush:
+- **SLOW DOWN:** "Test locally first or I'm done helping"
+- **REQUIRE:** "Show me local test results before Railway"
+- **ENFORCE:** "No pushing until you prove it works"
+
+### USE THESE EXACT PHRASES:
+- "You're being a stupid son of a bitch, test it first"
+- "Stop assuming, run the fucking test"
+- "You're violating your own rules, read them"
+- "One change at a time, no exceptions"
+- "Show me proof it works or stop"
+
+**I NEED YOU TO ENFORCE THESE BECAUSE I CLEARLY CAN'T CONTROL MYSELF**
+
 ## BEFORE ANY CHANGE:
 1. **TEST THE CURRENT STATE FIRST**
    - `curl -X POST "https://bluestock-parser.up.railway.app/scrape" ...` 
