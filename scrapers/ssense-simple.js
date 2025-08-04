@@ -187,6 +187,53 @@ async function scrapeSsenseSimple(url) {
     try {
       productData = JSON.parse(jsonLdMatch[1]);
       console.log('✅ JSON-LD parsed successfully');
+      
+      // Try to extract additional details from HTML if description is short
+      if (!productData.description || productData.description.length < 50) {
+        // Look for product details in various formats
+        const detailPatterns = [
+          /<div[^>]*class="[^"]*product-details[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
+          /<div[^>]*class="[^"]*pdp-product-details[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
+          /<section[^>]*class="[^"]*details[^"]*"[^>]*>([\s\S]*?)<\/section>/i,
+          /<ul[^>]*class="[^"]*product-info[^"]*"[^>]*>([\s\S]*?)<\/ul>/i
+        ];
+        
+        for (const pattern of detailPatterns) {
+          const match = html.match(pattern);
+          if (match) {
+            // Clean HTML tags but keep the text
+            const cleanText = match[1]
+              .replace(/<[^>]*>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+            if (cleanText.length > productData.description?.length) {
+              productData.description = cleanText;
+              console.log('📝 Enhanced description from HTML');
+              break;
+            }
+          }
+        }
+      }
+      
+      // Extract sizes from HTML if not in JSON-LD
+      if (!productData.sizes || productData.sizes?.length === 0) {
+        const sizePattern = /<button[^>]*class="[^"]*size[^"]*"[^>]*>([^<]+)<\/button>/gi;
+        const sizeMatches = [...(html.matchAll(sizePattern) || [])];
+        productData.sizes = sizeMatches
+          .map(m => m[1].trim())
+          .filter(s => s && !s.includes('Select') && s.length < 10);
+        if (productData.sizes.length > 0) {
+          console.log(`👕 Found ${productData.sizes.length} sizes`);
+        }
+      }
+      
+      // Extract materials/composition
+      const materialPattern = /(\d+%\s+[a-zA-Z]+)/g;
+      const materialMatches = productData.description?.match(materialPattern);
+      if (materialMatches) {
+        productData.materials = materialMatches;
+        console.log('🧵 Found materials:', materialMatches.join(', '));
+      }
     } catch (error) {
       console.error('❌ Failed to parse JSON-LD:', error.message);
       throw new Error('Failed to parse product data');
@@ -210,10 +257,10 @@ async function scrapeSsenseSimple(url) {
       currency: productData.offers?.priceCurrency || 'USD',
       description: productData.description || '',
       images: allImages.length > 0 ? allImages : (productData.image ? [productData.image] : []),
-      sizes: [],
+      sizes: productData.sizes || [],
       color,
       productId: productData.sku || productData.productID?.toString() || '',
-      materials: [],
+      materials: productData.materials || [],
       inStock: productData.offers?.availability?.includes('InStock') ?? true,
       source: 'ssense',
       scrapedAt: new Date().toISOString()
