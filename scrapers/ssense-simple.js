@@ -9,7 +9,8 @@ async function scrapeSsenseSimple(url) {
     // Check if proxy is configured
     let axiosConfig = {};
     if ((process.env.USE_PROXY === 'true' || process.env.DECODO_USERNAME) && process.env.DECODO_USERNAME && process.env.DECODO_PASSWORD) {
-      const username = encodeURIComponent(process.env.DECODO_USERNAME);
+      // URL encode the password since it contains special characters
+      const username = process.env.DECODO_USERNAME;
       const password = encodeURIComponent(process.env.DECODO_PASSWORD);
       const proxyUrl = `http://${username}:${password}@gate.decodo.com:10001`;
       console.log('🔄 Using Decodo proxy for SSENSE');
