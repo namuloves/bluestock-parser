@@ -8,6 +8,7 @@ const { scrapeNordstrom } = require('./nordstrom');
 const { scrapeSsense } = require('./ssense');
 const { scrapeSsenseSimple } = require('./ssense-simple');
 const { scrapeSsenseFallback } = require('./ssense-fallback');
+const { scrapeSaksFifthAvenue } = require('./saksfifthavenue');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -43,6 +44,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('ssense.')) {
     return 'ssense';
+  }
+  if (hostname.includes('saksfifthavenue.') || hostname.includes('saks.')) {
+    return 'saksfifthavenue';
   }
   
   return 'generic';
@@ -155,14 +159,10 @@ const scrapeProduct = async (url) => {
             category: detectCategory(
               rlProduct.name || '',
               rlProduct.description || '',
-              'Ralph Lauren',
+              rlProduct.brand || 'Ralph Lauren',
               rlProduct.category
             ),
-            material: '',
-            description: rlProduct.description || '',
-            sizes: rlProduct.sizes || [],
-            sku: rlProduct.sku || '',
-            in_stock: rlProduct.inStock !== false,
+            material: rlProduct.materials?.join(', ') || '',
             
             // Legacy fields for backward compatibility
             name: rlProduct.name,
@@ -176,12 +176,12 @@ const scrapeProduct = async (url) => {
         };
         
       case 'cos':
-        console.log('🛍️ Using COS HTML scraper');
+        console.log('🎨 Using COS scraper');
         const cosProduct = await scrapeCOS(url);
         
-        // Extract price number from string (e.g., "$59" -> 59)
-        const cosPriceMatch = cosProduct.price?.match(/[\d,]+\.?\d*/);
-        const cosPriceNumeric = cosPriceMatch ? parseFloat(cosPriceMatch[0].replace(',', '')) : 0;
+        // Process price (should already be numeric from scraper)
+        const cosPriceNumeric = typeof cosProduct.price === 'number' ? cosProduct.price : 0;
+        const cosOriginalPriceNumeric = cosProduct.originalPrice || cosPriceNumeric;
         
         return {
           success: true,
@@ -192,10 +192,11 @@ const scrapeProduct = async (url) => {
             // Database schema fields
             product_name: cosProduct.name,
             brand: cosProduct.brand || 'COS',
-            original_price: cosProduct.originalPrice ? parseFloat(cosProduct.originalPrice.replace(/[^0-9.]/g, '')) : cosPriceNumeric,
+            original_price: cosOriginalPriceNumeric,
             sale_price: cosPriceNumeric,
             is_on_sale: cosProduct.isOnSale || false,
-            discount_percentage: null,
+            discount_percentage: cosProduct.isOnSale && cosOriginalPriceNumeric > cosPriceNumeric ? 
+              Math.round((1 - cosPriceNumeric / cosOriginalPriceNumeric) * 100) : null,
             sale_badge: cosProduct.isOnSale ? 'SALE' : null,
             image_urls: cosProduct.images || [],
             vendor_url: cosProduct.url || url,
@@ -203,22 +204,19 @@ const scrapeProduct = async (url) => {
             category: detectCategory(
               cosProduct.name || '',
               cosProduct.description || '',
-              'COS',
+              cosProduct.brand || 'COS',
               cosProduct.category
             ),
-            material: '',
-            description: cosProduct.description || '',
-            sizes: cosProduct.sizes || [],
-            sku: cosProduct.sku || '',
-            in_stock: cosProduct.inStock !== false,
+            material: cosProduct.materials?.join(', ') || '',
             
             // Legacy fields for backward compatibility
             name: cosProduct.name,
             price: cosPriceNumeric,
             images: cosProduct.images || [],
-            originalPrice: cosPriceNumeric,
+            originalPrice: cosOriginalPriceNumeric,
             isOnSale: cosProduct.isOnSale || false,
-            discountPercentage: null,
+            discountPercentage: cosProduct.isOnSale && cosOriginalPriceNumeric > cosPriceNumeric ? 
+              Math.round((1 - cosPriceNumeric / cosOriginalPriceNumeric) * 100) : null,
             saleBadge: cosProduct.isOnSale ? 'SALE' : null
           }
         };
@@ -227,9 +225,9 @@ const scrapeProduct = async (url) => {
         console.log('🇫🇷 Using Sezane scraper');
         const sezaneProduct = await scrapeSezane(url);
         
-        // Extract price number from string
-        const sezanePriceMatch = sezaneProduct.price?.match(/[\d,]+\.?\d*/);
-        const sezanePriceNumeric = sezanePriceMatch ? parseFloat(sezanePriceMatch[0].replace(',', '')) : 0;
+        // Process price
+        const sezanePriceNumeric = typeof sezaneProduct.price === 'number' ? sezaneProduct.price : 0;
+        const sezaneOriginalPriceNumeric = sezaneProduct.originalPrice || sezanePriceNumeric;
         
         return {
           success: true,
@@ -239,48 +237,39 @@ const scrapeProduct = async (url) => {
             
             // Database schema fields
             product_name: sezaneProduct.name,
-            brand: sezaneProduct.brand || 'Sézane',
-            original_price: sezanePriceNumeric,
+            brand: sezaneProduct.brand || 'Sezane',
+            original_price: sezaneOriginalPriceNumeric,
             sale_price: sezanePriceNumeric,
             is_on_sale: sezaneProduct.isOnSale || false,
-            discount_percentage: null,
-            sale_badge: null,
+            discount_percentage: sezaneProduct.isOnSale && sezaneOriginalPriceNumeric > sezanePriceNumeric ? 
+              Math.round((1 - sezanePriceNumeric / sezaneOriginalPriceNumeric) * 100) : null,
+            sale_badge: sezaneProduct.isOnSale ? 'SALE' : null,
             image_urls: sezaneProduct.images || [],
             vendor_url: sezaneProduct.url || url,
             color: sezaneProduct.color || '',
             category: detectCategory(
               sezaneProduct.name || '',
               sezaneProduct.description || '',
-              'Sézane',
+              sezaneProduct.brand || 'Sezane',
               sezaneProduct.category
             ),
-            material: '',
-            description: sezaneProduct.description || '',
-            sizes: sezaneProduct.sizes || [],
-            sku: sezaneProduct.sku || '',
-            in_stock: sezaneProduct.inStock !== false,
+            material: sezaneProduct.materials?.join(', ') || '',
             
             // Legacy fields for backward compatibility
             name: sezaneProduct.name,
             price: sezanePriceNumeric,
             images: sezaneProduct.images || [],
-            originalPrice: sezanePriceNumeric,
+            originalPrice: sezaneOriginalPriceNumeric,
             isOnSale: sezaneProduct.isOnSale || false,
-            discountPercentage: null,
-            saleBadge: null
+            discountPercentage: sezaneProduct.isOnSale && sezaneOriginalPriceNumeric > sezanePriceNumeric ? 
+              Math.round((1 - sezanePriceNumeric / sezaneOriginalPriceNumeric) * 100) : null,
+            saleBadge: sezaneProduct.isOnSale ? 'SALE' : null
           }
         };
         
       case 'nordstrom':
         console.log('🛍️ Using Nordstrom scraper');
         const nordstromProduct = await scrapeNordstrom(url);
-        
-        // Extract price number from string
-        const nordstromPriceMatch = nordstromProduct.price?.match(/[\d,]+\.?\d*/);
-        const nordstromPriceNumeric = nordstromPriceMatch ? parseFloat(nordstromPriceMatch[0].replace(',', '')) : 0;
-        
-        const nordstromOriginalPriceMatch = nordstromProduct.originalPrice?.match(/[\d,]+\.?\d*/);
-        const nordstromOriginalPriceNumeric = nordstromOriginalPriceMatch ? parseFloat(nordstromOriginalPriceMatch[0].replace(',', '')) : nordstromPriceNumeric;
         
         return {
           success: true,
@@ -291,11 +280,12 @@ const scrapeProduct = async (url) => {
             // Database schema fields
             product_name: nordstromProduct.name,
             brand: nordstromProduct.brand || 'Nordstrom',
-            original_price: nordstromOriginalPriceNumeric,
-            sale_price: nordstromPriceNumeric,
-            is_on_sale: nordstromProduct.isOnSale || false,
-            discount_percentage: nordstromProduct.isOnSale ? Math.round((1 - nordstromPriceNumeric / nordstromOriginalPriceNumeric) * 100) : null,
-            sale_badge: nordstromProduct.isOnSale ? 'SALE' : null,
+            original_price: nordstromProduct.originalPrice || nordstromProduct.price,
+            sale_price: nordstromProduct.price,
+            is_on_sale: nordstromProduct.originalPrice && nordstromProduct.originalPrice > nordstromProduct.price,
+            discount_percentage: nordstromProduct.originalPrice && nordstromProduct.originalPrice > nordstromProduct.price ? 
+              Math.round((1 - nordstromProduct.price / nordstromProduct.originalPrice) * 100) : null,
+            sale_badge: nordstromProduct.originalPrice && nordstromProduct.originalPrice > nordstromProduct.price ? 'SALE' : null,
             image_urls: nordstromProduct.images || [],
             vendor_url: nordstromProduct.url || url,
             color: nordstromProduct.color || '',
@@ -305,20 +295,21 @@ const scrapeProduct = async (url) => {
               nordstromProduct.brand || 'Nordstrom',
               nordstromProduct.category
             ),
-            material: '',
+            material: nordstromProduct.materials?.join(', ') || '',
             description: nordstromProduct.description || '',
             sizes: nordstromProduct.sizes || [],
-            sku: nordstromProduct.sku || '',
+            sku: nordstromProduct.productId || '',
             in_stock: nordstromProduct.inStock !== false,
             
             // Legacy fields for backward compatibility
             name: nordstromProduct.name,
-            price: nordstromPriceNumeric,
+            price: nordstromProduct.price,
             images: nordstromProduct.images || [],
-            originalPrice: nordstromOriginalPriceNumeric,
-            isOnSale: nordstromProduct.isOnSale || false,
-            discountPercentage: nordstromProduct.isOnSale ? Math.round((1 - nordstromPriceNumeric / nordstromOriginalPriceNumeric) * 100) : null,
-            saleBadge: nordstromProduct.isOnSale ? 'SALE' : null
+            originalPrice: nordstromProduct.originalPrice || nordstromProduct.price,
+            isOnSale: nordstromProduct.originalPrice && nordstromProduct.originalPrice > nordstromProduct.price,
+            discountPercentage: nordstromProduct.originalPrice && nordstromProduct.originalPrice > nordstromProduct.price ? 
+              Math.round((1 - nordstromProduct.price / nordstromProduct.originalPrice) * 100) : null,
+            saleBadge: nordstromProduct.originalPrice && nordstromProduct.originalPrice > nordstromProduct.price ? 'SALE' : null
           }
         };
         
@@ -379,57 +370,70 @@ const scrapeProduct = async (url) => {
           }
         };
         
-      case 'farfetch':
-        console.log('👗 Farfetch scraper not implemented yet');
-        return {
-          success: false,
-          error: 'Farfetch scraper coming soon'
-        };
+      case 'saksfifthavenue':
+        console.log('💎 Using Saks Fifth Avenue scraper');
+        const saksProduct = await scrapeSaksFifthAvenue(url);
         
-      case 'etsy':
-        console.log('🎨 Etsy scraper not implemented yet');
         return {
-          success: false,
-          error: 'Etsy scraper coming soon'
-        };
-        
-      default:
-        console.log('🔧 Using generic scraper (mock data)');
-        return {
-          success: true,
+          success: !saksProduct.error,
           product: {
-            product_name: "Sample Product",
-            brand: "Sample Brand",
-            original_price: 99.99,
-            sale_price: 79.99,
-            is_on_sale: true,
-            discount_percentage: 20,
-            sale_badge: "20% OFF",
-            image_urls: ["https://example.com/image1.jpg"],
-            description: "Product description will be scraped here",
-            color: "Black",
-            category: "Electronics",
-            material: "Plastic",
-            // Consistent naming for main app
-            name: "Sample Product",
-            images: ["https://example.com/image1.jpg"],
-            price: 79.99,
-            originalPrice: 99.99,
-            isOnSale: true,
-            saleBadge: "20% OFF"
+            // Keep all original fields
+            ...saksProduct,
+            
+            // Database schema fields
+            product_name: saksProduct.name,
+            brand: saksProduct.brand || 'Saks Fifth Avenue',
+            original_price: saksProduct.originalPrice || saksProduct.price,
+            sale_price: saksProduct.price,
+            is_on_sale: saksProduct.originalPrice && saksProduct.originalPrice > saksProduct.price,
+            discount_percentage: saksProduct.originalPrice && saksProduct.originalPrice > saksProduct.price ? 
+              Math.round((1 - saksProduct.price / saksProduct.originalPrice) * 100) : null,
+            sale_badge: saksProduct.originalPrice && saksProduct.originalPrice > saksProduct.price ? 'SALE' : null,
+            image_urls: saksProduct.images || [],
+            vendor_url: saksProduct.url || url,
+            color: saksProduct.color || '',
+            colors: saksProduct.colors || [],
+            category: detectCategory(
+              saksProduct.name || '',
+              saksProduct.description || '',
+              saksProduct.brand || 'Saks Fifth Avenue',
+              saksProduct.category
+            ),
+            material: saksProduct.materials?.join(', ') || '',
+            description: saksProduct.description || '',
+            sizes: saksProduct.sizes || [],
+            sku: saksProduct.productId || '',
+            in_stock: saksProduct.inStock !== false,
+            
+            // Legacy fields for backward compatibility
+            name: saksProduct.name,
+            price: saksProduct.price,
+            images: saksProduct.images || [],
+            originalPrice: saksProduct.originalPrice || saksProduct.price,
+            isOnSale: saksProduct.originalPrice && saksProduct.originalPrice > saksProduct.price,
+            discountPercentage: saksProduct.originalPrice && saksProduct.originalPrice > saksProduct.price ? 
+              Math.round((1 - saksProduct.price / saksProduct.originalPrice) * 100) : null,
+            saleBadge: saksProduct.originalPrice && saksProduct.originalPrice > saksProduct.price ? 'SALE' : null
           }
+        };
+      
+      default:
+        console.log('❌ No specific scraper available for this site');
+        return {
+          success: false,
+          error: `No scraper available for ${site}`,
+          product: null
         };
     }
   } catch (error) {
-    console.error('❌ Scraping failed:', error);
+    console.error('❌ Scraping error:', error.message);
+    console.error('Stack:', error.stack);
     return {
       success: false,
-      error: `Scraping failed: ${error.message}`
+      error: error.message,
+      product: null
     };
   }
 };
 
-module.exports = {
-  scrapeProduct,
-  detectSite
-};
+module.exports = { scrapeProduct, detectSite };
