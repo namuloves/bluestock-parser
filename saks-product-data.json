@@ -1,0 +1,4959 @@
+{
+  "banner": "",
+  "masterProductId": "0400022347462",
+  "subtitle": {
+    "__typename": "RawText",
+    "value": {
+      "__typename": "StringValue",
+      "value": "Crinkle-Effect Scoopneck Bikini"
+    }
+  },
+  "title": {
+    "__typename": "RichText",
+    "nodes": [
+      {
+        "__typename": "TextNode",
+        "value": {
+          "__typename": "StringValue",
+          "value": "Hunza G"
+        },
+        "style": {
+          "__typename": "TextAttributes",
+          "color": null,
+          "fontWeight": 700,
+          "link": {
+            "__typename": "TextLink",
+            "action": {
+              "__typename": "NavigateToDeepLinkAction",
+              "url": "/brand/hunza-g"
+            }
+          },
+          "italics": null,
+          "strikethrough": null,
+          "underline": null,
+          "verticalAlignment": null,
+          "actions": [
+            {
+              "__typename": "NavigateToDeepLinkAction",
+              "url": "/brand/hunza-g"
+            },
+            {
+              "__typename": "AnalyticsAction",
+              "eventId": "product_event",
+              "data": {
+                "type": "brandNameClick",
+                "products": [
+                  {
+                    "brand": "Hunza G",
+                    "code": "0400022347462",
+                    "name": "Crinkle-Effect Scoopneck Bikini",
+                    "price": "168.0",
+                    "skus": [
+                      {
+                        "sku": "22347465",
+                        "stores": [],
+                        "available_dc": "5"
+                      },
+                      {
+                        "sku": "22347462",
+                        "stores": [],
+                        "available_dc": "81"
+                      }
+                    ],
+                    "tags": {
+                      "returnable": "true",
+                      "feature_type": "BEST SELLER",
+                      "inventory_label": "limited inventory",
+                      "pip_text": "",
+                      "price_type": "",
+                      "publish_date": ""
+                    },
+                    "availability": "in stock",
+                    "color": "BLACK",
+                    "size": "One Size",
+                    "original_price": "240.0",
+                    "average_rating": "",
+                    "total_reviews": "",
+                    "image_view": "regular",
+                    "recommendation_slot": "",
+                    "recommendation_strip": "",
+                    "recommendation_type": "",
+                    "selected_sku": "22347465"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "currentPrice": {
+    "formatted": {
+      "__typename": "RawText",
+      "value": {
+        "__typename": "StringValue",
+        "value": "$168"
+      }
+    },
+    "__typename": "FormattedPrice"
+  },
+  "strikethroughPrice": {
+    "formatted": {
+      "__typename": "RawText",
+      "value": {
+        "__typename": "StringValue",
+        "value": "$240"
+      }
+    },
+    "__typename": "FormattedPrice"
+  },
+  "media": [
+    {
+      "url": {
+        "__typename": "StringValue",
+        "value": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK"
+      },
+      "caption": {
+        "__typename": "StringValue",
+        "value": "Crinkle-Effect Scoopneck Bikini"
+      },
+      "alt": "Crinkle-Effect Scoopneck Bikini",
+      "__typename": "Image",
+      "sources": [
+        {
+          "srcSet": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 2000w",
+          "sizes": "(max-width: 540px) 100vw, ((min-width 540px) and (max-width: 1024px)) 40vw, 480px",
+          "type": "image/webp"
+        },
+        {
+          "srcSet": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0 2000w",
+          "sizes": "(max-width: 540px) 100vw, ((min-width 540px) and (max-width: 1024px)) 40vw, 480px"
+        }
+      ],
+      "srcset": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0 2000w"
+    },
+    {
+      "url": {
+        "__typename": "StringValue",
+        "value": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL"
+      },
+      "caption": {
+        "__typename": "StringValue",
+        "value": "Crinkle-Effect Scoopneck Bikini"
+      },
+      "alt": "Crinkle-Effect Scoopneck Bikini",
+      "__typename": "Image",
+      "sources": [
+        {
+          "srcSet": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 2000w",
+          "sizes": "(max-width: 540px) 100vw, ((min-width 540px) and (max-width: 1024px)) 40vw, 480px",
+          "type": "image/webp"
+        },
+        {
+          "srcSet": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0 2000w",
+          "sizes": "(max-width: 540px) 100vw, ((min-width 540px) and (max-width: 1024px)) 40vw, 480px"
+        }
+      ],
+      "srcset": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_ASTL?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0 2000w"
+    },
+    {
+      "url": {
+        "__typename": "StringValue",
+        "value": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1"
+      },
+      "caption": {
+        "__typename": "StringValue",
+        "value": "Crinkle-Effect Scoopneck Bikini"
+      },
+      "alt": "Crinkle-Effect Scoopneck Bikini",
+      "__typename": "Image",
+      "sources": [
+        {
+          "srcSet": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 2000w",
+          "sizes": "(max-width: 540px) 100vw, ((min-width 540px) and (max-width: 1024px)) 40vw, 480px",
+          "type": "image/webp"
+        },
+        {
+          "srcSet": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0 2000w",
+          "sizes": "(max-width: 540px) 100vw, ((min-width 540px) and (max-width: 1024px)) 40vw, 480px"
+        }
+      ],
+      "srcset": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A1?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0 2000w"
+    },
+    {
+      "url": {
+        "__typename": "StringValue",
+        "value": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2"
+      },
+      "caption": {
+        "__typename": "StringValue",
+        "value": "Crinkle-Effect Scoopneck Bikini"
+      },
+      "alt": "Crinkle-Effect Scoopneck Bikini",
+      "__typename": "Image",
+      "sources": [
+        {
+          "srcSet": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 2000w",
+          "sizes": "(max-width: 540px) 100vw, ((min-width 540px) and (max-width: 1024px)) 40vw, 480px",
+          "type": "image/webp"
+        },
+        {
+          "srcSet": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0 2000w",
+          "sizes": "(max-width: 540px) 100vw, ((min-width 540px) and (max-width: 1024px)) 40vw, 480px"
+        }
+      ],
+      "srcset": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A2?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0 2000w"
+    },
+    {
+      "url": {
+        "__typename": "StringValue",
+        "value": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3"
+      },
+      "caption": {
+        "__typename": "StringValue",
+        "value": "Crinkle-Effect Scoopneck Bikini"
+      },
+      "alt": "Crinkle-Effect Scoopneck Bikini",
+      "__typename": "Image",
+      "sources": [
+        {
+          "srcSet": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 2000w",
+          "sizes": "(max-width: 540px) 100vw, ((min-width 540px) and (max-width: 1024px)) 40vw, 480px",
+          "type": "image/webp"
+        },
+        {
+          "srcSet": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0 2000w",
+          "sizes": "(max-width: 540px) 100vw, ((min-width 540px) and (max-width: 1024px)) 40vw, 480px"
+        }
+      ],
+      "srcset": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A3?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0 2000w"
+    },
+    {
+      "url": {
+        "__typename": "StringValue",
+        "value": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6"
+      },
+      "caption": {
+        "__typename": "StringValue",
+        "value": "Crinkle-Effect Scoopneck Bikini"
+      },
+      "alt": "Crinkle-Effect Scoopneck Bikini",
+      "__typename": "Image",
+      "sources": [
+        {
+          "srcSet": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0&fmt=webp 2000w",
+          "sizes": "(max-width: 540px) 100vw, ((min-width 540px) and (max-width: 1024px)) 40vw, 480px",
+          "type": "image/webp"
+        },
+        {
+          "srcSet": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0 2000w",
+          "sizes": "(max-width: 540px) 100vw, ((min-width 540px) and (max-width: 1024px)) 40vw, 480px"
+        }
+      ],
+      "srcset": "https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=534&hei=712&resMode=sharp2&op_usm=0.9,1.0,8,0 534w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=702&hei=936&resMode=sharp2&op_usm=0.9,1.0,8,0 702w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=984&hei=1312&resMode=sharp2&op_usm=0.9,1.0,8,0 984w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=1260&hei=1680&resMode=sharp2&op_usm=0.9,1.0,8,0 1260w,https://cdn.saksfifthavenue.com/is/image/saks/0400022347462_BLACK_A6?wid=2000&hei=2667&resMode=sharp2&op_usm=0.9,1.0,8,0 2000w"
+    }
+  ],
+  "colors": {
+    "items": [
+      {
+        "item": {
+          "__typename": "SelectableItemView",
+          "input": {
+            "id": "BLACK",
+            "attributeId": "color",
+            "__typename": "AttributeValueRef"
+          },
+          "isDisabled": false
+        },
+        "swatch": {
+          "image": {
+            "url": {
+              "__typename": "StringValue",
+              "value": "https://image.s5a.com/is/image/saks/0400022347462_BLACK"
+            },
+            "caption": {
+              "__typename": "StringValue",
+              "value": "Black"
+            },
+            "alt": null,
+            "__typename": "Image"
+          },
+          "__typename": "ImageColorStyle"
+        },
+        "__typename": "ColorSwatchItem"
+      },
+      {
+        "item": {
+          "__typename": "SelectableItemView",
+          "input": {
+            "id": "BUBBLEGUM",
+            "attributeId": "color",
+            "__typename": "AttributeValueRef"
+          },
+          "isDisabled": false
+        },
+        "swatch": {
+          "image": {
+            "url": {
+              "__typename": "StringValue",
+              "value": "https://image.s5a.com/is/image/saks/0400022347462_BUBBLEGUM"
+            },
+            "caption": {
+              "__typename": "StringValue",
+              "value": "Bubblegum"
+            },
+            "alt": null,
+            "__typename": "Image"
+          },
+          "__typename": "ImageColorStyle"
+        },
+        "__typename": "ColorSwatchItem"
+      }
+    ],
+    "selected": {
+      "attributeId": "color",
+      "id": "BLACK",
+      "__typename": "AttributeValueRef"
+    },
+    "__typename": "ColorSwatchSelection"
+  },
+  "categories": [
+    {
+      "__typename": "RichText",
+      "nodes": [
+        {
+          "__typename": "TextNode",
+          "value": {
+            "__typename": "StringValue",
+            "value": "Swimsuits & Cover-Ups"
+          },
+          "style": {
+            "__typename": "TextAttributes",
+            "color": null,
+            "fontWeight": null,
+            "link": null,
+            "italics": null,
+            "strikethrough": null,
+            "underline": null,
+            "verticalAlignment": null,
+            "actions": [
+              {
+                "__typename": "NavigateToDeepLinkAction",
+                "url": "/search?cgid=1465250607624"
+              },
+              {
+                "__typename": "AnalyticsAction",
+                "eventId": "navigation_event",
+                "data": {
+                  "navigation_link_type": "breadcrumb"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "__typename": "RichText",
+      "nodes": [
+        {
+          "__typename": "TextNode",
+          "value": {
+            "__typename": "StringValue",
+            "value": "Two-Piece"
+          },
+          "style": {
+            "__typename": "TextAttributes",
+            "color": null,
+            "fontWeight": null,
+            "link": null,
+            "italics": null,
+            "strikethrough": null,
+            "underline": null,
+            "verticalAlignment": null,
+            "actions": [
+              {
+                "__typename": "NavigateToDeepLinkAction",
+                "url": "/search?cgid=1465250607627"
+              },
+              {
+                "__typename": "AnalyticsAction",
+                "eventId": "navigation_event",
+                "data": {
+                  "navigation_link_type": "breadcrumb"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "sizes": {
+    "items": [
+      {
+        "__typename": "SelectableItemView",
+        "input": {
+          "id": "One Size",
+          "attributeId": "size",
+          "__typename": "AttributeValueRef"
+        },
+        "isDisabled": false
+      }
+    ],
+    "selected": {
+      "attributeId": "size",
+      "id": "One Size",
+      "__typename": "AttributeValueRef"
+    },
+    "__typename": "Selection"
+  },
+  "badge1": {
+    "label": {
+      "title": {
+        "__typename": "RawText",
+        "value": {
+          "__typename": "StringValue",
+          "value": "BEST SELLER"
+        }
+      },
+      "__typename": "TitleLabel"
+    },
+    "styles": [
+      "PRODUCTBADGE_ACTIVE"
+    ],
+    "__typename": "BadgeView"
+  },
+  "badge2": null,
+  "body": {
+    "__typename": "ViewHierarchy",
+    "data": {
+      "colors": {
+        "BLACK": {
+          "title": "Black",
+          "image": "https://image.s5a.com/is/image/saks/0400022347462_BLACK"
+        },
+        "BUBBLEGUM": {
+          "title": "Bubblegum",
+          "image": "https://image.s5a.com/is/image/saks/0400022347462_BUBBLEGUM"
+        }
+      },
+      "sizes": {
+        "One Size": {
+          "title": "One Size"
+        }
+      }
+    },
+    "analyticsData": {
+      "product_event": {
+        "products": [
+          {
+            "brand": "Hunza G",
+            "code": "0400022347462",
+            "name": "Crinkle-Effect Scoopneck Bikini",
+            "price": "168.0",
+            "skus": [
+              {
+                "sku": "22347465",
+                "stores": [],
+                "available_dc": "5"
+              },
+              {
+                "sku": "22347462",
+                "stores": [],
+                "available_dc": "81"
+              }
+            ],
+            "tags": {
+              "returnable": "true",
+              "feature_type": "BEST SELLER",
+              "inventory_label": "limited inventory",
+              "pip_text": "",
+              "price_type": "",
+              "publish_date": ""
+            },
+            "availability": "in stock",
+            "color": "BLACK",
+            "size": "One Size",
+            "original_price": "240.0",
+            "average_rating": "",
+            "total_reviews": "",
+            "image_view": "regular",
+            "recommendation_slot": "",
+            "recommendation_strip": "",
+            "recommendation_type": "",
+            "selected_sku": "22347465"
+          }
+        ]
+      },
+      "sku_event": {
+        "products": [
+          {
+            "brand": "Hunza G",
+            "code": "0400022347462",
+            "name": "Crinkle-Effect Scoopneck Bikini",
+            "price": "168.0",
+            "quantity": "1",
+            "original_price": "240.0",
+            "bopus_store_id": "",
+            "gwp_flag": "false",
+            "prev_quantity": "",
+            "selected_sku": "22347465",
+            "ship_from_store_id": ""
+          }
+        ]
+      }
+    },
+    "onLoad": [
+      {
+        "__typename": "AnalyticsAction",
+        "eventId": "pdp_page_view_event",
+        "data": {
+          "site": {
+            "name": "saks.com",
+            "is_production": "true",
+            "isV2Experience": "true",
+            "release_version": ""
+          },
+          "page": {
+            "type": "product detail"
+          },
+          "products": [
+            {
+              "brand": "Hunza G",
+              "code": "0400022347462",
+              "name": "Crinkle-Effect Scoopneck Bikini",
+              "price": "168.0",
+              "skus": [
+                {
+                  "sku": "22347465",
+                  "stores": [],
+                  "available_dc": "5"
+                },
+                {
+                  "sku": "22347462",
+                  "stores": [],
+                  "available_dc": "81"
+                }
+              ],
+              "tags": {
+                "returnable": "true",
+                "feature_type": "BEST SELLER",
+                "inventory_label": "limited inventory",
+                "pip_text": "",
+                "price_type": "",
+                "publish_date": ""
+              },
+              "original_price": "240.0",
+              "average_rating": "",
+              "total_reviews": ""
+            }
+          ]
+        }
+      }
+    ],
+    "attributes": [
+      {
+        "id": "color",
+        "name": "Color",
+        "isNavigational": true,
+        "queryAlias": "dwvar_0400022347462_color",
+        "inputs": [
+          "BLACK"
+        ],
+        "__typename": "SetAttribute"
+      },
+      {
+        "id": "size",
+        "name": "Size",
+        "isNavigational": true,
+        "queryAlias": "dwvar_0400022347462_size",
+        "inputs": [
+          "One Size"
+        ],
+        "__typename": "SetAttribute"
+      },
+      {
+        "id": "productId",
+        "name": "Product",
+        "isNavigational": false,
+        "queryAlias": null,
+        "input": "0400022347462",
+        "__typename": "StringAttribute"
+      },
+      {
+        "id": "email",
+        "name": "email",
+        "isNavigational": false,
+        "queryAlias": "email",
+        "input": "",
+        "__typename": "StringAttribute"
+      },
+      {
+        "id": "phone",
+        "name": "phone",
+        "isNavigational": false,
+        "queryAlias": "phone",
+        "input": "",
+        "__typename": "StringAttribute"
+      }
+    ],
+    "nodes": [
+      {
+        "__typename": "ViewNode",
+        "id": "pdp.body.desktop",
+        "index": 0,
+        "parentIndex": -1,
+        "uniqueId": "pdp.body.desktop",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_SECTION"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "richResultsProductView+future",
+        "index": 1,
+        "parentIndex": 0,
+        "uniqueId": "pdp.body.desktop.richResultsProductView+future",
+        "node": {
+          "__typename": "FutureView",
+          "groupId": "Group1",
+          "placeholderMode": "RESERVE_SPACE"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "richResultsProductView",
+        "index": 2,
+        "parentIndex": 1,
+        "uniqueId": "pdp.body.desktop.richResultsProductView+future.richResultsProductView",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "CENTER",
+          "space": null,
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "header",
+        "index": 3,
+        "parentIndex": 0,
+        "uniqueId": "pdp.body.desktop.header",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_GROUP_VERTICAL"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "breadcrumbs",
+        "index": 4,
+        "parentIndex": 3,
+        "uniqueId": "pdp.body.desktop.header.breadcrumbs",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_HORIZONTAL_S"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "secondLastBreadcrumbs",
+        "index": 5,
+        "parentIndex": 4,
+        "uniqueId": "pdp.body.desktop.header.breadcrumbs.secondLastBreadcrumbs",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "LABEL_M_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Swimsuits & Cover-Ups"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": null,
+                  "link": {
+                    "__typename": "TextLink",
+                    "action": {
+                      "__typename": "NavigateToDeepLinkAction",
+                      "url": "/search?cgid=1465250607624"
+                    }
+                  },
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": [
+                    {
+                      "__typename": "AnalyticsAction",
+                      "eventId": "navigation_event",
+                      "data": {
+                        "navigation_link_type": "breadcrumb"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "chevron_right_8",
+        "index": 6,
+        "parentIndex": 4,
+        "uniqueId": "pdp.body.desktop.header.breadcrumbs.chevron_right_8",
+        "node": {
+          "__typename": "IconView",
+          "icon": {
+            "__typename": "Icon",
+            "id": "CHEVRON_RIGHT_8",
+            "fallbackIds": null,
+            "fallbackURL": null
+          }
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "lastBreadcrumbs",
+        "index": 7,
+        "parentIndex": 4,
+        "uniqueId": "pdp.body.desktop.header.breadcrumbs.lastBreadcrumbs",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "LABEL_M_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Two-Piece"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": null,
+                  "link": {
+                    "__typename": "TextLink",
+                    "action": {
+                      "__typename": "NavigateToDeepLinkAction",
+                      "url": "/search?cgid=1465250607627"
+                    }
+                  },
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": [
+                    {
+                      "__typename": "AnalyticsAction",
+                      "eventId": "navigation_event",
+                      "data": {
+                        "navigation_link_type": "breadcrumb"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "titleAndSubtitle",
+        "index": 8,
+        "parentIndex": 3,
+        "uniqueId": "pdp.body.desktop.header.titleAndSubtitle",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_VERTICAL_S"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "badge1",
+        "index": 9,
+        "parentIndex": 8,
+        "uniqueId": "pdp.body.desktop.header.titleAndSubtitle.badge1",
+        "node": {
+          "__typename": "BadgeView",
+          "badgeLabel": {
+            "__typename": "TitleLabel",
+            "title": {
+              "__typename": "RawText",
+              "value": {
+                "__typename": "StringValue",
+                "value": "BEST SELLER"
+              }
+            }
+          },
+          "badgeStyles": [
+            "PRODUCTBADGE_ACTIVE"
+          ]
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "titleAndButtons",
+        "index": 10,
+        "parentIndex": 8,
+        "uniqueId": "pdp.body.desktop.header.titleAndSubtitle.titleAndButtons",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_HORIZONTAL_M"
+          },
+          "distribution": "SPACE_BETWEEN"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "title",
+        "index": 11,
+        "parentIndex": 10,
+        "uniqueId": "pdp.body.desktop.header.titleAndSubtitle.titleAndButtons.title",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "TITLE_BRAND"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Hunza G"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": null,
+                  "link": {
+                    "__typename": "TextLink",
+                    "action": {
+                      "__typename": "NavigateToDeepLinkAction",
+                      "url": "/brand/hunza-g"
+                    }
+                  },
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": [
+                    {
+                      "__typename": "AnalyticsAction",
+                      "eventId": "product_event",
+                      "data": {
+                        "type": "brandNameClick",
+                        "products": [
+                          {
+                            "brand": "Hunza G",
+                            "code": "0400022347462",
+                            "name": "Crinkle-Effect Scoopneck Bikini",
+                            "price": "168.0",
+                            "skus": [
+                              {
+                                "sku": "22347465",
+                                "stores": [],
+                                "available_dc": "5"
+                              },
+                              {
+                                "sku": "22347462",
+                                "stores": [],
+                                "available_dc": "81"
+                              }
+                            ],
+                            "tags": {
+                              "returnable": "true",
+                              "feature_type": "BEST SELLER",
+                              "inventory_label": "limited inventory",
+                              "pip_text": "",
+                              "price_type": "",
+                              "publish_date": ""
+                            },
+                            "availability": "in stock",
+                            "color": "BLACK",
+                            "size": "One Size",
+                            "original_price": "240.0",
+                            "average_rating": "",
+                            "total_reviews": "",
+                            "image_view": "regular",
+                            "recommendation_slot": "",
+                            "recommendation_strip": "",
+                            "recommendation_type": "",
+                            "selected_sku": "22347465"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "buttons",
+        "index": 12,
+        "parentIndex": 10,
+        "uniqueId": "pdp.body.desktop.header.titleAndSubtitle.titleAndButtons.buttons",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_HORIZONTAL_L"
+          },
+          "distribution": "END"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "wishlist",
+        "index": 13,
+        "parentIndex": 12,
+        "uniqueId": "pdp.body.desktop.header.titleAndSubtitle.titleAndButtons.buttons.wishlist",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": null,
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "wishlistButton+future",
+        "index": 14,
+        "parentIndex": 13,
+        "uniqueId": "pdp.body.desktop.header.titleAndSubtitle.titleAndButtons.buttons.wishlist.wishlistButton+future",
+        "node": {
+          "__typename": "FutureView",
+          "groupId": "Group1",
+          "placeholderMode": "SHOW_PLACEHOLDER"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "wishlistButton",
+        "index": 15,
+        "parentIndex": 14,
+        "uniqueId": "pdp.body.desktop.header.titleAndSubtitle.titleAndButtons.buttons.wishlist.wishlistButton+future.wishlistButton",
+        "node": {
+          "__typename": "IconicButtonView",
+          "state": "DISABLED",
+          "onNormal": {
+            "__typename": "IconicButtonStateAttributes",
+            "icon": {
+              "__typename": "Icon",
+              "id": "FAVORITE_OFF_16",
+              "fallbackIds": null,
+              "fallbackURL": null
+            },
+            "actions": null
+          },
+          "onHover": null,
+          "onSelected": null,
+          "onDisabled": {
+            "__typename": "IconicButtonStateAttributes",
+            "icon": {
+              "__typename": "Icon",
+              "id": "FAVORITE_OFF_16",
+              "fallbackIds": null,
+              "fallbackURL": null
+            },
+            "actions": null
+          },
+          "onSubmitting": null,
+          "onSuccess": null,
+          "onFailure": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "subtitle",
+        "index": 16,
+        "parentIndex": 8,
+        "uniqueId": "pdp.body.desktop.header.titleAndSubtitle.subtitle",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "PDP_TITLE_DESCRIPTION"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Crinkle-Effect Scoopneck Bikini"
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "pricingAndPromotion",
+        "index": 17,
+        "parentIndex": 3,
+        "uniqueId": "pdp.body.desktop.header.pricingAndPromotion",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_VERTICAL_S"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "pricing",
+        "index": 18,
+        "parentIndex": 17,
+        "uniqueId": "pdp.body.desktop.header.pricingAndPromotion.pricing",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_VERTICAL_S"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "displayPrice",
+        "index": 19,
+        "parentIndex": 18,
+        "uniqueId": "pdp.body.desktop.header.pricingAndPromotion.pricing.displayPrice",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_HORIZONTAL_M"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "currentPrice+future",
+        "index": 20,
+        "parentIndex": 19,
+        "uniqueId": "pdp.body.desktop.header.pricingAndPromotion.pricing.displayPrice.currentPrice+future",
+        "node": {
+          "__typename": "FutureView",
+          "groupId": "Group1",
+          "placeholderMode": "RESERVE_SPACE"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "currentPrice",
+        "index": 21,
+        "parentIndex": 20,
+        "uniqueId": "pdp.body.desktop.header.pricingAndPromotion.pricing.displayPrice.currentPrice+future.currentPrice",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "LABEL_L_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "$168"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": {
+                    "__typename": "TextColorToken",
+                    "id": "ON_SURFACE_PAGE_EMPHASIS"
+                  },
+                  "fontWeight": null,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "strikethroughPrice+future",
+        "index": 22,
+        "parentIndex": 19,
+        "uniqueId": "pdp.body.desktop.header.pricingAndPromotion.pricing.displayPrice.strikethroughPrice+future",
+        "node": {
+          "__typename": "FutureView",
+          "groupId": "Group1",
+          "placeholderMode": "RESERVE_SPACE"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "strikethroughPrice",
+        "index": 23,
+        "parentIndex": 22,
+        "uniqueId": "pdp.body.desktop.header.pricingAndPromotion.pricing.displayPrice.strikethroughPrice+future.strikethroughPrice",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "LABEL_L_MARKDOWN"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "$240"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": {
+                    "__typename": "TextColorToken",
+                    "id": "ON_SURFACE_PAGE_DISABLED"
+                  },
+                  "fontWeight": null,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": true,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "klarnaOSMBlock+future",
+        "index": 24,
+        "parentIndex": 18,
+        "uniqueId": "pdp.body.desktop.header.pricingAndPromotion.pricing.klarnaOSMBlock+future",
+        "node": {
+          "__typename": "FutureView",
+          "groupId": "Group1",
+          "placeholderMode": "RESERVE_SPACE"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "klarnaOSMBlock",
+        "index": 25,
+        "parentIndex": 24,
+        "uniqueId": "pdp.body.desktop.header.pricingAndPromotion.pricing.klarnaOSMBlock+future.klarnaOSMBlock",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_HORIZONTAL_M"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "offer+future",
+        "index": 26,
+        "parentIndex": 17,
+        "uniqueId": "pdp.body.desktop.header.pricingAndPromotion.offer+future",
+        "node": {
+          "__typename": "FutureView",
+          "groupId": "Group1",
+          "placeholderMode": "RESERVE_SPACE"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "offer",
+        "index": 27,
+        "parentIndex": 26,
+        "uniqueId": "pdp.body.desktop.header.pricingAndPromotion.offer+future.offer",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_HORIZONTAL_M"
+          },
+          "distribution": "SPACE_BETWEEN"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "title",
+        "index": 28,
+        "parentIndex": 27,
+        "uniqueId": "pdp.body.desktop.header.pricingAndPromotion.offer+future.offer.title",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": []
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "|",
+        "index": 29,
+        "parentIndex": 0,
+        "uniqueId": "pdp.body.desktop.|",
+        "node": {
+          "__typename": "HorizontalDividerView",
+          "horizontalDividerStyles": [
+            "LINE"
+          ]
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "selectionsContainer+future",
+        "index": 30,
+        "parentIndex": 0,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future",
+        "node": {
+          "__typename": "FutureView",
+          "groupId": "Group1",
+          "placeholderMode": "SHOW_PLACEHOLDER"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "selectionsContainer",
+        "index": 31,
+        "parentIndex": 30,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_SECTION"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "colors",
+        "index": 32,
+        "parentIndex": 31,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.colors",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_GROUP_VERTICAL"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "header",
+        "index": 33,
+        "parentIndex": 32,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.colors.header",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "BOTTOM",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_HORIZONTAL_M"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "title",
+        "index": 34,
+        "parentIndex": 33,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.colors.header.title",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "TITLE_SECTION"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Color "
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": {
+                    "__typename": "TextColorToken",
+                    "id": "ON_SURFACE_PAGE_EMPHASIS"
+                  },
+                  "fontWeight": null,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "selected",
+        "index": 35,
+        "parentIndex": 33,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.colors.header.selected",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "LABEL_L_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Black"
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "selection",
+        "index": 36,
+        "parentIndex": 32,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.colors.selection",
+        "node": {
+          "__typename": "SelectionView",
+          "minSelectionCount": 1,
+          "maxSelectionCount": 1,
+          "selectionsStyles": [
+            "THUMBNAIL"
+          ]
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "items",
+        "index": 37,
+        "parentIndex": 36,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.colors.selection.items",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "WRAP",
+          "verticalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "GRID_HORIZONTAL_S"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "BLACK+selectable",
+        "index": 38,
+        "parentIndex": 37,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.colors.selection.items.BLACK+selectable",
+        "node": {
+          "__typename": "SelectableItemView",
+          "input": {
+            "id": "BLACK",
+            "attributeId": "color",
+            "__typename": "AttributeValueRef"
+          },
+          "isDisabled": false
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "BLACK",
+        "index": 39,
+        "parentIndex": 38,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.colors.selection.items.BLACK+selectable.BLACK",
+        "node": {
+          "__typename": "ImageView",
+          "image": {
+            "__typename": "Image",
+            "url": {
+              "__typename": "StringValue",
+              "value": "https://image.s5a.com/is/image/saks/0400022347462_BLACK"
+            },
+            "caption": null
+          },
+          "width": {
+            "__typename": "Dimension",
+            "points": 64
+          },
+          "height": {
+            "__typename": "Dimension",
+            "points": 64
+          },
+          "contentMode": "ASPECT_FIT"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "BUBBLEGUM+selectable",
+        "index": 40,
+        "parentIndex": 37,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.colors.selection.items.BUBBLEGUM+selectable",
+        "node": {
+          "__typename": "SelectableItemView",
+          "input": {
+            "id": "BUBBLEGUM",
+            "attributeId": "color",
+            "__typename": "AttributeValueRef"
+          },
+          "isDisabled": false
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "BUBBLEGUM",
+        "index": 41,
+        "parentIndex": 40,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.colors.selection.items.BUBBLEGUM+selectable.BUBBLEGUM",
+        "node": {
+          "__typename": "ImageView",
+          "image": {
+            "__typename": "Image",
+            "url": {
+              "__typename": "StringValue",
+              "value": "https://image.s5a.com/is/image/saks/0400022347462_BUBBLEGUM"
+            },
+            "caption": null
+          },
+          "width": {
+            "__typename": "Dimension",
+            "points": 64
+          },
+          "height": {
+            "__typename": "Dimension",
+            "points": 64
+          },
+          "contentMode": "ASPECT_FIT"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "size",
+        "index": 42,
+        "parentIndex": 31,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.size",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_GROUP_VERTICAL"
+          },
+          "distribution": "SIZE_EVENLY"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "header",
+        "index": 43,
+        "parentIndex": 42,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.size.header",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "BOTTOM",
+          "space": null,
+          "distribution": "SPACE_BETWEEN"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "title",
+        "index": 44,
+        "parentIndex": 43,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.size.header.title",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "TITLE_SECTION"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Size"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": {
+                    "__typename": "TextColorToken",
+                    "id": "ON_SURFACE_PAGE_EMPHASIS"
+                  },
+                  "fontWeight": null,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "sizeGuideButton",
+        "index": 45,
+        "parentIndex": 43,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.size.header.sizeGuideButton",
+        "node": {
+          "__typename": "ButtonView",
+          "buttonStyles": [
+            "SIZEGUIDE"
+          ],
+          "state": "NORMAL",
+          "size": "MEDIUM",
+          "action": null,
+          "onDefault": {
+            "__typename": "ButtonStateAttributes",
+            "label": {
+              "__typename": "TitleLabel",
+              "title": {
+                "__typename": "RawText",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Size Guide"
+                }
+              }
+            },
+            "actions": [
+              {
+                "__typename": "AnalyticsAction",
+                "eventId": "product_event",
+                "data": {
+                  "type": "sizeGuideClick",
+                  "products": [
+                    {
+                      "brand": "Hunza G",
+                      "code": "0400022347462",
+                      "name": "Crinkle-Effect Scoopneck Bikini",
+                      "price": "168.0",
+                      "skus": [
+                        {
+                          "sku": "22347465",
+                          "stores": [],
+                          "available_dc": "5"
+                        },
+                        {
+                          "sku": "22347462",
+                          "stores": [],
+                          "available_dc": "81"
+                        }
+                      ],
+                      "tags": {
+                        "returnable": "true",
+                        "feature_type": "BEST SELLER",
+                        "inventory_label": "limited inventory",
+                        "pip_text": "",
+                        "price_type": "",
+                        "publish_date": ""
+                      },
+                      "availability": "in stock",
+                      "color": "BLACK",
+                      "size": "One Size",
+                      "original_price": "240.0",
+                      "average_rating": "",
+                      "total_reviews": "",
+                      "image_view": "regular",
+                      "recommendation_slot": "",
+                      "recommendation_strip": "",
+                      "recommendation_type": "",
+                      "selected_sku": "22347465"
+                    }
+                  ]
+                }
+              },
+              {
+                "__typename": "NavigateToSizeGuideAction",
+                "body": "<!-- Compiled CSS -->\r\n<link rel=\"stylesheet\" href=\"https://content-edit-assets.s3.amazonaws.com/saks/content/size-guide/v4/saks-size-guide-template-v4-0000-00-00-main-4.0.0.css\">\r\n<div id=\"dsg-editorial\" class=\"dsg-editorial dsg-en\">\r\n\r\n  <section class=\"section__size-guide-text\">\r\n    <div class=\"centered-text\">\r\n      <h3>Size Guide</h3>\r\n      <h2>Women's Apparel</h2>\r\n    </div>\r\n    <p><strong>Please note:</strong> The following information is intended for use as a general guideline. Sizing and fit may vary somewhat by brand. Need help with sizing? Check out the <strong><a class=\"internal-anchor\" href=\"#measuring-guide\">measuring guide</a></strong>.</p>\r\n  </section>\r\n\r\n  <section class=\"size-guide\">\r\n\r\n    <!-- TAB CONTAINER -->\r\n    <div class=\"size-guide__tabs\">\r\n\r\n      <!-- HEADER - TABS -->\r\n      <div class=\"size-guide__tabs--header\">\r\n        <div class=\"size-guide__tabs--header-left\">\r\n          <a href=\"#\" class=\"size-guide__tabs--selected\">\r\n            <span>MEASUREMENTS</span>\r\n          </a>\r\n          <a href=\"#\">\r\n            <span>SIZE CONVERSION</span>\r\n          </a>\r\n          <!-- <a href=\"#\" class=\"size-guide__tabs--size-con\">\r\n            <span>Third Tab</span>\r\n          </a> -->\r\n        </div>\r\n        <div class=\"size-guide__tabs--header-right\">\r\n          <a href=\"#\" class=\"size-guide__tabs--inches size-guide__tabs--selected\">\r\n            <span>IN</span>\r\n          </a>\r\n          <a href=\"#\" class=\"size-guide__tabs--centimiters\">\r\n            <span>CM</span>\r\n          </a>\r\n        </div>\r\n      </div>\r\n      <!-- END HEADER - TABS -->\r\n\r\n      <!-- TABLE CONTENT -->\r\n      <div class=\"size-guide__tabs--content\">\r\n\r\n        <!-- TABLE INCHES -->\r\n        <div class=\"size-guide__table\">\r\n          <div class=\"size-guide__table--header\">\r\n            <div>Alpha</div>\r\n            <div>Size</div>\r\n            <div>Bust</div>\r\n            <div>Natural Waist</div>\r\n            <div>Low Waist</div>\r\n            <div>Hips</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXS</div>\r\n            <div>00</div>\r\n            <div>30\" - 30.5\"</div>\r\n            <div>22\" - 23\"</div>\r\n            <div>22\" - 23\"</div>\r\n            <div>33\"</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XS</div>\r\n            <div>0</div>\r\n            <div>31\" - 31.5\"</div>\r\n            <div>23\" - 24\"</div>\r\n            <div>23\" - 24\"</div>\r\n            <div>34\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>XS</div>\r\n            <div>2</div>\r\n            <div>32\" - 32.5\"</div>\r\n            <div>24\" - 25\"</div>\r\n            <div>24\" - 25\"</div>\r\n            <div>35\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>S</div>\r\n            <div>4</div>\r\n            <div>33.5\" - 34\"</div>\r\n            <div>25\" - 26\"</div>\r\n            <div>25\" - 26\"</div>\r\n            <div>36\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>S</div>\r\n            <div>6</div>\r\n            <div>34.5\" - 35\"</div>\r\n            <div>26\" - 27\"</div>\r\n            <div>26\" - 27\"</div>\r\n            <div>37\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>M</div>\r\n            <div>8</div>\r\n            <div>35.5\" - 36\"</div>\r\n            <div>27\" - 28\"</div>\r\n            <div>27\" - 28\"</div>\r\n            <div>38\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>M</div>\r\n            <div>10</div>\r\n            <div>36.5\" - 37\"</div>\r\n            <div>28\" - 29\"</div>\r\n            <div>28\" - 29\"</div>\r\n            <div>39\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>L</div>\r\n            <div>12</div>\r\n            <div>37.5\" - 38\"</div>\r\n            <div>29.5\" - 30.5\"</div>\r\n            <div>29.5\" - 30.5\"</div>\r\n            <div>40.5\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>L</div>\r\n            <div>14</div>\r\n            <div>38.5\" - 39.5\"</div>\r\n            <div>31\" - 32\"</div>\r\n            <div>31\" - 32\"</div>\r\n            <div>42\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>XL</div>\r\n            <div>16</div>\r\n            <div>41.5\" - 42.5\"</div>\r\n            <div>32.5\" - 33.5\"</div>\r\n            <div>32.5\" - 33.5\"</div>\r\n            <div>43.5\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>XL</div>\r\n            <div>18</div>\r\n            <div>43\" - 43.5\"</div>\r\n            <div>34\" - 35\"</div>\r\n            <div>34\" - 35\"</div>\r\n            <div>45\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>XXL</div>\r\n            <div>20</div>\r\n            <div>44\" - 44.5\"</div>\r\n            <div>35\" - 36\"</div>\r\n            <div>35\" - 36\"</div>\r\n            <div>46.5\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>XXL</div>\r\n            <div>22</div>\r\n            <div>45\" - 45.5\"</div>\r\n            <div>36\" - 37\"</div>\r\n            <div>36\" - 37\"</div>\r\n            <div>48\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>XXXL</div>\r\n            <div>24</div>\r\n            <div>46\" - 46.5\"</div>\r\n            <div>37\" - 38\"</div>\r\n            <div>37\" - 38\"</div>\r\n            <div>49.5\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>XXXL</div>\r\n            <div>26</div>\r\n            <div>47\" - 47.5\"</div>\r\n            <div>38\" - 39\"</div>\r\n            <div>38\" - 39\"</div>\r\n            <div>51\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>XXXXL</div>\r\n            <div>28</div>\r\n            <div>48\" - 49\"</div>\r\n            <div>40.5\" - 41.5\"</div>\r\n            <div>40.5\" - 41.5\"</div>\r\n            <div>52.5\"</div>\r\n          </div>\r\n           <div class=\"size-guide__table--row\">\r\n            <div>XXXXXL</div>\r\n            <div>30</div>\r\n            <div>49\" - 50\"</div>\r\n            <div>41.5\" - 42.5\"</div>\r\n            <div>41.5\" - 42.5\"</div>\r\n            <div>54\"</div>\r\n          </div>\r\n        </div>\r\n        <!-- TABLE INCHES -->\r\n\r\n        <!-- TABLE CENTIMITERS -->\r\n        <div class=\"size-guide__table\">\r\n          <div class=\"size-guide__table--header\">\r\n            <div>Alpha</div>\r\n            <div>Size</div>\r\n            <div>Bust</div>\r\n            <div>Natural Waist</div>\r\n            <div>Low Waist</div>\r\n            <div>Hips</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXS</div>\r\n            <div>00</div>\r\n            <div>76 - 77.5</div>\r\n            <div>56 - 58.5</div>\r\n            <div>56 - 58.5</div>\r\n            <div>84</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XS</div>\r\n            <div>0</div>\r\n            <div>79 - 80</div>\r\n            <div>58.5 - 61</div>\r\n            <div>58.5 - 61</div>\r\n            <div>86</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XS</div>\r\n            <div>2</div>\r\n            <div>81 - 82.5</div>\r\n            <div>61 - 63.5</div>\r\n            <div>61 - 63.5</div>\r\n            <div>89</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>S</div>\r\n            <div>4</div>\r\n            <div>85 - 86.5</div>\r\n            <div>63.5 - 66</div>\r\n            <div>63.5 - 66</div>\r\n            <div>91.5</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>S</div>\r\n            <div>6</div>\r\n            <div>87.5 - 89</div>\r\n            <div>66 - 68.5</div>\r\n            <div>66 - 68.5</div>\r\n            <div>94</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>M</div>\r\n            <div>8</div>\r\n            <div>90 - 91.5</div>\r\n            <div>68.5 - 71</div>\r\n            <div>68.5 - 71</div>\r\n            <div>96.5</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>M</div>\r\n            <div>10</div>\r\n            <div>92.5 - 94</div>\r\n            <div>71 - 73.5</div>\r\n            <div>71 - 73.5</div>\r\n            <div>99</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>L</div>\r\n            <div>12</div>\r\n            <div>95 - 96.5</div>\r\n            <div>75 - 77.5</div>\r\n            <div>75 - 77.5</div>\r\n            <div>103</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>L</div>\r\n            <div>14</div>\r\n            <div>98 - 100</div>\r\n            <div>79 - 81</div>\r\n            <div>79 - 81.5</div>\r\n            <div>106.5</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XL</div>\r\n            <div>16</div>\r\n            <div>105 - 108</div>\r\n            <div>82.5 - 85</div>\r\n            <div>82.5 - 85</div>\r\n            <div>110.5</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XL</div>\r\n            <div>18</div>\r\n            <div>109 - 110.5</div>\r\n            <div>86 - 89</div>\r\n            <div>86 - 89</div>\r\n            <div>114.5</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXL</div>\r\n            <div>20</div>\r\n            <div>112 - 113</div>\r\n            <div>89 - 91.5</div>\r\n            <div>89 - 91.5</div>\r\n            <div>118</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXL</div>\r\n            <div>22</div>\r\n            <div>114 - 115.5</div>\r\n            <div>91.5 - 94</div>\r\n            <div>91.5 - 94</div>\r\n            <div>122</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXXL</div>\r\n            <div>24</div>\r\n            <div>117 - 118</div>\r\n            <div>94 - 96.5</div>\r\n            <div>94 - 96.5</div>\r\n            <div>126</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXXL</div>\r\n            <div>26</div>\r\n            <div>119 - 120.5</div>\r\n            <div>96.5 - 99</div>\r\n            <div>96.5 - 99</div>\r\n            <div>129.5</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXXXL</div>\r\n            <div>28</div>\r\n            <div>122 - 124.5</div>\r\n            <div>103 - 105.5</div>\r\n            <div>103 - 105.5</div>\r\n            <div>133.5</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXXXXL</div>\r\n            <div>30</div>\r\n            <div>124.5 - 127</div>\r\n            <div>105.5 - 108</div>\r\n            <div>105.5 - 108</div>\r\n            <div>137</div>\r\n          </div>\r\n        </div>\r\n        <!-- END TABLE CENTIMITERS -->\r\n\r\n        <!-- TABLE SIZE CONVERSION -->\r\n        <div class=\"size-guide__table\">\r\n          <div class=\"size-guide__table--header\">\r\n            <div>Alpha</div>\r\n            <div>US Size</div>\r\n            <div>France</div>\r\n            <div>Italy</div>\r\n            <div>UK</div>\r\n            <div>Japan</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXS</div>\r\n            <div>00</div>\r\n            <div>30</div>\r\n            <div>34</div>\r\n            <div>2</div>\r\n            <div>1</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XS</div>\r\n            <div>0</div>\r\n            <div>32</div>\r\n            <div>36</div>\r\n            <div>4</div>\r\n            <div>3</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XS</div>\r\n            <div>2</div>\r\n            <div>34</div>\r\n            <div>38</div>\r\n            <div>6</div>\r\n            <div>5</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>S</div>\r\n            <div>4</div>\r\n            <div>36</div>\r\n            <div>40</div>\r\n            <div>8</div>\r\n            <div>7</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>S</div>\r\n            <div>6</div>\r\n            <div>38</div>\r\n            <div>42</div>\r\n            <div>10</div>\r\n            <div>9</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>M</div>\r\n            <div>8</div>\r\n            <div>40</div>\r\n            <div>44</div>\r\n            <div>12</div>\r\n            <div>11</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>M</div>\r\n            <div>10</div>\r\n            <div>42</div>\r\n            <div>46</div>\r\n            <div>14</div>\r\n            <div>13</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>L</div>\r\n            <div>12</div>\r\n            <div>44</div>\r\n            <div>48</div>\r\n            <div>16</div>\r\n            <div>15</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>L</div>\r\n            <div>14</div>\r\n            <div>46</div>\r\n            <div>50</div>\r\n            <div>18</div>\r\n            <div>17</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XL</div>\r\n            <div>16</div>\r\n            <div>48</div>\r\n            <div>52</div>\r\n            <div>20</div>\r\n            <div>19</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XL</div>\r\n            <div>18</div>\r\n            <div>50</div>\r\n            <div>54</div>\r\n            <div>22</div>\r\n            <div>21</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXL</div>\r\n            <div>20</div>\r\n            <div>52</div>\r\n            <div>56</div>\r\n            <div>24</div>\r\n            <div>23</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXL</div>\r\n            <div>22</div>\r\n            <div>54</div>\r\n            <div>58</div>\r\n            <div>26</div>\r\n            <div>25</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXXL</div>\r\n            <div>24</div>\r\n            <div>56</div>\r\n            <div>60</div>\r\n            <div>28</div>\r\n            <div>27</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXXL</div>\r\n            <div>26</div>\r\n            <div>58</div>\r\n            <div>62</div>\r\n            <div>30</div>\r\n            <div>29</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXXXL</div>\r\n            <div>28</div>\r\n            <div>60</div>\r\n            <div>64</div>\r\n            <div>32</div>\r\n            <div>31</div>\r\n          </div>\r\n          <div class=\"size-guide__table--row\">\r\n            <div>XXXXXL</div>\r\n            <div>30</div>\r\n            <div>62</div>\r\n            <div>66</div>\r\n            <div>34</div>\r\n            <div>33</div>\r\n          </div>\r\n        </div>\r\n        <!-- TABLE SIZE CONVERSION -->\r\n\r\n      </div>\r\n      <!-- END TABLE CONTENT -->\r\n\r\n    </div>\r\n    <!-- END TAB CONTAINER -->\r\n\r\n  </section>\r\n\r\n  <section class=\"section__size-guide-text\" id=\"measuring-guide\">\r\n    <div class=\"centered-text\">\r\n      <h2>Measuring Guide</h2>\r\n    </div>\r\n\r\n    <p>We have listed below a definition of the most commonly used product measurement terms to help you choose the best size. We recommend that you compare each measurement with your own.</p>\r\n    <p>1. BUST: With arms at sides, place tape measure under your arms and run it around the fullest part of the bustline and across the shoulder blades.</p>\r\n    <p>2. NATURAL WAIST: Find the natural crease of your waist by bending to one side. Run tape measure around your natural waistline, keeping one finger between the tape and your body for a comfortable fit.</p>\r\n    <p>3. LOW WAIST: Run tape measure about 2 to 3 inches below your natural waistline, keeping one finger between the tape and your body for a comfortable fit.</p>\r\n    <p>4. HIPS: With feet together, run tape measure around the fullest part of your hips/seat, about 7 to 8 inches below your waistline.</p>\r\n    <p>5. INSEAM: For full-length pants, run tape measure along the inside of your leg, from just below the crotch to about 1 inch below the ankle.</p>\r\n    <p>6. HEAD: Run tape measure around your head, just above the brow line.</p>\r\n    <p>7. HANDS: Run tape measure around the circumference of your hand at the knuckles. Do not include the thumb.</p>\r\n\r\n  </section>\r\n\r\n</div> <!-- END #dsg-editorial -->\r\n\r\n<script type=\"text/javascript\" src=\"https://content-edit-assets.s3.amazonaws.com/saks/content/size-guide/v5/saks-size-guide-template-v5-0000-00-00-main-2.0.1.js\"></script>\r\n <script>document.addEventListener(\"DOMContentLoaded\",()=>{let e=document.querySelector(\".size-guide__tabs-1\"),t=document.querySelector(\".size-guide__tabs-2\"),i=document.querySelector(\".size-guide__tabs--header-right\");t.addEventListener(\"click\",function(){i.style.display=\"none\"}),e.addEventListener(\"click\",function(){i.style.display=\"flex\"})});</script>"
+              }
+            ]
+          },
+          "onSelected": null,
+          "onSubmitting": null,
+          "onSuccess": null,
+          "onFailure": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "selected+callout",
+        "index": 46,
+        "parentIndex": 42,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.size.selected+callout",
+        "node": {
+          "__typename": "CalloutView",
+          "calloutStyles": [
+            "NEUTRAL"
+          ]
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "selected",
+        "index": 47,
+        "parentIndex": 46,
+        "uniqueId": "pdp.body.desktop.selectionsContainer+future.selectionsContainer.size.selected+callout.selected",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "LABEL_M_UPPERCASE_EMPHASIS"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "One Size"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": {
+                    "__typename": "TextColorToken",
+                    "id": "ON_SURFACE_SECONDARY_DEFAULT"
+                  },
+                  "fontWeight": null,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "cta+future",
+        "index": 48,
+        "parentIndex": 0,
+        "uniqueId": "pdp.body.desktop.cta+future",
+        "node": {
+          "__typename": "FutureView",
+          "groupId": "Group1",
+          "placeholderMode": "SHOW_PLACEHOLDER"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "cta",
+        "index": 49,
+        "parentIndex": 48,
+        "uniqueId": "pdp.body.desktop.cta+future.cta",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "CENTER",
+          "space": null,
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "addToBagButton",
+        "index": 50,
+        "parentIndex": 49,
+        "uniqueId": "pdp.body.desktop.cta+future.cta.addToBagButton",
+        "node": {
+          "__typename": "ButtonView",
+          "buttonStyles": [
+            "PRIMARY"
+          ],
+          "state": "DISABLED",
+          "size": "MEDIUM",
+          "action": null,
+          "onDefault": null,
+          "onSelected": null,
+          "onSubmitting": null,
+          "onSuccess": null,
+          "onFailure": null,
+          "onDisabled": {
+            "__typename": "ButtonStateAttributes",
+            "label": {
+              "__typename": "TitleLabel",
+              "title": {
+                "__typename": "RawText",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "ADD TO BAG"
+                }
+              }
+            },
+            "actions": null
+          }
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "delivery",
+        "index": 51,
+        "parentIndex": 0,
+        "uniqueId": "pdp.body.desktop.delivery",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": null,
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "title",
+        "index": 52,
+        "parentIndex": 51,
+        "uniqueId": "pdp.body.desktop.delivery.title",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_EMPHASIS"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Free Standard Shipping on $300+ Use Code FREESHIP"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": {
+                    "__typename": "TextColorToken",
+                    "id": "ON_SURFACE_PAGE_EMPHASIS"
+                  },
+                  "fontWeight": null,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "loyalty-saks+-container",
+        "index": 53,
+        "parentIndex": 0,
+        "uniqueId": "pdp.body.desktop.loyalty-saks+-container",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_GROUP_VERTICAL"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "|",
+        "index": 54,
+        "parentIndex": 53,
+        "uniqueId": "pdp.body.desktop.loyalty-saks+-container.|",
+        "node": {
+          "__typename": "HorizontalDividerView",
+          "horizontalDividerStyles": [
+            "LINE"
+          ]
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "loyalty-saks+",
+        "index": 55,
+        "parentIndex": 53,
+        "uniqueId": "pdp.body.desktop.loyalty-saks+-container.loyalty-saks+",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_HORIZONTAL_M"
+          },
+          "distribution": "SPACE_BETWEEN"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "title",
+        "index": 56,
+        "parentIndex": 55,
+        "uniqueId": "pdp.body.desktop.loyalty-saks+-container.loyalty-saks+.title",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Use your Saks credit card to earn points. "
+                },
+                "style": null
+              },
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Learn More."
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": null,
+                  "link": {
+                    "__typename": "TextLink",
+                    "action": {
+                      "__typename": "NavigateToHtmlAction",
+                      "url": "https://www.saksfifthavenue.com/saks-first",
+                      "presentationStyles": [
+                        "MODAL"
+                      ]
+                    }
+                  },
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": true,
+                  "verticalAlignment": null,
+                  "actions": [
+                    {
+                      "__typename": "NavigateToHtmlAction",
+                      "url": "https://www.saksfifthavenue.com/saks-first",
+                      "presentationStyles": [
+                        "MODAL"
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "|",
+        "index": 57,
+        "parentIndex": 53,
+        "uniqueId": "pdp.body.desktop.loyalty-saks+-container.|",
+        "node": {
+          "__typename": "HorizontalDividerView",
+          "horizontalDividerStyles": [
+            "LINE"
+          ]
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "details",
+        "index": 58,
+        "parentIndex": 0,
+        "uniqueId": "pdp.body.desktop.details",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_GROUP_VERTICAL"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "title",
+        "index": 59,
+        "parentIndex": 58,
+        "uniqueId": "pdp.body.desktop.details.title",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "TITLE_SECTION"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Details"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": {
+                    "__typename": "TextColorToken",
+                    "id": "ON_SURFACE_PAGE_EMPHASIS"
+                  },
+                  "fontWeight": null,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "detailsText_0",
+        "index": 60,
+        "parentIndex": 58,
+        "uniqueId": "pdp.body.desktop.details.detailsText_0",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Crafted with a crinkled effect, this bikini from Hunza G features a scoopneck and deep cut back.97% polyamide/3% elastane. Hand wash. Imported."
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": 400,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "detailsText_1",
+        "index": 61,
+        "parentIndex": 58,
+        "uniqueId": "pdp.body.desktop.details.detailsText_1",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "TOP"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": 700,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "list_2",
+        "index": 62,
+        "parentIndex": 58,
+        "uniqueId": "pdp.body.desktop.details.list_2",
+        "node": {
+          "__typename": "ListView",
+          "style": "BULLET"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "0",
+        "index": 63,
+        "parentIndex": 62,
+        "uniqueId": "pdp.body.desktop.details.list_2.0",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Scoopneck"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": 400,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "1",
+        "index": 64,
+        "parentIndex": 62,
+        "uniqueId": "pdp.body.desktop.details.list_2.1",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Fixed straps"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": 400,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "2",
+        "index": 65,
+        "parentIndex": 62,
+        "uniqueId": "pdp.body.desktop.details.list_2.2",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Pulls over"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": 400,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "detailsText_3",
+        "index": 66,
+        "parentIndex": 58,
+        "uniqueId": "pdp.body.desktop.details.detailsText_3",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "BOTTOM"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": 700,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "list_4",
+        "index": 67,
+        "parentIndex": 58,
+        "uniqueId": "pdp.body.desktop.details.list_4",
+        "node": {
+          "__typename": "ListView",
+          "style": "BULLET"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "0",
+        "index": 68,
+        "parentIndex": 67,
+        "uniqueId": "pdp.body.desktop.details.list_4.0",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Elasticized waistband"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": 400,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "1",
+        "index": 69,
+        "parentIndex": 67,
+        "uniqueId": "pdp.body.desktop.details.list_4.1",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Pulls on"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": 400,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "detailsText_5",
+        "index": 70,
+        "parentIndex": 58,
+        "uniqueId": "pdp.body.desktop.details.detailsText_5",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "SIZE & FIT"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": 700,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "list_6",
+        "index": 71,
+        "parentIndex": 58,
+        "uniqueId": "pdp.body.desktop.details.list_6",
+        "node": {
+          "__typename": "ListView",
+          "style": "BULLET"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "0",
+        "index": 72,
+        "parentIndex": 71,
+        "uniqueId": "pdp.body.desktop.details.list_6.0",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Model measurements: 5'10\" tall"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": 400,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "1",
+        "index": 73,
+        "parentIndex": 71,
+        "uniqueId": "pdp.body.desktop.details.list_6.1",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Model is wearing a US size Small"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": 400,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "shippingAndReturnsPolicy",
+        "index": 74,
+        "parentIndex": 58,
+        "uniqueId": "pdp.body.desktop.details.shippingAndReturnsPolicy",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_HORIZONTAL_S"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "policy text",
+        "index": 75,
+        "parentIndex": 74,
+        "uniqueId": "pdp.body.desktop.details.shippingAndReturnsPolicy.policy text",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Learn more about our"
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "shipping link",
+        "index": 76,
+        "parentIndex": 74,
+        "uniqueId": "pdp.body.desktop.details.shippingAndReturnsPolicy.shipping link",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_LINK"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "shipping"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": null,
+                  "link": {
+                    "__typename": "TextLink",
+                    "action": {
+                      "__typename": "NavigateToDeepLinkAction",
+                      "url": "https://www.saksfifthavenue.com/c/content/shipping-policy"
+                    }
+                  },
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "join",
+        "index": 77,
+        "parentIndex": 74,
+        "uniqueId": "pdp.body.desktop.details.shippingAndReturnsPolicy.join",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "and"
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "returns link",
+        "index": 78,
+        "parentIndex": 74,
+        "uniqueId": "pdp.body.desktop.details.shippingAndReturnsPolicy.returns link",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_LINK"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "returns"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": null,
+                  "link": {
+                    "__typename": "TextLink",
+                    "action": {
+                      "__typename": "NavigateToDeepLinkAction",
+                      "url": "https://www.saksfifthavenue.com/c/content/returns-exchanges"
+                    }
+                  },
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "policy text end",
+        "index": 79,
+        "parentIndex": 74,
+        "uniqueId": "pdp.body.desktop.details.shippingAndReturnsPolicy.policy text end",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "policy."
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "styleCode",
+        "index": 80,
+        "parentIndex": 58,
+        "uniqueId": "pdp.body.desktop.details.styleCode",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_HORIZONTAL_S"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "styleCode_STYLE_CODE",
+        "index": 81,
+        "parentIndex": 80,
+        "uniqueId": "pdp.body.desktop.details.styleCode.styleCode_STYLE_CODE",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Style Code: "
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "styleCode_STYLE_CODE_ID",
+        "index": 82,
+        "parentIndex": 80,
+        "uniqueId": "pdp.body.desktop.details.styleCode.styleCode_STYLE_CODE_ID",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "0400022347462"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": {
+                    "__typename": "TextColorToken",
+                    "id": "ON_SURFACE_PAGE_EMPHASIS"
+                  },
+                  "fontWeight": null,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "waitlist.error.transient.toast",
+        "index": 83,
+        "parentIndex": -1,
+        "uniqueId": "waitlist.error.transient.toast",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_VERTICAL_S"
+          },
+          "distribution": "CENTER"
+        },
+        "childNodes": [
+          {
+            "index": 84,
+            "id": "title",
+            "parentIndex": 83,
+            "uniqueId": "waitlist.error.transient.toast.title",
+            "node": {
+              "__typename": "TextView",
+              "textStyles": [
+                "BODY_DEFAULT"
+              ],
+              "text": {
+                "__typename": "RichText",
+                "nodes": [
+                  {
+                    "__typename": "TextNode",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "Oops!"
+                    },
+                    "style": {
+                      "__typename": "TextAttributes",
+                      "color": {
+                        "__typename": "TextColorToken",
+                        "id": "ON_SURFACE_ERROR_TEXT"
+                      },
+                      "fontWeight": 700,
+                      "link": null,
+                      "italics": null,
+                      "strikethrough": null,
+                      "underline": null,
+                      "verticalAlignment": null,
+                      "actions": null
+                    }
+                  }
+                ]
+              },
+              "onSelected": null,
+              "onDisabled": null
+            },
+            "childNodes": []
+          },
+          {
+            "index": 85,
+            "id": "tryAgain",
+            "parentIndex": 83,
+            "uniqueId": "waitlist.error.transient.toast.tryAgain",
+            "node": {
+              "__typename": "HorizontalStackView",
+              "layout": "NONE",
+              "verticalAlignment": "CENTER",
+              "space": {
+                "__typename": "SpaceToken",
+                "token": "INTER_ITEM_HORIZONTAL_S"
+              },
+              "distribution": "START"
+            },
+            "childNodes": [
+              {
+                "index": 86,
+                "id": "description",
+                "parentIndex": 85,
+                "uniqueId": "waitlist.error.transient.toast.tryAgain.description",
+                "node": {
+                  "__typename": "TextView",
+                  "textStyles": [
+                    "BODY_DEFAULT"
+                  ],
+                  "text": {
+                    "__typename": "RichText",
+                    "nodes": [
+                      {
+                        "__typename": "TextNode",
+                        "value": {
+                          "__typename": "StringValue",
+                          "value": "Something went wrong."
+                        },
+                        "style": null
+                      }
+                    ]
+                  },
+                  "onSelected": null,
+                  "onDisabled": null
+                },
+                "childNodes": []
+              },
+              {
+                "index": 87,
+                "id": "tryAgain",
+                "parentIndex": 85,
+                "uniqueId": "waitlist.error.transient.toast.tryAgain.tryAgain",
+                "node": {
+                  "__typename": "BadgeView",
+                  "badgeLabel": {
+                    "__typename": "TitleLabel",
+                    "title": {
+                      "__typename": "RawText",
+                      "value": {
+                        "__typename": "StringValue",
+                        "value": "Try Again"
+                      }
+                    }
+                  },
+                  "badgeStyles": [
+                    "WHITE"
+                  ]
+                },
+                "childNodes": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "title",
+        "index": 84,
+        "parentIndex": 83,
+        "uniqueId": "waitlist.error.transient.toast.title",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Oops!"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": {
+                    "__typename": "TextColorToken",
+                    "id": "ON_SURFACE_ERROR_TEXT"
+                  },
+                  "fontWeight": 700,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "tryAgain",
+        "index": 85,
+        "parentIndex": 83,
+        "uniqueId": "waitlist.error.transient.toast.tryAgain",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_HORIZONTAL_S"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "description",
+        "index": 86,
+        "parentIndex": 85,
+        "uniqueId": "waitlist.error.transient.toast.tryAgain.description",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Something went wrong."
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "tryAgain",
+        "index": 87,
+        "parentIndex": 85,
+        "uniqueId": "waitlist.error.transient.toast.tryAgain.tryAgain",
+        "node": {
+          "__typename": "BadgeView",
+          "badgeLabel": {
+            "__typename": "TitleLabel",
+            "title": {
+              "__typename": "RawText",
+              "value": {
+                "__typename": "StringValue",
+                "value": "Try Again"
+              }
+            }
+          },
+          "badgeStyles": [
+            "WHITE"
+          ]
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "pdp.modal.preorder",
+        "index": 88,
+        "parentIndex": -1,
+        "uniqueId": "pdp.modal.preorder",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_SECTION"
+          },
+          "distribution": "SIZE_EVENLY"
+        },
+        "childNodes": [
+          {
+            "index": 89,
+            "id": "message",
+            "parentIndex": 88,
+            "uniqueId": "pdp.modal.preorder.message",
+            "node": {
+              "__typename": "TextView",
+              "textStyles": [
+                "BODY_DEFAULT"
+              ],
+              "text": {
+                "__typename": "RichText",
+                "nodes": [
+                  {
+                    "__typename": "TextNode",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "Your credit card will not be charged until the item is ready to ship."
+                    },
+                    "style": null
+                  }
+                ]
+              },
+              "onSelected": null,
+              "onDisabled": null
+            },
+            "childNodes": []
+          },
+          {
+            "index": 90,
+            "id": "faq",
+            "parentIndex": 88,
+            "uniqueId": "pdp.modal.preorder.faq",
+            "node": {
+              "__typename": "TextView",
+              "textStyles": [
+                "BODY_DEFAULT"
+              ],
+              "text": {
+                "__typename": "RichText",
+                "nodes": [
+                  {
+                    "__typename": "TextNode",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "Pre-Order FAQs"
+                    },
+                    "style": {
+                      "__typename": "TextAttributes",
+                      "color": null,
+                      "fontWeight": null,
+                      "link": {
+                        "__typename": "TextLink",
+                        "action": {
+                          "__typename": "NavigateToDeepLinkAction",
+                          "url": "https://support.saksfifthavenue.com/s/article/Pre-Order-FAQs"
+                        }
+                      },
+                      "italics": null,
+                      "strikethrough": null,
+                      "underline": true,
+                      "verticalAlignment": null,
+                      "actions": null
+                    }
+                  }
+                ]
+              },
+              "onSelected": null,
+              "onDisabled": null
+            },
+            "childNodes": []
+          }
+        ]
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "message",
+        "index": 89,
+        "parentIndex": 88,
+        "uniqueId": "pdp.modal.preorder.message",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Your credit card will not be charged until the item is ready to ship."
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "faq",
+        "index": 90,
+        "parentIndex": 88,
+        "uniqueId": "pdp.modal.preorder.faq",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Pre-Order FAQs"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": null,
+                  "link": {
+                    "__typename": "TextLink",
+                    "action": {
+                      "__typename": "NavigateToDeepLinkAction",
+                      "url": "https://support.saksfifthavenue.com/s/article/Pre-Order-FAQs"
+                    }
+                  },
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": true,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "error.toast.no.inventory",
+        "index": 91,
+        "parentIndex": -1,
+        "uniqueId": "error.toast.no.inventory",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_VERTICAL_S"
+          },
+          "distribution": "CENTER"
+        },
+        "childNodes": [
+          {
+            "index": 92,
+            "id": "title",
+            "parentIndex": 91,
+            "uniqueId": "error.toast.no.inventory.title",
+            "node": {
+              "__typename": "TextView",
+              "textStyles": [
+                "BODY_DEFAULT"
+              ],
+              "text": {
+                "__typename": "RichText",
+                "nodes": [
+                  {
+                    "__typename": "TextNode",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "Item No Longer Available"
+                    },
+                    "style": {
+                      "__typename": "TextAttributes",
+                      "color": {
+                        "__typename": "TextColorToken",
+                        "id": "ON_SURFACE_ERROR_TEXT"
+                      },
+                      "fontWeight": 700,
+                      "link": null,
+                      "italics": null,
+                      "strikethrough": null,
+                      "underline": null,
+                      "verticalAlignment": null,
+                      "actions": null
+                    }
+                  }
+                ]
+              },
+              "onSelected": null,
+              "onDisabled": null
+            },
+            "childNodes": []
+          }
+        ]
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "title",
+        "index": 92,
+        "parentIndex": 91,
+        "uniqueId": "error.toast.no.inventory.title",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Item No Longer Available"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": {
+                    "__typename": "TextColorToken",
+                    "id": "ON_SURFACE_ERROR_TEXT"
+                  },
+                  "fontWeight": 700,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "wishlist.error.transient.toast",
+        "index": 93,
+        "parentIndex": -1,
+        "uniqueId": "wishlist.error.transient.toast",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_VERTICAL_S"
+          },
+          "distribution": "CENTER"
+        },
+        "childNodes": [
+          {
+            "index": 94,
+            "id": "title",
+            "parentIndex": 93,
+            "uniqueId": "wishlist.error.transient.toast.title",
+            "node": {
+              "__typename": "TextView",
+              "textStyles": [
+                "BODY_DEFAULT"
+              ],
+              "text": {
+                "__typename": "RichText",
+                "nodes": [
+                  {
+                    "__typename": "TextNode",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "We are sorry!"
+                    },
+                    "style": {
+                      "__typename": "TextAttributes",
+                      "color": {
+                        "__typename": "TextColorToken",
+                        "id": "ON_SURFACE_ERROR_TEXT"
+                      },
+                      "fontWeight": 700,
+                      "link": null,
+                      "italics": null,
+                      "strikethrough": null,
+                      "underline": null,
+                      "verticalAlignment": null,
+                      "actions": null
+                    }
+                  }
+                ]
+              },
+              "onSelected": null,
+              "onDisabled": null
+            },
+            "childNodes": []
+          },
+          {
+            "index": 95,
+            "id": "details",
+            "parentIndex": 93,
+            "uniqueId": "wishlist.error.transient.toast.details",
+            "node": {
+              "__typename": "HorizontalStackView",
+              "layout": "NONE",
+              "verticalAlignment": "CENTER",
+              "space": {
+                "__typename": "SpaceToken",
+                "token": "INTER_ITEM_HORIZONTAL_S"
+              },
+              "distribution": "START"
+            },
+            "childNodes": [
+              {
+                "index": 96,
+                "id": "description",
+                "parentIndex": 95,
+                "uniqueId": "wishlist.error.transient.toast.details.description",
+                "node": {
+                  "__typename": "TextView",
+                  "textStyles": [
+                    "BODY_DEFAULT"
+                  ],
+                  "text": {
+                    "__typename": "RichText",
+                    "nodes": [
+                      {
+                        "__typename": "TextNode",
+                        "value": {
+                          "__typename": "StringValue",
+                          "value": "Looks like we are having some trouble adding product to wishlist."
+                        },
+                        "style": null
+                      }
+                    ]
+                  },
+                  "onSelected": null,
+                  "onDisabled": null
+                },
+                "childNodes": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "title",
+        "index": 94,
+        "parentIndex": 93,
+        "uniqueId": "wishlist.error.transient.toast.title",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "We are sorry!"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": {
+                    "__typename": "TextColorToken",
+                    "id": "ON_SURFACE_ERROR_TEXT"
+                  },
+                  "fontWeight": 700,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "details",
+        "index": 95,
+        "parentIndex": 93,
+        "uniqueId": "wishlist.error.transient.toast.details",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_HORIZONTAL_S"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "description",
+        "index": 96,
+        "parentIndex": 95,
+        "uniqueId": "wishlist.error.transient.toast.details.description",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Looks like we are having some trouble adding product to wishlist."
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      }
+    ]
+  },
+  "footer": {
+    "__typename": "ViewHierarchy",
+    "data": null,
+    "analyticsData": null,
+    "onLoad": null,
+    "attributes": [
+      {
+        "id": "color",
+        "name": "Color",
+        "isNavigational": true,
+        "queryAlias": "dwvar_0400022347462_color",
+        "inputs": [
+          "BLACK"
+        ],
+        "__typename": "SetAttribute"
+      },
+      {
+        "id": "size",
+        "name": "Size",
+        "isNavigational": true,
+        "queryAlias": "dwvar_0400022347462_size",
+        "inputs": [
+          "One Size"
+        ],
+        "__typename": "SetAttribute"
+      },
+      {
+        "id": "productId",
+        "name": "Product",
+        "isNavigational": false,
+        "queryAlias": null,
+        "input": "0400022347462",
+        "__typename": "StringAttribute"
+      },
+      {
+        "id": "email",
+        "name": "email",
+        "isNavigational": false,
+        "queryAlias": "email",
+        "input": "",
+        "__typename": "StringAttribute"
+      },
+      {
+        "id": "phone",
+        "name": "phone",
+        "isNavigational": false,
+        "queryAlias": "phone",
+        "input": "",
+        "__typename": "StringAttribute"
+      }
+    ],
+    "nodes": [
+      {
+        "__typename": "ViewNode",
+        "id": "pdp.footer.mobile",
+        "index": 0,
+        "parentIndex": -1,
+        "uniqueId": "pdp.footer.mobile",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": null,
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "buttons",
+        "index": 1,
+        "parentIndex": 0,
+        "uniqueId": "pdp.footer.mobile.buttons",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "CENTER",
+          "space": null,
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "cta+future",
+        "index": 2,
+        "parentIndex": 1,
+        "uniqueId": "pdp.footer.mobile.buttons.cta+future",
+        "node": {
+          "__typename": "FutureView",
+          "groupId": "Group1",
+          "placeholderMode": "SHOW_PLACEHOLDER"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "cta",
+        "index": 3,
+        "parentIndex": 2,
+        "uniqueId": "pdp.footer.mobile.buttons.cta+future.cta",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": null,
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "addToBagCtaMessage",
+        "index": 4,
+        "parentIndex": 3,
+        "uniqueId": "pdp.footer.mobile.buttons.cta+future.cta.addToBagCtaMessage",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "BOTTOM",
+          "space": null,
+          "distribution": "CENTER"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "addToBagButton",
+        "index": 5,
+        "parentIndex": 3,
+        "uniqueId": "pdp.footer.mobile.buttons.cta+future.cta.addToBagButton",
+        "node": {
+          "__typename": "ButtonView",
+          "buttonStyles": [
+            "PRIMARY"
+          ],
+          "state": "DISABLED",
+          "size": "MEDIUM",
+          "action": null,
+          "onDefault": null,
+          "onSelected": null,
+          "onSubmitting": null,
+          "onSuccess": null,
+          "onFailure": null,
+          "onDisabled": {
+            "__typename": "ButtonStateAttributes",
+            "label": {
+              "__typename": "TitleLabel",
+              "title": {
+                "__typename": "RawText",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "ADD TO BAG"
+                }
+              }
+            },
+            "actions": null
+          }
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "waitlist.error.transient.toast",
+        "index": 6,
+        "parentIndex": -1,
+        "uniqueId": "waitlist.error.transient.toast",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_VERTICAL_S"
+          },
+          "distribution": "CENTER"
+        },
+        "childNodes": [
+          {
+            "index": 7,
+            "id": "title",
+            "parentIndex": 6,
+            "uniqueId": "waitlist.error.transient.toast.title",
+            "node": {
+              "__typename": "TextView",
+              "textStyles": [
+                "BODY_DEFAULT"
+              ],
+              "text": {
+                "__typename": "RichText",
+                "nodes": [
+                  {
+                    "__typename": "TextNode",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "Oops!"
+                    },
+                    "style": {
+                      "__typename": "TextAttributes",
+                      "color": {
+                        "__typename": "TextColorToken",
+                        "id": "ON_SURFACE_ERROR_TEXT"
+                      },
+                      "fontWeight": 700,
+                      "link": null,
+                      "italics": null,
+                      "strikethrough": null,
+                      "underline": null,
+                      "verticalAlignment": null,
+                      "actions": null
+                    }
+                  }
+                ]
+              },
+              "onSelected": null,
+              "onDisabled": null
+            },
+            "childNodes": []
+          },
+          {
+            "index": 8,
+            "id": "tryAgain",
+            "parentIndex": 6,
+            "uniqueId": "waitlist.error.transient.toast.tryAgain",
+            "node": {
+              "__typename": "HorizontalStackView",
+              "layout": "NONE",
+              "verticalAlignment": "CENTER",
+              "space": {
+                "__typename": "SpaceToken",
+                "token": "INTER_ITEM_HORIZONTAL_S"
+              },
+              "distribution": "START"
+            },
+            "childNodes": [
+              {
+                "index": 9,
+                "id": "description",
+                "parentIndex": 8,
+                "uniqueId": "waitlist.error.transient.toast.tryAgain.description",
+                "node": {
+                  "__typename": "TextView",
+                  "textStyles": [
+                    "BODY_DEFAULT"
+                  ],
+                  "text": {
+                    "__typename": "RichText",
+                    "nodes": [
+                      {
+                        "__typename": "TextNode",
+                        "value": {
+                          "__typename": "StringValue",
+                          "value": "Something went wrong."
+                        },
+                        "style": null
+                      }
+                    ]
+                  },
+                  "onSelected": null,
+                  "onDisabled": null
+                },
+                "childNodes": []
+              },
+              {
+                "index": 10,
+                "id": "tryAgain",
+                "parentIndex": 8,
+                "uniqueId": "waitlist.error.transient.toast.tryAgain.tryAgain",
+                "node": {
+                  "__typename": "BadgeView",
+                  "badgeLabel": {
+                    "__typename": "TitleLabel",
+                    "title": {
+                      "__typename": "RawText",
+                      "value": {
+                        "__typename": "StringValue",
+                        "value": "Try Again"
+                      }
+                    }
+                  },
+                  "badgeStyles": [
+                    "WHITE"
+                  ]
+                },
+                "childNodes": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "title",
+        "index": 7,
+        "parentIndex": 6,
+        "uniqueId": "waitlist.error.transient.toast.title",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Oops!"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": {
+                    "__typename": "TextColorToken",
+                    "id": "ON_SURFACE_ERROR_TEXT"
+                  },
+                  "fontWeight": 700,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "tryAgain",
+        "index": 8,
+        "parentIndex": 6,
+        "uniqueId": "waitlist.error.transient.toast.tryAgain",
+        "node": {
+          "__typename": "HorizontalStackView",
+          "layout": "NONE",
+          "verticalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_HORIZONTAL_S"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "description",
+        "index": 9,
+        "parentIndex": 8,
+        "uniqueId": "waitlist.error.transient.toast.tryAgain.description",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Something went wrong."
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "tryAgain",
+        "index": 10,
+        "parentIndex": 8,
+        "uniqueId": "waitlist.error.transient.toast.tryAgain.tryAgain",
+        "node": {
+          "__typename": "BadgeView",
+          "badgeLabel": {
+            "__typename": "TitleLabel",
+            "title": {
+              "__typename": "RawText",
+              "value": {
+                "__typename": "StringValue",
+                "value": "Try Again"
+              }
+            }
+          },
+          "badgeStyles": [
+            "WHITE"
+          ]
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "pdp.modal.preorder",
+        "index": 11,
+        "parentIndex": -1,
+        "uniqueId": "pdp.modal.preorder",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_SECTION"
+          },
+          "distribution": "SIZE_EVENLY"
+        },
+        "childNodes": [
+          {
+            "index": 12,
+            "id": "message",
+            "parentIndex": 11,
+            "uniqueId": "pdp.modal.preorder.message",
+            "node": {
+              "__typename": "TextView",
+              "textStyles": [
+                "BODY_DEFAULT"
+              ],
+              "text": {
+                "__typename": "RichText",
+                "nodes": [
+                  {
+                    "__typename": "TextNode",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "Your credit card will not be charged until the item is ready to ship."
+                    },
+                    "style": null
+                  }
+                ]
+              },
+              "onSelected": null,
+              "onDisabled": null
+            },
+            "childNodes": []
+          },
+          {
+            "index": 13,
+            "id": "faq",
+            "parentIndex": 11,
+            "uniqueId": "pdp.modal.preorder.faq",
+            "node": {
+              "__typename": "TextView",
+              "textStyles": [
+                "BODY_DEFAULT"
+              ],
+              "text": {
+                "__typename": "RichText",
+                "nodes": [
+                  {
+                    "__typename": "TextNode",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "Pre-Order FAQs"
+                    },
+                    "style": {
+                      "__typename": "TextAttributes",
+                      "color": null,
+                      "fontWeight": null,
+                      "link": {
+                        "__typename": "TextLink",
+                        "action": {
+                          "__typename": "NavigateToDeepLinkAction",
+                          "url": "https://support.saksfifthavenue.com/s/article/Pre-Order-FAQs"
+                        }
+                      },
+                      "italics": null,
+                      "strikethrough": null,
+                      "underline": true,
+                      "verticalAlignment": null,
+                      "actions": null
+                    }
+                  }
+                ]
+              },
+              "onSelected": null,
+              "onDisabled": null
+            },
+            "childNodes": []
+          }
+        ]
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "message",
+        "index": 12,
+        "parentIndex": 11,
+        "uniqueId": "pdp.modal.preorder.message",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Your credit card will not be charged until the item is ready to ship."
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "faq",
+        "index": 13,
+        "parentIndex": 11,
+        "uniqueId": "pdp.modal.preorder.faq",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Pre-Order FAQs"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": null,
+                  "link": {
+                    "__typename": "TextLink",
+                    "action": {
+                      "__typename": "NavigateToDeepLinkAction",
+                      "url": "https://support.saksfifthavenue.com/s/article/Pre-Order-FAQs"
+                    }
+                  },
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": true,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "error.toast.no.inventory",
+        "index": 14,
+        "parentIndex": -1,
+        "uniqueId": "error.toast.no.inventory",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "LEADING",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_VERTICAL_S"
+          },
+          "distribution": "CENTER"
+        },
+        "childNodes": [
+          {
+            "index": 15,
+            "id": "title",
+            "parentIndex": 14,
+            "uniqueId": "error.toast.no.inventory.title",
+            "node": {
+              "__typename": "TextView",
+              "textStyles": [
+                "BODY_DEFAULT"
+              ],
+              "text": {
+                "__typename": "RichText",
+                "nodes": [
+                  {
+                    "__typename": "TextNode",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "Item No Longer Available"
+                    },
+                    "style": {
+                      "__typename": "TextAttributes",
+                      "color": {
+                        "__typename": "TextColorToken",
+                        "id": "ON_SURFACE_ERROR_TEXT"
+                      },
+                      "fontWeight": 700,
+                      "link": null,
+                      "italics": null,
+                      "strikethrough": null,
+                      "underline": null,
+                      "verticalAlignment": null,
+                      "actions": null
+                    }
+                  }
+                ]
+              },
+              "onSelected": null,
+              "onDisabled": null
+            },
+            "childNodes": []
+          }
+        ]
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "title",
+        "index": 15,
+        "parentIndex": 14,
+        "uniqueId": "error.toast.no.inventory.title",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Item No Longer Available"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": {
+                    "__typename": "TextColorToken",
+                    "id": "ON_SURFACE_ERROR_TEXT"
+                  },
+                  "fontWeight": 700,
+                  "link": null,
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "waitlistModal",
+        "index": 16,
+        "parentIndex": -1,
+        "uniqueId": "waitlistModal",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_ITEM_VERTICAL_L"
+          },
+          "distribution": "CENTER"
+        },
+        "childNodes": [
+          {
+            "index": 17,
+            "id": "messagesTitle",
+            "parentIndex": 16,
+            "uniqueId": "waitlistModal.messagesTitle",
+            "node": {
+              "__typename": "VerticalStackView",
+              "horizontalAlignment": "CENTER",
+              "space": {
+                "__typename": "SpaceToken",
+                "token": "INTER_GROUP_VERTICAL"
+              },
+              "distribution": "START"
+            },
+            "childNodes": [
+              {
+                "index": 18,
+                "id": "heading",
+                "parentIndex": 17,
+                "uniqueId": "waitlistModal.messagesTitle.heading",
+                "node": {
+                  "__typename": "TextView",
+                  "textStyles": [
+                    "BODY_EMPHASIS"
+                  ],
+                  "text": {
+                    "__typename": "RichText",
+                    "nodes": [
+                      {
+                        "__typename": "TextNode",
+                        "value": {
+                          "__typename": "StringValue",
+                          "value": "ADD TO WAITLIST"
+                        },
+                        "style": null
+                      }
+                    ]
+                  },
+                  "onSelected": null,
+                  "onDisabled": null
+                },
+                "childNodes": []
+              }
+            ]
+          },
+          {
+            "index": 19,
+            "id": "messagesSection",
+            "parentIndex": 16,
+            "uniqueId": "waitlistModal.messagesSection",
+            "node": {
+              "__typename": "VerticalStackView",
+              "horizontalAlignment": "CENTER",
+              "space": null,
+              "distribution": "START"
+            },
+            "childNodes": [
+              {
+                "index": 20,
+                "id": "soldOutMessage",
+                "parentIndex": 19,
+                "uniqueId": "waitlistModal.messagesSection.soldOutMessage",
+                "node": {
+                  "__typename": "TextView",
+                  "textStyles": [
+                    "BODY_DEFAULT"
+                  ],
+                  "text": {
+                    "__typename": "RichText",
+                    "nodes": [
+                      {
+                        "__typename": "TextNode",
+                        "value": {
+                          "__typename": "StringValue",
+                          "value": "This item is sold out."
+                        },
+                        "style": null
+                      }
+                    ]
+                  },
+                  "onSelected": null,
+                  "onDisabled": null
+                },
+                "childNodes": []
+              },
+              {
+                "index": 21,
+                "id": "getNotifiedMessage",
+                "parentIndex": 19,
+                "uniqueId": "waitlistModal.messagesSection.getNotifiedMessage",
+                "node": {
+                  "__typename": "TextView",
+                  "textStyles": [
+                    "BODY_DEFAULT"
+                  ],
+                  "text": {
+                    "__typename": "RichText",
+                    "nodes": [
+                      {
+                        "__typename": "TextNode",
+                        "value": {
+                          "__typename": "StringValue",
+                          "value": "Get notified when it becomes available."
+                        },
+                        "style": null
+                      }
+                    ]
+                  },
+                  "onSelected": null,
+                  "onDisabled": null
+                },
+                "childNodes": []
+              }
+            ]
+          },
+          {
+            "index": 22,
+            "id": "waitlistForm",
+            "parentIndex": 16,
+            "uniqueId": "waitlistModal.waitlistForm",
+            "node": {
+              "__typename": "FormView",
+              "onInputValidated": [
+                {
+                  "__typename": "EnableAction",
+                  "viewId": "waitlistSubmit"
+                }
+              ],
+              "onInputInvalidated": [
+                {
+                  "__typename": "DisableAction",
+                  "viewId": "waitlistSubmit"
+                }
+              ]
+            },
+            "childNodes": [
+              {
+                "index": 23,
+                "id": "email",
+                "parentIndex": 22,
+                "uniqueId": "waitlistModal.waitlistForm.email",
+                "node": {
+                  "__typename": "TextInputView",
+                  "placeholder": {
+                    "__typename": "RawText",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "Email"
+                    }
+                  },
+                  "label": {
+                    "__typename": "TitleLabel",
+                    "title": {
+                      "__typename": "RawText",
+                      "value": {
+                        "__typename": "StringValue",
+                        "value": "Email"
+                      }
+                    }
+                  },
+                  "isDisabled": false,
+                  "contentType": "EMAIL",
+                  "isRequired": true,
+                  "regexPattern": "^[\\w.%+-]+@[\\w.-]+\\.[\\w]{2,6}$",
+                  "onFocus": {
+                    "__typename": "TextInputStateAttributes",
+                    "triggerType": "FIRST_TIME",
+                    "actions": [
+                      {
+                        "__typename": "AnalyticsAction",
+                        "eventId": "sku_event",
+                        "data": {
+                          "type": "waitListAddStart",
+                          "products": [
+                            {
+                              "brand": "Hunza G",
+                              "code": "0400022347462",
+                              "name": "Crinkle-Effect Scoopneck Bikini",
+                              "price": "168.0",
+                              "quantity": "1",
+                              "original_price": "240.0",
+                              "bopus_store_id": "",
+                              "gwp_flag": "false",
+                              "prev_quantity": "",
+                              "selected_sku": "22347465",
+                              "ship_from_store_id": ""
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "attributeId": "email"
+                },
+                "childNodes": []
+              },
+              {
+                "index": 24,
+                "id": "phone",
+                "parentIndex": 22,
+                "uniqueId": "waitlistModal.waitlistForm.phone",
+                "node": {
+                  "__typename": "TextInputView",
+                  "placeholder": {
+                    "__typename": "RawText",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "Phone (Optional)"
+                    }
+                  },
+                  "label": {
+                    "__typename": "TitleLabel",
+                    "title": {
+                      "__typename": "RawText",
+                      "value": {
+                        "__typename": "StringValue",
+                        "value": "Phone (Optional)"
+                      }
+                    }
+                  },
+                  "isDisabled": false,
+                  "contentType": "PHONE_NUMBER",
+                  "isRequired": false,
+                  "regexPattern": "^\\(?([2-9][0-8][0-9])\\)?[\\-\\. ]?([2-9][0-9]{2})[\\-\\. ]?([0-9]{4})(\\s*x[0-9]+)?$",
+                  "onFocus": null,
+                  "attributeId": null
+                },
+                "childNodes": []
+              }
+            ]
+          },
+          {
+            "index": 25,
+            "id": "disclaimer",
+            "parentIndex": 16,
+            "uniqueId": "waitlistModal.disclaimer",
+            "node": {
+              "__typename": "TextView",
+              "textStyles": [
+                "DISCLAIMER_DEFAULT"
+              ],
+              "text": {
+                "__typename": "RichText",
+                "nodes": [
+                  {
+                    "__typename": "TextNode",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "By voluntarily opting in to Saks Fifth Avenue Waitlist text alerts and/or Waitlist email alerts, in addition to hearing about your Waitlist item, you agree that you voluntarily withdraw any past"
+                    },
+                    "style": null
+                  },
+                  {
+                    "__typename": "TextNode",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": " opt outs "
+                    },
+                    "style": {
+                      "__typename": "TextAttributes",
+                      "color": null,
+                      "fontWeight": null,
+                      "link": null,
+                      "italics": true,
+                      "strikethrough": null,
+                      "underline": null,
+                      "verticalAlignment": null,
+                      "actions": null
+                    }
+                  },
+                  {
+                    "__typename": "TextNode",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "of promotional marketing, and you agree to receive marketing emails to the email address you provided above. You also agree to receive one automated marketing text message to the phone number provided above inviting you to join Saks Fifth Avenue mobile marketing alerts. Number of messages received may vary. Text HELP for info. Text STOP to cancel. Consent is not a condition of purchase. Message and data rates may apply. For more details, review our Terms of Use and "
+                    },
+                    "style": null
+                  },
+                  {
+                    "__typename": "TextNode",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "Privacy Policy"
+                    },
+                    "style": {
+                      "__typename": "TextAttributes",
+                      "color": null,
+                      "fontWeight": null,
+                      "link": {
+                        "__typename": "TextLink",
+                        "action": {
+                          "__typename": "NavigateToDeepLinkAction",
+                          "url": "https://www.saksfifthavenue.com/c/content/privacy-policy"
+                        }
+                      },
+                      "italics": null,
+                      "strikethrough": null,
+                      "underline": true,
+                      "verticalAlignment": null,
+                      "actions": null
+                    }
+                  },
+                  {
+                    "__typename": "TextNode",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": ". If you do not wish to receive any Saks Fifth Avenue marketing emails, you may unsubscribe at any time."
+                    },
+                    "style": null
+                  }
+                ]
+              },
+              "onSelected": null,
+              "onDisabled": null
+            },
+            "childNodes": []
+          },
+          {
+            "index": 26,
+            "id": "waitlistSubmit",
+            "parentIndex": 16,
+            "uniqueId": "waitlistModal.waitlistSubmit",
+            "node": {
+              "__typename": "ButtonView",
+              "buttonStyles": [
+                "PRIMARY"
+              ],
+              "state": "NORMAL",
+              "size": "MEDIUM",
+              "action": null,
+              "onDefault": {
+                "__typename": "ButtonStateAttributes",
+                "label": {
+                  "__typename": "TitleLabel",
+                  "title": {
+                    "__typename": "RawText",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "NOTIFY ME"
+                    }
+                  }
+                },
+                "actions": null
+              },
+              "onSelected": {
+                "__typename": "ButtonStateAttributes",
+                "label": {
+                  "__typename": "TitleLabel",
+                  "title": {
+                    "__typename": "RawText",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "NOTIFY ME"
+                    }
+                  }
+                },
+                "actions": [
+                  {
+                    "__typename": "SubmitAction",
+                    "id": "ADD_TO_WAITLIST",
+                    "variantId": null
+                  }
+                ]
+              },
+              "onSubmitting": {
+                "__typename": "ButtonStateAttributes",
+                "label": {
+                  "__typename": "TitleLabel",
+                  "title": {
+                    "__typename": "RawText",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "ADDING TO WAITLIST"
+                    }
+                  }
+                },
+                "actions": null
+              },
+              "onSuccess": {
+                "__typename": "ButtonStateAttributes",
+                "label": {
+                  "__typename": "TitleLabel",
+                  "title": {
+                    "__typename": "RawText",
+                    "value": {
+                      "__typename": "StringValue",
+                      "value": "ADDED TO WAITLIST"
+                    }
+                  }
+                },
+                "actions": [
+                  {
+                    "__typename": "DismissAction",
+                    "viewId": "waitlistModal"
+                  }
+                ]
+              },
+              "onFailure": null,
+              "onDisabled": null
+            },
+            "childNodes": []
+          }
+        ]
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "messagesTitle",
+        "index": 17,
+        "parentIndex": 16,
+        "uniqueId": "waitlistModal.messagesTitle",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "CENTER",
+          "space": {
+            "__typename": "SpaceToken",
+            "token": "INTER_GROUP_VERTICAL"
+          },
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "heading",
+        "index": 18,
+        "parentIndex": 17,
+        "uniqueId": "waitlistModal.messagesTitle.heading",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_EMPHASIS"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "ADD TO WAITLIST"
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "messagesSection",
+        "index": 19,
+        "parentIndex": 16,
+        "uniqueId": "waitlistModal.messagesSection",
+        "node": {
+          "__typename": "VerticalStackView",
+          "horizontalAlignment": "CENTER",
+          "space": null,
+          "distribution": "START"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "soldOutMessage",
+        "index": 20,
+        "parentIndex": 19,
+        "uniqueId": "waitlistModal.messagesSection.soldOutMessage",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "This item is sold out."
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "getNotifiedMessage",
+        "index": 21,
+        "parentIndex": 19,
+        "uniqueId": "waitlistModal.messagesSection.getNotifiedMessage",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "BODY_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Get notified when it becomes available."
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "waitlistForm",
+        "index": 22,
+        "parentIndex": 16,
+        "uniqueId": "waitlistModal.waitlistForm",
+        "node": {
+          "__typename": "FormView",
+          "onInputValidated": [
+            {
+              "__typename": "EnableAction",
+              "viewId": "waitlistSubmit"
+            }
+          ],
+          "onInputInvalidated": [
+            {
+              "__typename": "DisableAction",
+              "viewId": "waitlistSubmit"
+            }
+          ]
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "email",
+        "index": 23,
+        "parentIndex": 22,
+        "uniqueId": "waitlistModal.waitlistForm.email",
+        "node": {
+          "__typename": "TextInputView",
+          "placeholder": {
+            "__typename": "RawText",
+            "value": {
+              "__typename": "StringValue",
+              "value": "Email"
+            }
+          },
+          "label": {
+            "__typename": "TitleLabel",
+            "title": {
+              "__typename": "RawText",
+              "value": {
+                "__typename": "StringValue",
+                "value": "Email"
+              }
+            }
+          },
+          "isDisabled": false,
+          "contentType": "EMAIL",
+          "isRequired": true,
+          "regexPattern": "^[\\w.%+-]+@[\\w.-]+\\.[\\w]{2,6}$",
+          "onFocus": {
+            "__typename": "TextInputStateAttributes",
+            "triggerType": "FIRST_TIME",
+            "actions": [
+              {
+                "__typename": "AnalyticsAction",
+                "eventId": "sku_event",
+                "data": {
+                  "type": "waitListAddStart",
+                  "products": [
+                    {
+                      "brand": "Hunza G",
+                      "code": "0400022347462",
+                      "name": "Crinkle-Effect Scoopneck Bikini",
+                      "price": "168.0",
+                      "quantity": "1",
+                      "original_price": "240.0",
+                      "bopus_store_id": "",
+                      "gwp_flag": "false",
+                      "prev_quantity": "",
+                      "selected_sku": "22347465",
+                      "ship_from_store_id": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "attributeId": "email"
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "phone",
+        "index": 24,
+        "parentIndex": 22,
+        "uniqueId": "waitlistModal.waitlistForm.phone",
+        "node": {
+          "__typename": "TextInputView",
+          "placeholder": {
+            "__typename": "RawText",
+            "value": {
+              "__typename": "StringValue",
+              "value": "Phone (Optional)"
+            }
+          },
+          "label": {
+            "__typename": "TitleLabel",
+            "title": {
+              "__typename": "RawText",
+              "value": {
+                "__typename": "StringValue",
+                "value": "Phone (Optional)"
+              }
+            }
+          },
+          "isDisabled": false,
+          "contentType": "PHONE_NUMBER",
+          "isRequired": false,
+          "regexPattern": "^\\(?([2-9][0-8][0-9])\\)?[\\-\\. ]?([2-9][0-9]{2})[\\-\\. ]?([0-9]{4})(\\s*x[0-9]+)?$",
+          "onFocus": null,
+          "attributeId": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "disclaimer",
+        "index": 25,
+        "parentIndex": 16,
+        "uniqueId": "waitlistModal.disclaimer",
+        "node": {
+          "__typename": "TextView",
+          "textStyles": [
+            "DISCLAIMER_DEFAULT"
+          ],
+          "text": {
+            "__typename": "RichText",
+            "nodes": [
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "By voluntarily opting in to Saks Fifth Avenue Waitlist text alerts and/or Waitlist email alerts, in addition to hearing about your Waitlist item, you agree that you voluntarily withdraw any past"
+                },
+                "style": null
+              },
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": " opt outs "
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": null,
+                  "link": null,
+                  "italics": true,
+                  "strikethrough": null,
+                  "underline": null,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              },
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "of promotional marketing, and you agree to receive marketing emails to the email address you provided above. You also agree to receive one automated marketing text message to the phone number provided above inviting you to join Saks Fifth Avenue mobile marketing alerts. Number of messages received may vary. Text HELP for info. Text STOP to cancel. Consent is not a condition of purchase. Message and data rates may apply. For more details, review our Terms of Use and "
+                },
+                "style": null
+              },
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "Privacy Policy"
+                },
+                "style": {
+                  "__typename": "TextAttributes",
+                  "color": null,
+                  "fontWeight": null,
+                  "link": {
+                    "__typename": "TextLink",
+                    "action": {
+                      "__typename": "NavigateToDeepLinkAction",
+                      "url": "https://www.saksfifthavenue.com/c/content/privacy-policy"
+                    }
+                  },
+                  "italics": null,
+                  "strikethrough": null,
+                  "underline": true,
+                  "verticalAlignment": null,
+                  "actions": null
+                }
+              },
+              {
+                "__typename": "TextNode",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": ". If you do not wish to receive any Saks Fifth Avenue marketing emails, you may unsubscribe at any time."
+                },
+                "style": null
+              }
+            ]
+          },
+          "onSelected": null,
+          "onDisabled": null
+        }
+      },
+      {
+        "__typename": "ViewNode",
+        "id": "waitlistSubmit",
+        "index": 26,
+        "parentIndex": 16,
+        "uniqueId": "waitlistModal.waitlistSubmit",
+        "node": {
+          "__typename": "ButtonView",
+          "buttonStyles": [
+            "PRIMARY"
+          ],
+          "state": "NORMAL",
+          "size": "MEDIUM",
+          "action": null,
+          "onDefault": {
+            "__typename": "ButtonStateAttributes",
+            "label": {
+              "__typename": "TitleLabel",
+              "title": {
+                "__typename": "RawText",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "NOTIFY ME"
+                }
+              }
+            },
+            "actions": null
+          },
+          "onSelected": {
+            "__typename": "ButtonStateAttributes",
+            "label": {
+              "__typename": "TitleLabel",
+              "title": {
+                "__typename": "RawText",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "NOTIFY ME"
+                }
+              }
+            },
+            "actions": [
+              {
+                "__typename": "SubmitAction",
+                "id": "ADD_TO_WAITLIST",
+                "variantId": null
+              }
+            ]
+          },
+          "onSubmitting": {
+            "__typename": "ButtonStateAttributes",
+            "label": {
+              "__typename": "TitleLabel",
+              "title": {
+                "__typename": "RawText",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "ADDING TO WAITLIST"
+                }
+              }
+            },
+            "actions": null
+          },
+          "onSuccess": {
+            "__typename": "ButtonStateAttributes",
+            "label": {
+              "__typename": "TitleLabel",
+              "title": {
+                "__typename": "RawText",
+                "value": {
+                  "__typename": "StringValue",
+                  "value": "ADDED TO WAITLIST"
+                }
+              }
+            },
+            "actions": [
+              {
+                "__typename": "DismissAction",
+                "viewId": "waitlistModal"
+              }
+            ]
+          },
+          "onFailure": null,
+          "onDisabled": null
+        }
+      }
+    ]
+  },
+  "recommendations": {
+    "suggested": {
+      "recoUUID": "",
+      "recommendations": [],
+      "__typename": "RecsWithUUID"
+    },
+    "moreFromBrand": {
+      "recoUUID": "",
+      "recommendations": [],
+      "__typename": "RecsWithUUID"
+    },
+    "recentlyViewed": {
+      "recoUUID": "",
+      "recommendations": [],
+      "__typename": "RecsWithUUID"
+    },
+    "completeLook": null,
+    "__typename": "RecStrips"
+  },
+  "__typename": "ProductDetailsView"
+}

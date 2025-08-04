@@ -3,9 +3,9 @@ const { getAxiosConfig } = require('../config/proxy');
 
 async function scrapeSaksFifthAvenue(url) {
   try {
-    console.log('🔍 Scraping Saks Fifth Avenue...');
+    console.log('🔍 Scraping Saks Fifth Avenue with axios...');
     
-    // Get axios config with proxy (Puppeteer proxy has 407 auth issues)
+    // Get axios config with proxy
     const config = getAxiosConfig(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -22,7 +22,7 @@ async function scrapeSaksFifthAvenue(url) {
       timeout: 30000
     });
     
-    console.log('📄 Fetching page with Decodo proxy...');
+    console.log('📄 Fetching page...');
     const response = await axios.get(url, config);
     
     if (response.status !== 200) {
@@ -30,13 +30,13 @@ async function scrapeSaksFifthAvenue(url) {
     }
     
     const html = response.data;
-    console.log('✅ Page fetched successfully');
+    console.log('✅ Page fetched, extracting data...');
     
-    // Extract window.__remixContext data (Saks uses Remix framework)
+    // Extract window.__remixContext data
     const remixMatch = html.match(/window\.__remixContext\s*=\s*({[\s\S]*?});/);
     
     if (!remixMatch) {
-      console.log('⚠️ No Remix context found, using fallback extraction');
+      console.log('⚠️ No Remix context found, trying alternative extraction...');
       return extractFallbackData(html, url);
     }
     
@@ -138,100 +138,8 @@ async function scrapeSaksFifthAvenue(url) {
       // Extract product ID
       const productId = productData.masterProductId || '';
       
-      // Extract description from multiple sources
+      // Extract description (may need to look in other parts of the data)
       let description = '';
-      
-      // Method 1: Look for accordion items (product details, fabric & care, etc.)
-      if (productData.body?.nodes) {
-        const findAccordionContent = (nodes) => {
-          const descriptions = [];
-          
-          for (const node of nodes) {
-            if (node.node?.__typename === 'AccordionView' && node.node.items) {
-              node.node.items.forEach(item => {
-                if (item.title?.nodes?.[0]?.value?.value && item.content?.nodes) {
-                  const title = item.title.nodes[0].value.value;
-                  const contentParts = [];
-                  
-                  // Extract text from content nodes
-                  item.content.nodes.forEach(contentNode => {
-                    if (contentNode.value?.value) {
-                      contentParts.push(contentNode.value.value);
-                    }
-                  });
-                  
-                  if (contentParts.length > 0) {
-                    descriptions.push(`${title}: ${contentParts.join(' ')}`);
-                  }
-                }
-              });
-            }
-            
-            // Recursively search child nodes
-            if (node.nodes && Array.isArray(node.nodes)) {
-              descriptions.push(...findAccordionContent(node.nodes));
-            }
-          }
-          
-          return descriptions;
-        };
-        
-        const accordionDescriptions = findAccordionContent(productData.body.nodes);
-        if (accordionDescriptions.length > 0) {
-          description = accordionDescriptions.join(' | ');
-        }
-      }
-      
-      // Method 2: Extract from meta description in HTML
-      if (!description) {
-        const metaMatch = html.match(/<meta\s+name="description"\s+content="([^"]+)"/);
-        if (metaMatch) {
-          description = metaMatch[1];
-        }
-      }
-      
-      // Method 3: Extract from og:description
-      if (!description) {
-        const ogMatch = html.match(/<meta\s+property="og:description"\s+content="([^"]+)"/);
-        if (ogMatch) {
-          description = ogMatch[1];
-        }
-      }
-      
-      // Method 4: Look for any text content that might be description
-      if (!description && productData.body?.data) {
-        // Sometimes description is in the data object
-        if (typeof productData.body.data === 'object') {
-          const dataStr = JSON.stringify(productData.body.data);
-          // Look for common description patterns
-          const descPatterns = [
-            /"description":\s*"([^"]+)"/,
-            /"productDescription":\s*"([^"]+)"/,
-            /"details":\s*"([^"]+)"/
-          ];
-          
-          for (const pattern of descPatterns) {
-            const match = dataStr.match(pattern);
-            if (match) {
-              description = match[1];
-              break;
-            }
-          }
-        }
-      }
-      
-      // Clean up description
-      if (description) {
-        // Remove HTML entities
-        description = description
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .replace(/\s+/g, ' ')
-          .trim();
-      }
       
       // Check analytics data for additional info
       const analyticsProduct = productData.body?.analyticsData?.product_event?.products?.[0];
@@ -249,34 +157,6 @@ async function scrapeSaksFifthAvenue(url) {
         }
       }
       
-      // Extract materials from description
-      const materials = [];
-      if (description) {
-        // Look for percentage patterns (e.g., "95% polyamide, 5% elastane")
-        const materialMatches = description.match(/\d+%\s+[\w\s]+/g);
-        if (materialMatches) {
-          materials.push(...materialMatches);
-        }
-        
-        // Also look for common material keywords
-        const materialKeywords = [
-          'cotton', 'polyester', 'wool', 'silk', 'linen', 'cashmere', 
-          'leather', 'suede', 'nylon', 'rayon', 'spandex', 'elastane',
-          'polyamide', 'viscose', 'acrylic', 'modal', 'lyocell'
-        ];
-        
-        const descLower = description.toLowerCase();
-        materialKeywords.forEach(material => {
-          if (descLower.includes(material) && !materials.some(m => m.toLowerCase().includes(material))) {
-            // Check if it's part of a composition
-            const compositionMatch = description.match(new RegExp(`\\d+%\\s*${material}`, 'i'));
-            if (compositionMatch && !materials.includes(compositionMatch[0])) {
-              materials.push(compositionMatch[0]);
-            }
-          }
-        });
-      }
-      
       // Build result
       const result = {
         url,
@@ -291,7 +171,7 @@ async function scrapeSaksFifthAvenue(url) {
         color: currentColor,
         colors,
         productId,
-        materials,
+        materials: [],
         inStock: sizes.length > 0,
         source: 'saksfifthavenue',
         scrapedAt: new Date().toISOString()
@@ -299,11 +179,11 @@ async function scrapeSaksFifthAvenue(url) {
       
       console.log('✅ Successfully scraped Saks product:', result.name);
       console.log('Brand:', result.brand);
-      console.log('Price: $' + result.price);
-      console.log('Original Price: $' + result.originalPrice);
+      console.log('Price:', result.price);
+      console.log('Original Price:', result.originalPrice);
       console.log('Images found:', result.images.length);
-      console.log('Sizes found:', result.sizes);
-      console.log('Colors found:', result.colors);
+      console.log('Sizes found:', result.sizes.length);
+      console.log('Colors found:', result.colors.length);
       
       return result;
       
