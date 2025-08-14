@@ -11,6 +11,11 @@ const { scrapeSsenseFallback } = require('./ssense-fallback');
 const { scrapeSaksFifthAvenue } = require('./saksfifthavenue');
 const { scrapeEtsy } = require('./etsy');
 const { scrapePoshmark } = require('./poshmark');
+const { scrapeShopify, isShopifyStore } = require('./shopify');
+const { scrapeShopStyle } = require('./shopstyle');
+const { handleRedirect } = require('./redirect-handler');
+const { scrapeInstagram } = require('./instagram');
+const { scrapeZara } = require('./zara');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -52,6 +57,54 @@ const detectSite = (url) => {
   }
   if (hostname.includes('poshmark.')) {
     return 'poshmark';
+  }
+  if (hostname.includes('shopstyle.')) {
+    return 'shopstyle';
+  }
+  if (hostname.includes('go.shopmy.us') || hostname.includes('shopmy.us')) {
+    return 'redirect';
+  }
+  if (hostname.includes('bit.ly')) {
+    return 'redirect';
+  }
+  if (hostname.includes('shareasale.com')) {
+    return 'redirect';
+  }
+  if (hostname.includes('click.linksynergy.com')) {
+    return 'redirect';
+  }
+  if (hostname.includes('instagram.com')) {
+    return 'instagram';
+  }
+  if (hostname.includes('zara.com')) {
+    return 'zara';
+  }
+  
+  // Check for known Shopify domains
+  const shopifyDomains = [
+    'chavastudio.com',
+    'phoebephilo.com',
+    'stoffa.co',
+    'soeur.fr',
+    'shopattersee.com',
+    'babaa.es',
+    'nu-swim.com',
+    'shopneighbour.com',
+    'shop-vestige.com',
+    'rachelcomey.com',
+    'oldstonetrade.com',
+    'flore-flore.com',
+    'emreitz.com',
+    'tibi.com',
+    'fm669.us',
+    'jamesstreetco.com',
+    'gimaguas.com'
+  ];
+  
+  for (const domain of shopifyDomains) {
+    if (hostname.includes(domain)) {
+      return 'shopify';
+    }
   }
   
   return 'generic';
@@ -547,8 +600,277 @@ const scrapeProduct = async (url) => {
           }
         };
       
+      case 'shopstyle':
+        console.log('🔗 Using ShopStyle scraper');
+        const shopStyleProduct = await scrapeShopStyle(url);
+        
+        // Extract price number from string
+        let shopStylePriceNumeric = 0;
+        if (shopStyleProduct.price) {
+          const priceMatch = shopStyleProduct.price.match(/[\d,]+\.?\d*/);
+          shopStylePriceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+        }
+        
+        let shopStyleOriginalPriceNumeric = shopStylePriceNumeric;
+        if (shopStyleProduct.originalPrice) {
+          const originalMatch = shopStyleProduct.originalPrice.match(/[\d,]+\.?\d*/);
+          shopStyleOriginalPriceNumeric = originalMatch ? parseFloat(originalMatch[0].replace(',', '')) : shopStylePriceNumeric;
+        }
+        
+        return {
+          success: !shopStyleProduct.error,
+          product: {
+            // Keep all original fields
+            ...shopStyleProduct,
+            
+            // Database schema fields
+            product_name: shopStyleProduct.name,
+            brand: shopStyleProduct.brand || shopStyleProduct.retailer || 'Unknown',
+            original_price: shopStyleOriginalPriceNumeric,
+            sale_price: shopStylePriceNumeric,
+            is_on_sale: shopStyleProduct.originalPrice && shopStyleOriginalPriceNumeric > shopStylePriceNumeric,
+            discount_percentage: shopStyleProduct.originalPrice && shopStyleOriginalPriceNumeric > shopStylePriceNumeric ? 
+              Math.round((1 - shopStylePriceNumeric / shopStyleOriginalPriceNumeric) * 100) : null,
+            sale_badge: shopStyleProduct.originalPrice && shopStyleOriginalPriceNumeric > shopStylePriceNumeric ? 'SALE' : null,
+            image_urls: shopStyleProduct.images || [],
+            vendor_url: shopStyleProduct.url || url,
+            category: detectCategory(
+              shopStyleProduct.name || '',
+              shopStyleProduct.description || '',
+              shopStyleProduct.brand || '',
+              null
+            ),
+            description: shopStyleProduct.description || '',
+            in_stock: shopStyleProduct.inStock !== false,
+            
+            // Legacy fields
+            name: shopStyleProduct.name,
+            price: shopStylePriceNumeric,
+            images: shopStyleProduct.images || [],
+            originalPrice: shopStyleOriginalPriceNumeric,
+            isOnSale: shopStyleProduct.originalPrice && shopStyleOriginalPriceNumeric > shopStylePriceNumeric,
+            discountPercentage: shopStyleProduct.originalPrice && shopStyleOriginalPriceNumeric > shopStylePriceNumeric ? 
+              Math.round((1 - shopStylePriceNumeric / shopStyleOriginalPriceNumeric) * 100) : null,
+            saleBadge: shopStyleProduct.originalPrice && shopStyleOriginalPriceNumeric > shopStylePriceNumeric ? 'SALE' : null
+          }
+        };
+        
+      case 'redirect':
+        console.log('🔄 Using redirect handler for affiliate/shortened URL');
+        return await handleRedirect(url);
+        
+      case 'instagram':
+        console.log('📸 Using Instagram scraper');
+        const instagramData = await scrapeInstagram(url);
+        
+        // Format Instagram data as product
+        return {
+          success: !instagramData.error,
+          product: {
+            // Keep all original fields
+            ...instagramData,
+            
+            // Database schema fields
+            product_name: instagramData.name || 'Instagram Post',
+            brand: instagramData.brand || 'Instagram',
+            original_price: 0,
+            sale_price: instagramData.price ? parseFloat(instagramData.price.replace(/[^0-9.]/g, '')) : 0,
+            is_on_sale: false,
+            image_urls: instagramData.images || [],
+            vendor_url: instagramData.productUrl || url,
+            description: instagramData.description || '',
+            category: 'Social Media',
+            platform: 'instagram',
+            in_stock: true,
+            
+            // Legacy fields
+            name: instagramData.name || 'Instagram Post',
+            price: instagramData.price || 0,
+            images: instagramData.images || [],
+            originalPrice: 0,
+            isOnSale: false
+          }
+        };
+        
+      case 'zara':
+        console.log('🛍️ Using Zara scraper');
+        const zaraProduct = await scrapeZara(url);
+        
+        // Extract price numbers
+        let zaraPriceNumeric = 0;
+        if (zaraProduct.price) {
+          const priceMatch = zaraProduct.price.match(/[\d,]+\.?\d*/);
+          zaraPriceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+        }
+        
+        let zaraOriginalPriceNumeric = zaraPriceNumeric;
+        if (zaraProduct.originalPrice) {
+          const originalMatch = zaraProduct.originalPrice.match(/[\d,]+\.?\d*/);
+          zaraOriginalPriceNumeric = originalMatch ? parseFloat(originalMatch[0].replace(',', '')) : zaraPriceNumeric;
+        }
+        
+        const zaraIsOnSale = zaraProduct.originalPrice && zaraOriginalPriceNumeric > zaraPriceNumeric;
+        
+        return {
+          success: !zaraProduct.error,
+          product: {
+            // Keep all original fields
+            ...zaraProduct,
+            
+            // Database schema fields
+            product_name: zaraProduct.name,
+            brand: 'Zara',
+            original_price: zaraOriginalPriceNumeric,
+            sale_price: zaraPriceNumeric,
+            is_on_sale: zaraIsOnSale,
+            discount_percentage: zaraIsOnSale ? 
+              Math.round((1 - zaraPriceNumeric / zaraOriginalPriceNumeric) * 100) : null,
+            sale_badge: zaraIsOnSale ? 'SALE' : null,
+            image_urls: zaraProduct.images || [],
+            vendor_url: zaraProduct.url || url,
+            colors: zaraProduct.colors || [],
+            sizes: zaraProduct.sizes || [],
+            category: zaraProduct.category || detectCategory(
+              zaraProduct.name || '',
+              zaraProduct.description || '',
+              'Zara',
+              zaraProduct.category
+            ),
+            material: zaraProduct.materials?.join(', ') || '',
+            description: zaraProduct.description || '',
+            in_stock: zaraProduct.inStock !== false,
+            sku: zaraProduct.productId || '',
+            
+            // Legacy fields
+            name: zaraProduct.name,
+            price: zaraPriceNumeric,
+            images: zaraProduct.images || [],
+            originalPrice: zaraOriginalPriceNumeric,
+            isOnSale: zaraIsOnSale,
+            discountPercentage: zaraIsOnSale ? 
+              Math.round((1 - zaraPriceNumeric / zaraOriginalPriceNumeric) * 100) : null,
+            saleBadge: zaraIsOnSale ? 'SALE' : null
+          }
+        };
+        
+      case 'shopify':
+        console.log('🛍️ Using Shopify universal scraper');
+        const shopifyProduct = await scrapeShopify(url);
+        
+        // Extract price number from string
+        let shopifyPriceNumeric = 0;
+        if (shopifyProduct.price) {
+          const priceMatch = shopifyProduct.price.match(/[\d,]+\.?\d*/);
+          shopifyPriceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+        }
+        
+        let shopifyOriginalPriceNumeric = shopifyPriceNumeric;
+        if (shopifyProduct.originalPrice) {
+          const originalMatch = shopifyProduct.originalPrice.match(/[\d,]+\.?\d*/);
+          shopifyOriginalPriceNumeric = originalMatch ? parseFloat(originalMatch[0].replace(',', '')) : shopifyPriceNumeric;
+        }
+        
+        const shopifyIsOnSale = shopifyProduct.originalPrice && shopifyOriginalPriceNumeric > shopifyPriceNumeric;
+        
+        return {
+          success: !shopifyProduct.error,
+          product: {
+            // Keep all original fields
+            ...shopifyProduct,
+            
+            // Database schema fields
+            product_name: shopifyProduct.name,
+            brand: shopifyProduct.brand || shopifyProduct.vendor || 'Unknown',
+            original_price: shopifyOriginalPriceNumeric,
+            sale_price: shopifyPriceNumeric,
+            is_on_sale: shopifyIsOnSale,
+            discount_percentage: shopifyIsOnSale ? 
+              Math.round((1 - shopifyPriceNumeric / shopifyOriginalPriceNumeric) * 100) : null,
+            sale_badge: shopifyIsOnSale ? 'SALE' : null,
+            image_urls: shopifyProduct.images || [],
+            vendor_url: shopifyProduct.url || url,
+            colors: shopifyProduct.colors || [],
+            sizes: shopifyProduct.sizes || [],
+            category: detectCategory(
+              shopifyProduct.name || '',
+              shopifyProduct.description || '',
+              shopifyProduct.brand || shopifyProduct.vendor || '',
+              null
+            ),
+            description: shopifyProduct.description || '',
+            in_stock: shopifyProduct.inStock !== false,
+            variants: shopifyProduct.variants || [],
+            
+            // Legacy fields
+            name: shopifyProduct.name,
+            price: shopifyPriceNumeric,
+            images: shopifyProduct.images || [],
+            originalPrice: shopifyOriginalPriceNumeric,
+            isOnSale: shopifyIsOnSale,
+            discountPercentage: shopifyIsOnSale ? 
+              Math.round((1 - shopifyPriceNumeric / shopifyOriginalPriceNumeric) * 100) : null,
+            saleBadge: shopifyIsOnSale ? 'SALE' : null
+          }
+        };
+      
       default:
         console.log('❌ No specific scraper available for this site');
+        
+        // Try to detect if it's a Shopify store dynamically
+        console.log('🔍 Checking if site is Shopify...');
+        const mightBeShopify = await isShopifyStore(url);
+        
+        if (mightBeShopify) {
+          console.log('✅ Detected as Shopify store, using Shopify scraper');
+          const shopifyProduct = await scrapeShopify(url);
+          
+          // Extract price number from string
+          let shopifyPriceNumeric = 0;
+          if (shopifyProduct.price) {
+            const priceMatch = shopifyProduct.price.match(/[\d,]+\.?\d*/);
+            shopifyPriceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+          }
+          
+          let shopifyOriginalPriceNumeric = shopifyPriceNumeric;
+          if (shopifyProduct.originalPrice) {
+            const originalMatch = shopifyProduct.originalPrice.match(/[\d,]+\.?\d*/);
+            shopifyOriginalPriceNumeric = originalMatch ? parseFloat(originalMatch[0].replace(',', '')) : shopifyPriceNumeric;
+          }
+          
+          const shopifyIsOnSale = shopifyProduct.originalPrice && shopifyOriginalPriceNumeric > shopifyPriceNumeric;
+          
+          return {
+            success: !shopifyProduct.error,
+            product: {
+              ...shopifyProduct,
+              product_name: shopifyProduct.name,
+              brand: shopifyProduct.brand || shopifyProduct.vendor || 'Unknown',
+              original_price: shopifyOriginalPriceNumeric,
+              sale_price: shopifyPriceNumeric,
+              is_on_sale: shopifyIsOnSale,
+              discount_percentage: shopifyIsOnSale ? 
+                Math.round((1 - shopifyPriceNumeric / shopifyOriginalPriceNumeric) * 100) : null,
+              sale_badge: shopifyIsOnSale ? 'SALE' : null,
+              image_urls: shopifyProduct.images || [],
+              vendor_url: shopifyProduct.url || url,
+              category: detectCategory(
+                shopifyProduct.name || '',
+                shopifyProduct.description || '',
+                shopifyProduct.brand || shopifyProduct.vendor || '',
+                null
+              ),
+              name: shopifyProduct.name,
+              price: shopifyPriceNumeric,
+              images: shopifyProduct.images || [],
+              originalPrice: shopifyOriginalPriceNumeric,
+              isOnSale: shopifyIsOnSale,
+              discountPercentage: shopifyIsOnSale ? 
+                Math.round((1 - shopifyPriceNumeric / shopifyOriginalPriceNumeric) * 100) : null,
+              saleBadge: shopifyIsOnSale ? 'SALE' : null
+            }
+          };
+        }
+        
         return {
           success: false,
           error: `No scraper available for ${site}`,
