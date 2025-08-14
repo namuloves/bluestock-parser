@@ -9,6 +9,7 @@ const { scrapeSsense } = require('./ssense');
 const { scrapeSsenseSimple } = require('./ssense-simple');
 const { scrapeSsenseFallback } = require('./ssense-fallback');
 const { scrapeSaksFifthAvenue } = require('./saksfifthavenue');
+const { scrapeEtsy } = require('./etsy');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -414,6 +415,69 @@ const scrapeProduct = async (url) => {
             discountPercentage: saksProduct.originalPrice && saksProduct.originalPrice > saksProduct.price ? 
               Math.round((1 - saksProduct.price / saksProduct.originalPrice) * 100) : null,
             saleBadge: saksProduct.originalPrice && saksProduct.originalPrice > saksProduct.price ? 'SALE' : null
+          }
+        };
+        
+      case 'etsy':
+        console.log('🛍️ Using Etsy scraper');
+        const etsyProduct = await scrapeEtsy(url);
+        
+        // Extract price number from string
+        let etsyPriceNumeric = 0;
+        if (etsyProduct.price) {
+          const priceMatch = etsyProduct.price.match(/[\d,]+\.?\d*/);
+          etsyPriceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+        }
+        
+        let etsyOriginalPriceNumeric = etsyPriceNumeric;
+        if (etsyProduct.originalPrice) {
+          const originalMatch = etsyProduct.originalPrice.match(/[\d,]+\.?\d*/);
+          etsyOriginalPriceNumeric = originalMatch ? parseFloat(originalMatch[0].replace(',', '')) : etsyPriceNumeric;
+        }
+        
+        const etsyIsOnSale = etsyProduct.originalPrice && etsyOriginalPriceNumeric > etsyPriceNumeric;
+        
+        return {
+          success: !etsyProduct.error,
+          product: {
+            // Keep all original fields
+            ...etsyProduct,
+            
+            // Database schema fields
+            product_name: etsyProduct.name,
+            brand: etsyProduct.brand || 'Etsy Shop',
+            original_price: etsyOriginalPriceNumeric,
+            sale_price: etsyPriceNumeric,
+            is_on_sale: etsyIsOnSale,
+            discount_percentage: etsyIsOnSale ? 
+              Math.round((1 - etsyPriceNumeric / etsyOriginalPriceNumeric) * 100) : null,
+            sale_badge: etsyIsOnSale ? 'ON SALE' : null,
+            image_urls: etsyProduct.images || [],
+            vendor_url: etsyProduct.url || url,
+            color: etsyProduct.colors?.join(', ') || '',
+            category: detectCategory(
+              etsyProduct.name || '',
+              etsyProduct.description || '',
+              etsyProduct.brand || 'Etsy Shop',
+              null
+            ),
+            material: etsyProduct.material || '',
+            description: etsyProduct.description || '',
+            sizes: etsyProduct.sizes || [],
+            rating: etsyProduct.rating || '',
+            review_count: etsyProduct.reviewCount || '',
+            shipping: etsyProduct.shipping || '',
+            in_stock: etsyProduct.inStock !== false,
+            
+            // Legacy fields for backward compatibility
+            name: etsyProduct.name,
+            price: etsyPriceNumeric,
+            images: etsyProduct.images || [],
+            originalPrice: etsyOriginalPriceNumeric,
+            isOnSale: etsyIsOnSale,
+            discountPercentage: etsyIsOnSale ? 
+              Math.round((1 - etsyPriceNumeric / etsyOriginalPriceNumeric) * 100) : null,
+            saleBadge: etsyIsOnSale ? 'ON SALE' : null
           }
         };
       
