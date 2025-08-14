@@ -40,7 +40,8 @@ const getProxyConfig = () => {
     'saksfifthavenue.com',
     'saks.com',
     'ssense.com',
-    'etsy.com'
+    'etsy.com',
+    'poshmark.com'
   ];
 
   // Create proxy agent

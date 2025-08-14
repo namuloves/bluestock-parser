@@ -10,6 +10,7 @@ const { scrapeSsenseSimple } = require('./ssense-simple');
 const { scrapeSsenseFallback } = require('./ssense-fallback');
 const { scrapeSaksFifthAvenue } = require('./saksfifthavenue');
 const { scrapeEtsy } = require('./etsy');
+const { scrapePoshmark } = require('./poshmark');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -48,6 +49,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('saksfifthavenue.') || hostname.includes('saks.')) {
     return 'saksfifthavenue';
+  }
+  if (hostname.includes('poshmark.')) {
+    return 'poshmark';
   }
   
   return 'generic';
@@ -415,6 +419,68 @@ const scrapeProduct = async (url) => {
             discountPercentage: saksProduct.originalPrice && saksProduct.originalPrice > saksProduct.price ? 
               Math.round((1 - saksProduct.price / saksProduct.originalPrice) * 100) : null,
             saleBadge: saksProduct.originalPrice && saksProduct.originalPrice > saksProduct.price ? 'SALE' : null
+          }
+        };
+        
+      case 'poshmark':
+        console.log('👗 Using Poshmark scraper');
+        const poshmarkProduct = await scrapePoshmark(url);
+        
+        // Extract price number from string
+        let poshmarkPriceNumeric = 0;
+        if (poshmarkProduct.price) {
+          const priceMatch = poshmarkProduct.price.match(/[\d,]+\.?\d*/);
+          poshmarkPriceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+        }
+        
+        let poshmarkOriginalPriceNumeric = poshmarkPriceNumeric;
+        if (poshmarkProduct.originalPrice) {
+          const originalMatch = poshmarkProduct.originalPrice.match(/[\d,]+\.?\d*/);
+          poshmarkOriginalPriceNumeric = originalMatch ? parseFloat(originalMatch[0].replace(',', '')) : poshmarkPriceNumeric;
+        }
+        
+        const poshmarkIsOnSale = poshmarkProduct.originalPrice && poshmarkOriginalPriceNumeric > poshmarkPriceNumeric;
+        
+        return {
+          success: !poshmarkProduct.error,
+          product: {
+            // Keep all original fields
+            ...poshmarkProduct,
+            
+            // Database schema fields
+            product_name: poshmarkProduct.name,
+            brand: poshmarkProduct.brand || 'Poshmark Seller',
+            original_price: poshmarkOriginalPriceNumeric,
+            sale_price: poshmarkPriceNumeric,
+            is_on_sale: poshmarkIsOnSale,
+            discount_percentage: poshmarkIsOnSale ? 
+              Math.round((1 - poshmarkPriceNumeric / poshmarkOriginalPriceNumeric) * 100) : null,
+            sale_badge: poshmarkIsOnSale ? 'ON SALE' : null,
+            image_urls: poshmarkProduct.images || [],
+            vendor_url: poshmarkProduct.url || url,
+            color: poshmarkProduct.color || '',
+            category: detectCategory(
+              poshmarkProduct.name || '',
+              poshmarkProduct.description || '',
+              poshmarkProduct.brand || 'Poshmark Seller',
+              poshmarkProduct.category
+            ),
+            material: '',
+            description: poshmarkProduct.description || '',
+            sizes: poshmarkProduct.size ? [poshmarkProduct.size] : [],
+            condition: poshmarkProduct.condition || 'Pre-owned',
+            seller: poshmarkProduct.seller || '',
+            in_stock: poshmarkProduct.inStock !== false,
+            
+            // Legacy fields for backward compatibility
+            name: poshmarkProduct.name,
+            price: poshmarkPriceNumeric,
+            images: poshmarkProduct.images || [],
+            originalPrice: poshmarkOriginalPriceNumeric,
+            isOnSale: poshmarkIsOnSale,
+            discountPercentage: poshmarkIsOnSale ? 
+              Math.round((1 - poshmarkPriceNumeric / poshmarkOriginalPriceNumeric) * 100) : null,
+            saleBadge: poshmarkIsOnSale ? 'ON SALE' : null
           }
         };
         
