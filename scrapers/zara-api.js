@@ -84,18 +84,12 @@ const scrapeZaraAPI = async (url) => {
       name: productName,
       price: estimatedPrice,
       description: `${productName} from Zara`,
-      images: [
-        // More realistic Zara image URL patterns
-        `https://static.zara.net/photos//2024/V/0/1/p/${productId.slice(0,4)}/${productId.slice(4)}/800/2/w/850/${productId}800_6_1_1.jpg`,
-        `https://static.zara.net/photos//2024/V/0/1/p/${productId.slice(0,4)}/${productId.slice(4)}/800/2/w/850/${productId}800_6_2_1.jpg`,
-        `https://static.zara.net/photos//2024/V/0/1/p/${productId.slice(0,4)}/${productId.slice(4)}/800/2/w/850/${productId}800_6_3_1.jpg`,
-        `https://static.zara.net/photos//2024/V/0/1/p/${productId.slice(0,4)}/${productId.slice(4)}/800/2/w/850/${productId}800_6_4_1.jpg`
-      ],
+      images: [], // Zara blocks image access - visit site directly for images
       sizes: ['XS', 'S', 'M', 'L', 'XL'], // Common Zara sizes
       colors: ['Black'], // Most common color
       inStock: true,
       category: 'Women',
-      note: 'Note: Due to Zara\'s anti-bot protection, some product details may be approximate'
+      note: 'Due to Zara\'s anti-bot protection, product details are approximate. Images not available - please visit Zara.com directly.'
     };
     
     // If we got API data, merge it
@@ -122,7 +116,7 @@ const scrapeZaraAPI = async (url) => {
       price: '$49.90',
       images: [],
       error: 'Unable to fetch full product details due to bot protection',
-      note: 'Please visit Zara website directly for accurate product information'
+      note: 'Images not available - please visit Zara.com directly for product photos'
     };
   }
 };
