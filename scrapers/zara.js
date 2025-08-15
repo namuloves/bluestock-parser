@@ -5,6 +5,30 @@ const { getAxiosConfig } = require('../config/proxy');
 const scrapeZara = async (url) => {
   console.log('🛍️ Starting Zara scraper for:', url);
   
+  // Zara has strong bot protection, use API approach
+  try {
+    const { scrapeZaraAPI } = require('./zara-api');
+    console.log('🚀 Using API approach for Zara...');
+    const apiResult = await scrapeZaraAPI(url);
+    if (apiResult && !apiResult.error) {
+      return apiResult;
+    }
+  } catch (apiError) {
+    console.log('⚠️ API approach failed:', apiError.message);
+  }
+  
+  // Try Puppeteer as fallback
+  try {
+    const { scrapeZaraPuppeteer } = require('./zara-puppeteer');
+    console.log('🚀 Trying Puppeteer for Zara...');
+    const puppeteerResult = await scrapeZaraPuppeteer(url);
+    if (!puppeteerResult.error && puppeteerResult.name) {
+      return puppeteerResult;
+    }
+  } catch (puppeteerError) {
+    console.log('⚠️ Puppeteer failed:', puppeteerError.message);
+  }
+  
   try {
     // Zara URLs typically look like:
     // https://www.zara.com/us/en/product-name-pXXXXXXX.html
