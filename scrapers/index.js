@@ -16,6 +16,16 @@ const { scrapeShopStyle } = require('./shopstyle');
 const { handleRedirect } = require('./redirect-handler');
 const { scrapeInstagram } = require('./instagram');
 const { scrapeZara } = require('./zara');
+const { scrapeUrbanOutfitters } = require('./urbanoutfitters');
+const { scrapeFreePeople } = require('./freepeople');
+const { scrapeRevolve } = require('./revolve');
+const { scrapeNetAPorter } = require('./netaporter');
+const { scrapeAsos } = require('./asos');
+const { scrapeReformation } = require('./reformation');
+const { scrapeEverlane } = require('./everlane');
+const { scrapeAnthropologie } = require('./anthropologie');
+const { scrapeMadewell } = require('./madewell');
+const { scrapeAritzia } = require('./aritzia');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -78,6 +88,36 @@ const detectSite = (url) => {
   }
   if (hostname.includes('zara.com')) {
     return 'zara';
+  }
+  if (hostname.includes('urbanoutfitters.')) {
+    return 'urbanoutfitters';
+  }
+  if (hostname.includes('freepeople.')) {
+    return 'freepeople';
+  }
+  if (hostname.includes('revolve.')) {
+    return 'revolve';
+  }
+  if (hostname.includes('net-a-porter.')) {
+    return 'netaporter';
+  }
+  if (hostname.includes('asos.')) {
+    return 'asos';
+  }
+  if (hostname.includes('reformation.')) {
+    return 'reformation';
+  }
+  if (hostname.includes('everlane.')) {
+    return 'everlane';
+  }
+  if (hostname.includes('anthropologie.')) {
+    return 'anthropologie';
+  }
+  if (hostname.includes('madewell.')) {
+    return 'madewell';
+  }
+  if (hostname.includes('aritzia.')) {
+    return 'aritzia';
   }
   
   // Check for known Shopify domains
@@ -812,6 +852,46 @@ const scrapeProduct = async (url) => {
             saleBadge: shopifyIsOnSale ? 'SALE' : null
           }
         };
+      
+      case 'urbanoutfitters':
+        console.log('🏙️ Using Urban Outfitters scraper');
+        return await scrapeUrbanOutfitters(url);
+        
+      case 'freepeople':
+        console.log('🌻 Using Free People scraper');
+        return await scrapeFreePeople(url);
+        
+      case 'revolve':
+        console.log('🌟 Using Revolve scraper');
+        return await scrapeRevolve(url);
+        
+      case 'netaporter':
+        console.log('💎 Using Net-a-Porter scraper');
+        return await scrapeNetAPorter(url);
+        
+      case 'asos':
+        console.log('🛍️ Using ASOS scraper');
+        return await scrapeAsos(url);
+        
+      case 'reformation':
+        console.log('🌱 Using Reformation scraper');
+        return await scrapeReformation(url);
+        
+      case 'everlane':
+        console.log('♻️ Using Everlane scraper');
+        return await scrapeEverlane(url);
+        
+      case 'anthropologie':
+        console.log('🌺 Using Anthropologie scraper');
+        return await scrapeAnthropologie(url);
+        
+      case 'madewell':
+        console.log('👖 Using Madewell scraper');
+        return await scrapeMadewell(url);
+        
+      case 'aritzia':
+        console.log('🍁 Using Aritzia scraper');
+        return await scrapeAritzia(url);
       
       default:
         console.log('❌ No specific scraper available for this site');

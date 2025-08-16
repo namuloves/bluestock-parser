@@ -94,12 +94,25 @@ const scrapeZaraAPI = async (url) => {
     
     // If we got API data, merge it
     if (productData) {
-      if (productData.name) product.name = productData.name;
-      if (productData.price) product.price = `$${productData.price}`;
-      if (productData.description) product.description = productData.description;
-      if (productData.images) product.images = productData.images;
-      if (productData.sizes) product.sizes = productData.sizes;
-      if (productData.colors) product.colors = productData.colors;
+      // Handle different API response formats
+      if (productData.product) {
+        const prod = productData.product;
+        if (prod.name) product.name = prod.name;
+        if (prod.detail?.displayPrice) product.price = prod.detail.displayPrice;
+        if (prod.description) product.description = prod.description;
+      } else if (productData.products && Array.isArray(productData.products)) {
+        const prod = productData.products[0];
+        if (prod?.name) product.name = prod.name;
+        if (prod?.price) product.price = `$${(prod.price / 100).toFixed(2)}`;
+        if (prod?.description) product.description = prod.description;
+      } else {
+        if (productData.name) product.name = productData.name;
+        if (productData.price) product.price = `$${productData.price}`;
+        if (productData.description) product.description = productData.description;
+        if (productData.images) product.images = productData.images;
+        if (productData.sizes) product.sizes = productData.sizes;
+        if (productData.colors) product.colors = productData.colors;
+      }
     }
     
     console.log('✅ Returning Zara product data');

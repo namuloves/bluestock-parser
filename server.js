@@ -7,6 +7,7 @@ if (process.env.NODE_ENV !== 'production') {
 const { scrapeProduct } = require('./scrapers');
 const { enhanceWithAI } = require('./scrapers/ebay');
 const ClaudeAIService = require('./services/claude-ai');
+const SizeChartParser = require('./scrapers/sizeChartParser');
 
 // Initialize AI service if API key is available
 let aiService = null;
@@ -20,6 +21,9 @@ if (process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim()) {
 } else {
   console.log('Claude AI service not initialized (no API key)');
 }
+
+// Initialize size chart parser
+const sizeChartParser = new SizeChartParser();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -184,7 +188,7 @@ app.post('/scrape', async (req, res) => {
       sale_badge: productData.sale_badge || productData.saleBadge || null,
       image_urls: productData.image_urls || productData.images || [],
       vendor_url: url, // Always use the requested URL
-      description: productData.description,
+      description: productData.description || '',
       color: productData.color || '',
       category: productData.category || '',
       material: productData.material || '',
@@ -216,8 +220,71 @@ app.post('/scrape', async (req, res) => {
   }
 });
 
+// Size chart parsing endpoint
+app.post('/parse-size-chart', async (req, res) => {
+  console.log('📏 /parse-size-chart endpoint hit');
+  try {
+    const { url, timeout } = req.body;
+    
+    if (!url) {
+      return res.status(400).json({
+        success: false,
+        error: 'URL parameter is required'
+      });
+    }
+    
+    console.log('📏 Parsing size chart for URL:', url);
+    console.log('📏 Parsing started at:', new Date().toISOString());
+    
+    // Parse size chart with optional timeout
+    const sizeChartData = await sizeChartParser.parseSizeChart(url, timeout);
+    
+    console.log('📏 Size chart result:', {
+      found: !!sizeChartData,
+      type: sizeChartData?.type || 'none',
+      hasData: !!(sizeChartData?.headers || sizeChartData?.rows || sizeChartData?.data || sizeChartData?.image_url)
+    });
+    
+    if (!sizeChartData) {
+      return res.json({
+        success: false,
+        error: 'Unable to extract size chart',
+        sizeChart: {
+          type: 'modal',
+          requiresInteraction: true
+        }
+      });
+    }
+    
+    res.json({
+      success: true,
+      sizeChart: sizeChartData
+    });
+    
+  } catch (error) {
+    console.error('Size chart parsing error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to parse size chart'
+    });
+  }
+});
+
 // Handle preflight requests
 app.options('*', cors(corsOptions));
+
+// Cleanup on exit
+process.on('SIGINT', async () => {
+  console.log('Shutting down gracefully...');
+  await sizeChartParser.cleanup();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('Shutting down gracefully...');
+  await sizeChartParser.cleanup();
+  process.exit(0);
+});
 
 // Listen on all interfaces for Railway
 app.listen(PORT, '0.0.0.0', () => {

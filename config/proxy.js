@@ -42,7 +42,15 @@ const getProxyConfig = () => {
     'ssense.com',
     'etsy.com',
     'poshmark.com',
-    'zara.com'
+    'zara.com',
+    'urbanoutfitters.com',
+    'freepeople.com',
+    'anthropologie.com',
+    'aritzia.com',
+    'revolve.com',
+    'net-a-porter.com',
+    'asos.com',
+    'madewell.com'
   ];
 
   // Create proxy agent

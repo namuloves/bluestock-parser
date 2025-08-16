@@ -367,12 +367,30 @@ function extractFallbackData(html, url) {
     }
   }
   
-  // Try to extract images
-  const imageMatches = html.matchAll(/https:\/\/cdn\.saksfifthavenue\.com\/is\/image\/saks\/[^"'\s]+/g);
+  // Try to extract images - only get main product images, not recommendations
+  // Look for product ID from URL
+  const productIdMatch = url.match(/\/([0-9]+)\.html/);
+  const productId = productIdMatch ? productIdMatch[1] : null;
+  
   const imageSet = new Set();
-  for (const match of imageMatches) {
-    imageSet.add(match[0]);
+  
+  if (productId) {
+    // Only match images that contain the product ID
+    const imageMatches = html.matchAll(new RegExp(`https://cdn\\.saksfifthavenue\\.com/is/image/saks/${productId}[^"'\\s]*`, 'g'));
+    for (const match of imageMatches) {
+      imageSet.add(match[0]);
+    }
   }
+  
+  // If no images found with product ID, try to get images from structured data
+  if (imageSet.size === 0) {
+    // Look for og:image meta tag
+    const ogImageMatch = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/);
+    if (ogImageMatch) {
+      imageSet.add(ogImageMatch[1]);
+    }
+  }
+  
   result.images = Array.from(imageSet);
   
   return result;
