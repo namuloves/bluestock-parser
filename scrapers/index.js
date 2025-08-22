@@ -26,6 +26,7 @@ const { scrapeEverlane } = require('./everlane');
 const { scrapeAnthropologie } = require('./anthropologie');
 const { scrapeMadewell } = require('./madewell');
 const { scrapeAritzia } = require('./aritzia');
+const { scrapeLululemon } = require('./lululemon');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -118,6 +119,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('aritzia.')) {
     return 'aritzia';
+  }
+  if (hostname.includes('lululemon.')) {
+    return 'lululemon';
   }
   
   // Check for known Shopify domains
@@ -892,6 +896,10 @@ const scrapeProduct = async (url) => {
       case 'aritzia':
         console.log('🍁 Using Aritzia scraper');
         return await scrapeAritzia(url);
+      
+      case 'lululemon':
+        console.log('🍋 Using Lululemon scraper');
+        return await scrapeLululemon(url);
       
       default:
         console.log('❌ No specific scraper available for this site');
