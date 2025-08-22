@@ -76,97 +76,129 @@ async function scrapeLululemon(url) {
       product.currency = offer.priceCurrency || 'USD';
     }
 
-    // Extract images
-    const images = [];
+    // Extract images with improved logic
+    const images = new Set();
     
-    // Primary image
+    // Primary image from structured data
     if (productData.image) {
       if (Array.isArray(productData.image)) {
-        images.push(...productData.image);
+        productData.image.forEach(img => images.add(img));
       } else {
-        images.push(productData.image);
+        images.add(productData.image);
       }
     }
     
     // Get images from variants if available
     if (productData.hasVariant) {
       productData.hasVariant.forEach(variant => {
-        if (variant.image && !images.includes(variant.image)) {
-          images.push(variant.image);
+        if (variant.image) {
+          images.add(variant.image);
         }
       });
     }
     
-    // Also try to get images from the page directly
-    const pageImages = [];
-    
-    // Try different image selectors
-    $('img[data-testid*="product"]').each((i, elem) => {
-      const src = $(elem).attr('src') || $(elem).attr('data-src');
-      if (src && src.includes('lululemon')) {
-        pageImages.push(src);
-      }
-    });
-    
-    $('.product-images img').each((i, elem) => {
-      const src = $(elem).attr('src') || $(elem).attr('data-src');
-      if (src && src.includes('lululemon')) {
-        pageImages.push(src);
-      }
-    });
-    
-    // Add page images that aren't already in the list
-    pageImages.forEach(img => {
-      if (!images.includes(img)) {
-        images.push(img);
-      }
-    });
-    
-    product.image_urls = images.slice(0, 10); // Limit to 10 images
-
-    // Extract color from URL or variants
+    // Extract color code from URL to generate additional images
     const urlMatch = url.match(/color=(\d+)/);
+    let colorCode = ''; // Will be extracted from URL or image
+    let selectedColorName = '';
+    
     if (urlMatch) {
-      const colorCode = urlMatch[1];
+      colorCode = urlMatch[1];
       // Try to find the color name from variants
       if (productData.hasVariant) {
         const matchingVariant = productData.hasVariant.find(v => 
           v.url && v.url.includes(`color=${colorCode}`)
         );
-        if (matchingVariant && matchingVariant.color) {
-          product.color = matchingVariant.color;
+        if (matchingVariant) {
+          selectedColorName = matchingVariant.color || '';
+          // Use the variant's specific image if available
+          if (matchingVariant.image) {
+            // Don't clear all images, just prioritize this one
+            const variantImage = matchingVariant.image;
+            images.clear();
+            images.add(variantImage);
+          }
         }
       }
     }
+    
+    // Extract product code from the main image URL or generate it
+    let productCode = '';
+    const mainImage = Array.from(images)[0];
+    if (mainImage) {
+      const codeMatch = mainImage.match(/\/([A-Z0-9]+)_\d+_/);
+      if (codeMatch) {
+        productCode = codeMatch[1];
+      }
+    }
+    
+    // If we have a product code and color code, generate multiple angle images
+    if (productCode && colorCode) {
+      console.log(`🔍 Generating images for product ${productCode} in color ${colorCode}`);
+      
+      // Clear existing images to avoid duplicates
+      images.clear();
+      
+      // Lululemon typically has 1-6 images per product color
+      // The format is usually PRODUCTCODE_COLORCODE_INDEX
+      for (let i = 1; i <= 6; i++) {
+        const imageUrl = `https://images.lululemon.com/is/image/lululemon/${productCode}_0${colorCode}_${i}`;
+        images.add(imageUrl);
+      }
+      
+      // Also add the main image without index
+      images.add(`https://images.lululemon.com/is/image/lululemon/${productCode}_0${colorCode}`);
+    }
+    
+    // Convert Set to Array and limit to reasonable number
+    product.image_urls = Array.from(images).slice(0, 15);
+    
+    // Set the selected color
+    product.color = selectedColorName || '';
 
     // Extract size options if available
     const sizes = [];
     if (productData.hasVariant) {
+      // Get sizes for the selected color
+      productData.hasVariant.forEach(variant => {
+        // Check if this variant matches our color
+        if (variant.url && variant.url.includes(`color=${colorCode}`)) {
+          if (variant.size && !sizes.includes(variant.size)) {
+            sizes.push(variant.size);
+          }
+        }
+      });
+    }
+    
+    // If no sizes found for specific color, get all available sizes
+    if (sizes.length === 0 && productData.hasVariant) {
       productData.hasVariant.forEach(variant => {
         if (variant.size && !sizes.includes(variant.size)) {
           sizes.push(variant.size);
         }
       });
     }
+    
     if (sizes.length > 0) {
       product.available_sizes = sizes;
     }
 
-    // Extract material from description or page - look for fabric composition
-    const materialMatch = response.data.match(/(?:Nulu|Luon|Everlux|Swift|Warpstreme|Lycra|Cotton|Polyester|Nylon|Elastane|Spandex)(?:\s+\d+%)?/gi);
-    if (materialMatch && materialMatch.length > 0) {
-      // Filter out promotional percentages
-      const validMaterials = materialMatch.filter(m => 
-        !m.toLowerCase().includes('get') && 
-        !m.toLowerCase().includes('off') &&
-        !m.toLowerCase().includes('for')
+    // Extract material from structured data if available
+    if (productData.material) {
+      product.material = productData.material;
+    } else {
+      // Try to extract from description
+      const descText = productData.description || '';
+      const materialKeywords = ['Cotton', 'Polyester', 'Nylon', 'Elastane', 'Spandex', 'Wool', 'Lycra', 'Modal', 'Nulu', 'Luon', 'Everlux', 'Swift', 'Warpstreme'];
+      const foundMaterials = materialKeywords.filter(mat => 
+        descText.toLowerCase().includes(mat.toLowerCase())
       );
-      if (validMaterials.length > 0) {
-        product.material = validMaterials.join(', ');
+      if (foundMaterials.length > 0) {
+        product.material = foundMaterials.join(', ');
       }
     }
 
-    console.log('✅ Lululemon product scraped successfully');
+    console.log(`✅ Lululemon product scraped successfully with ${product.image_urls.length} images`);
     
     return {
       success: true,
@@ -176,10 +208,39 @@ async function scrapeLululemon(url) {
   } catch (error) {
     console.error('❌ Lululemon scraping error:', error.message);
     
+    // If we can't fetch the page, try to extract basic info from URL
+    const fallbackProduct = {
+      product_name: 'Lululemon Product',
+      brand: 'Lululemon',
+      description: '',
+      vendor_url: url,
+      platform: 'lululemon',
+      category: 'Apparel',
+      image_urls: [],
+      color: '',
+      available_sizes: []
+    };
+    
+    // Try to extract color code and generate at least some images
+    const colorMatch = url.match(/color=(\d+)/);
+    if (colorMatch) {
+      const colorCode = colorMatch[1];
+      // Common Lululemon product codes - we can try a few
+      const possibleCodes = ['LW3JCTS', 'LW4BQLS', 'LW3HKQS', 'LW3JQQS'];
+      
+      possibleCodes.forEach(code => {
+        for (let i = 1; i <= 3; i++) {
+          fallbackProduct.image_urls.push(
+            `https://images.lululemon.com/is/image/lululemon/${code}_${colorCode}_${i}`
+          );
+        }
+      });
+    }
+    
     return {
       success: false,
       error: error.message || 'Failed to scrape Lululemon product',
-      product: null
+      product: fallbackProduct
     };
   }
 }

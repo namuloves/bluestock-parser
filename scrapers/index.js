@@ -27,6 +27,7 @@ const { scrapeAnthropologie } = require('./anthropologie');
 const { scrapeMadewell } = require('./madewell');
 const { scrapeAritzia } = require('./aritzia');
 const { scrapeLululemon } = require('./lululemon');
+const { scrapeGeneric } = require('./generic');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -901,6 +902,10 @@ const scrapeProduct = async (url) => {
         console.log('🍋 Using Lululemon scraper');
         return await scrapeLululemon(url);
       
+      case 'generic':
+        console.log('🌐 Using generic scraper for unknown site');
+        return await scrapeGeneric(url);
+      
       default:
         console.log('❌ No specific scraper available for this site');
         
@@ -959,11 +964,9 @@ const scrapeProduct = async (url) => {
           };
         }
         
-        return {
-          success: false,
-          error: `No scraper available for ${site}`,
-          product: null
-        };
+        // If not Shopify, use generic scraper as last resort
+        console.log('🌐 Falling back to generic scraper');
+        return await scrapeGeneric(url);
     }
   } catch (error) {
     console.error('❌ Scraping error:', error.message);
