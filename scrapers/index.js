@@ -27,6 +27,7 @@ const { scrapeAnthropologie } = require('./anthropologie');
 const { scrapeMadewell } = require('./madewell');
 const { scrapeAritzia } = require('./aritzia');
 const { scrapeLululemon } = require('./lululemon');
+const { scrapeFarfetch } = require('./farfetch');
 const { scrapeGeneric } = require('./generic');
 const { detectCategory } = require('../utils/categoryDetection');
 
@@ -901,6 +902,18 @@ const scrapeProduct = async (url) => {
       case 'lululemon':
         console.log('🍋 Using Lululemon scraper');
         return await scrapeLululemon(url);
+      
+      case 'farfetch':
+        console.log('🛍️ Using Farfetch scraper');
+        const farfetchProduct = await scrapeFarfetch(url);
+        
+        // Handle potential Puppeteer fallback requirement
+        if (farfetchProduct.needsPuppeteer) {
+          console.log('⚠️ Farfetch requires Puppeteer, falling back to generic scraper');
+          return await scrapeGeneric(url);
+        }
+        
+        return farfetchProduct;
       
       case 'generic':
         console.log('🌐 Using generic scraper for unknown site');

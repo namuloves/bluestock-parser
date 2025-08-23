@@ -50,7 +50,8 @@ const getProxyConfig = () => {
     'revolve.com',
     'net-a-porter.com',
     'asos.com',
-    'madewell.com'
+    'madewell.com',
+    'farfetch.com'
   ];
 
   // Create proxy agent
