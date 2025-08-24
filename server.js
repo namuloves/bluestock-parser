@@ -153,13 +153,19 @@ app.post('/scrape', async (req, res) => {
       error: scrapeResult.error
     });
     
-    // If scraping failed, return the error
-    if (!scrapeResult.success) {
-      return res.status(400).json(scrapeResult);
-    }
+    // Check if scraping returned a product directly or wrapped in success/product
+    let productData;
     
-    // Extract product data from scrape result
-    let productData = scrapeResult.product || {};
+    // If it has a success field, check if it succeeded
+    if ('success' in scrapeResult) {
+      if (!scrapeResult.success) {
+        return res.status(400).json(scrapeResult);
+      }
+      productData = scrapeResult.product || {};
+    } else {
+      // Direct product object (like Farfetch returns)
+      productData = scrapeResult;
+    }
     
     // If it's an eBay product with AI context and we have AI service, enhance it
     console.log('Product platform:', productData.platform);
@@ -206,10 +212,8 @@ app.post('/scrape', async (req, res) => {
     
     console.log('✅ Returning normalized product data');
     
-    res.json({
-      success: true,
-      product: normalizedProduct
-    });
+    // Always return the product directly, not wrapped
+    res.json(normalizedProduct);
     
   } catch (error) {
     console.error('Scraping error:', error);
