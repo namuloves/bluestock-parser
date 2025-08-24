@@ -84,81 +84,146 @@ async function scrapeFarfetchWithPuppeteer(url) {
         return el ? el.getAttribute(attr) : null;
       };
       
-      // Try to get JSON-LD first
+      // Try to get JSON-LD first - Farfetch uses ProductGroup
       let jsonLd = null;
+      let productGroup = null;
       const scripts = document.querySelectorAll('script[type="application/ld+json"]');
       for (const script of scripts) {
         try {
           const data = JSON.parse(script.textContent);
-          if (data['@type'] === 'Product' || (data['@graph'] && data['@graph'].find(item => item['@type'] === 'Product'))) {
-            jsonLd = data['@type'] === 'Product' ? data : data['@graph'].find(item => item['@type'] === 'Product');
-            break;
+          if (data['@type'] === 'Product') {
+            jsonLd = data;
+          } else if (data['@type'] === 'ProductGroup') {
+            productGroup = data;
+          } else if (data['@graph']) {
+            const product = data['@graph'].find(item => item['@type'] === 'Product');
+            const group = data['@graph'].find(item => item['@type'] === 'ProductGroup');
+            if (product) jsonLd = product;
+            if (group) productGroup = group;
           }
         } catch (e) {
           // Continue to next script
         }
       }
       
+      // Extract from H1 for brand and name
+      let brand = null;
+      let name = null;
+      const h1 = document.querySelector('h1');
+      if (h1) {
+        const h1Text = h1.textContent.trim();
+        const brandLink = h1.querySelector('a');
+        if (brandLink) {
+          brand = brandLink.textContent.trim();
+          name = h1Text.replace(brand, '').trim();
+        } else {
+          name = h1Text;
+        }
+      }
+      
+      // Look for price in various locations
+      let priceText = null;
+      let originalPriceText = null;
+      
+      // Check for price patterns in the page
+      const priceElements = document.querySelectorAll('span, div, p');
+      for (const el of priceElements) {
+        const text = el.textContent.trim();
+        // Match currency followed by numbers
+        if (text.match(/^[$£€¥]\s*[\d,]+(?:\.\d{2})?$/) && !priceText) {
+          // Check if this is original price (usually has strikethrough)
+          const hasStrike = el.tagName === 'S' || el.style.textDecoration === 'line-through' || 
+                           el.parentElement?.tagName === 'S' || el.parentElement?.style.textDecoration === 'line-through';
+          
+          if (hasStrike) {
+            originalPriceText = text;
+          } else {
+            priceText = text;
+          }
+        }
+      }
+      
+      // Extract sizes from ProductGroup variants if available
+      let sizes = [];
+      let price = null;
+      let currency = null;
+      
+      if (productGroup && productGroup.hasVariant) {
+        productGroup.hasVariant.forEach(variant => {
+          if (variant.size && !sizes.includes(variant.size)) {
+            sizes.push(variant.size);
+          }
+          if (!price && variant.offers) {
+            if (variant.offers.price) {
+              price = parseFloat(variant.offers.price);
+              currency = variant.offers.priceCurrency;
+            }
+          }
+        });
+      }
+      
+      // Get images from ProductGroup or img tags
+      let images = [];
+      if (productGroup && productGroup.image) {
+        images = productGroup.image.map(img => {
+          if (typeof img === 'string') return img;
+          if (img.contentUrl) return img.contentUrl;
+          return null;
+        }).filter(Boolean);
+      }
+      
+      if (images.length === 0) {
+        images = Array.from(document.querySelectorAll('img[src*="cdn-images.farfetch"]'))
+          .map(img => img.src)
+          .filter(src => src && !src.includes('data:image'))
+          .slice(0, 10); // Limit to 10 images
+      }
+      
       // Extract from page elements
       const result = {
         jsonLd: jsonLd,
+        productGroup: productGroup,
         pageData: {
-          // Brand - Multiple selectors
-          brand: getText('[data-component="ProductBrandName"]') ||
-                 getText('[data-tstid="productDetails-brand"]') ||
-                 getText('h1[data-component="ProductDescription"] a') ||
-                 getText('._d120b3 a') ||
-                 getText('a[data-component="DesignerName"]') ||
-                 getText('[data-testid="product-brand"]'),
-          
-          // Product name
-          name: getText('[data-component="ProductDescription"] span:last-child') ||
-                getText('[data-tstid="productDetails-description"]') ||
-                getText('h1[data-component="ProductDescription"]')?.split('\n').pop()?.trim() ||
-                getText('._3c3f42') ||
-                getText('[data-testid="product-name"]'),
+          // Use extracted brand and name
+          brand: brand,
+          name: name,
           
           // Price
-          price: getText('[data-component="PriceLarge"]') ||
-                 getText('[data-tstid="priceInfo-current"]') ||
-                 getText('._ac3d1e') ||
-                 getText('[data-component="Price"]'),
+          price: priceText,
+          originalPrice: originalPriceText,
           
-          originalPrice: getText('[data-component="PriceOriginal"]') ||
-                        getText('[data-tstid="priceInfo-original"]') ||
-                        getText('._1c7a96 s'),
-          
-          // Description
+          // Description - try multiple selectors
           description: getText('[data-component="TabProductDetails"] p') ||
                       getText('[data-tstid="productDetails-description"]') ||
+                      getText('div[class*="accordion"] div[class*="panel"]') ||
                       getText('._b4693b'),
           
           // Color
           color: getText('[data-component="ColourName"]') ||
                  getText('[data-tstid="productDetails-color"]') ||
+                 getText('span[class*="color"]') ||
                  getText('._c0f09e'),
           
-          // Images - Get all product images
-          images: Array.from(document.querySelectorAll('[data-component="ProductImageCarousel"] img, [data-component="ProductImage"] img, ._7e6893 img, [data-testid="product-image"]'))
-            .map(img => img.src || img.dataset.src || img.dataset.image)
-            .filter(src => src && src.includes('http'))
-            .map(src => src.replace(/\?.*$/, '').replace(/_\d+\./, '_1000.')),
+          // Images
+          images: images,
           
           // Sizes
-          sizes: Array.from(document.querySelectorAll('[data-component="SizeSelector"] button, [data-tstid^="sizeButton-"], ._65f6bb button'))
-            .filter(btn => !btn.disabled && !btn.classList.contains('disabled') && !btn.classList.contains('_41eca7'))
-            .map(btn => btn.textContent.trim() || btn.getAttribute('aria-label')?.replace('Size ', '').trim())
-            .filter(size => size && size !== ''),
+          sizes: sizes,
           
           // Additional details
           materials: getText('[data-component="Composition"]') ||
                     getText('[data-testid="product-composition"]'),
           
-          productId: window.location.href.match(/item-(\d+)/)?.[1]
+          productId: window.location.href.match(/item-(\d+)/)?.[1],
+          
+          // Extracted price and currency
+          extractedPrice: price,
+          extractedCurrency: currency
         },
         
         // Debug info
         hasJsonLd: !!jsonLd,
+        hasProductGroup: !!productGroup,
         scriptCount: scripts.length,
         pageTitle: document.title
       };
@@ -168,14 +233,18 @@ async function scrapeFarfetchWithPuppeteer(url) {
     
     console.log('Debug info:', {
       hasJsonLd: productData.hasJsonLd,
+      hasProductGroup: productData.hasProductGroup,
       scriptCount: productData.scriptCount,
       pageTitle: productData.pageTitle,
       brand: productData.pageData.brand,
-      name: productData.pageData.name
+      name: productData.pageData.name,
+      priceText: productData.pageData.price,
+      extractedPrice: productData.pageData.extractedPrice
     });
     
     // Process the extracted data
     const jsonLd = productData.jsonLd;
+    const productGroup = productData.productGroup;
     const pageData = productData.pageData;
     
     // Clean price function
@@ -198,20 +267,19 @@ async function scrapeFarfetchWithPuppeteer(url) {
       return 'USD';
     };
     
-    // Build final result
+    // Build final result - prioritize ProductGroup data for Farfetch
     const result = {
       url,
-      name: pageData.name || jsonLd?.name || 'Unknown Product',
-      brand: pageData.brand || jsonLd?.brand?.name || jsonLd?.brand || 'Unknown Brand',
-      price: cleanPrice(pageData.price) || jsonLd?.offers?.price || 0,
+      name: pageData.name || productGroup?.name || jsonLd?.name || 'Unknown Product',
+      brand: pageData.brand || productGroup?.brand?.name || productGroup?.brand || jsonLd?.brand?.name || jsonLd?.brand || 'Unknown Brand',
+      price: cleanPrice(pageData.price) || pageData.extractedPrice || jsonLd?.offers?.price || 0,
       originalPrice: cleanPrice(pageData.originalPrice),
-      currency: getCurrency(pageData.price) || jsonLd?.offers?.priceCurrency || 'USD',
-      description: pageData.description || jsonLd?.description || '',
-      images: pageData.images?.length > 0 ? pageData.images : 
-              (jsonLd?.image ? (Array.isArray(jsonLd.image) ? jsonLd.image : [jsonLd.image]) : []),
+      currency: getCurrency(pageData.price) || pageData.extractedCurrency || jsonLd?.offers?.priceCurrency || 'USD',
+      description: pageData.description || productGroup?.description || jsonLd?.description || '',
+      images: pageData.images?.length > 0 ? pageData.images : [],
       sizes: pageData.sizes || [],
-      color: pageData.color || jsonLd?.color || '',
-      productId: pageData.productId || jsonLd?.sku || '',
+      color: pageData.color || productGroup?.color || jsonLd?.color || '',
+      productId: pageData.productId || productGroup?.sku || jsonLd?.sku || '',
       materials: pageData.materials ? [pageData.materials] : [],
       inStock: pageData.sizes?.length > 0 || jsonLd?.offers?.availability?.includes('InStock'),
       source: 'farfetch',
