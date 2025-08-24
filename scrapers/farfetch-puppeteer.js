@@ -9,6 +9,12 @@ async function scrapeFarfetchWithPuppeteer(url) {
   try {
     console.log('🔍 Launching Puppeteer for Farfetch...');
     
+    // Check if we're in production and Puppeteer might not work
+    if (process.env.NODE_ENV === 'production' && !process.env.PUPPETEER_EXECUTABLE_PATH) {
+      console.log('⚠️ Puppeteer not available in production, returning limited data');
+      throw new Error('Puppeteer not available in production environment');
+    }
+    
     browser = await puppeteer.launch({
       headless: 'new',
       args: [
