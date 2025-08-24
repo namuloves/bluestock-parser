@@ -73,8 +73,8 @@ RUN groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
 # Run as non-root user
 USER pptruser
 
-# Expose port - Railway will provide PORT env var
-EXPOSE ${PORT:-8080}
+# Railway provides PORT env var
+ENV PORT=${PORT}
 
 # Start the application
 CMD ["node", "server.js"]
