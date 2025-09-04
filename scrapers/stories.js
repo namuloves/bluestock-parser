@@ -1,6 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { getAxiosConfig } = require('../config/proxy');
+const { scrapeStoriesWithPuppeteer } = require('./stories-puppeteer');
 
 async function scrapeStoriesHTML(url) {
   try {
@@ -316,30 +317,40 @@ async function scrapeStoriesHTML(url) {
   } catch (error) {
     console.error('Stories HTML scraper error:', error.message);
     
-    // If it's a 403 or similar, we might be blocked
-    if (error.response) {
-      console.error('Response status:', error.response.status);
-      console.error('Response headers:', error.response.headers);
+    // If it's a 403 or similar, try Puppeteer
+    if (error.response && (error.response.status === 403 || error.response.status === 429)) {
+      console.log('⚠️ Stories.com blocked direct request, trying Puppeteer...');
       
-      if (error.response.status === 403 || error.response.status === 429) {
-        // Return minimal data instead of throwing
-        return {
-          name: 'Stories Product',
-          price: 'Price unavailable (blocked)',
-          originalPrice: null,
-          images: [],
-          description: 'Unable to fetch product details due to site protection',
-          sizes: [],
-          color: '',
-          sku: url.match(/(\d+)$/)?.[1] || '',
-          brand: 'Stories',
-          category: 'Fashion',
-          isOnSale: false,
-          inStock: false,
-          url: url,
-          error: `Blocked: ${error.response.status}`
-        };
+      try {
+        // Check if puppeteer is available
+        try {
+          require.resolve('puppeteer');
+          return await scrapeStoriesWithPuppeteer(url);
+        } catch (puppeteerCheckError) {
+          console.log('Puppeteer not available, returning limited data');
+        }
+      } catch (puppeteerError) {
+        console.error('Puppeteer also failed:', puppeteerError.message);
       }
+      
+      // Return minimal data if all methods fail
+      return {
+        name: 'Stories Product',
+        price: 'Price unavailable (blocked)',
+        originalPrice: null,
+        images: [],
+        description: 'Unable to fetch product details due to site protection',
+        sizes: [],
+        color: '',
+        sku: url.match(/(\d+)$/)?.[1] || '',
+        brand: 'Stories',
+        category: 'Fashion',
+        isOnSale: false,
+        inStock: false,
+        url: url,
+        error: `Blocked: ${error.response.status}`,
+        needsPuppeteer: true
+      };
     }
     
     throw error;

@@ -911,6 +911,12 @@ const scrapeProduct = async (url) => {
         console.log('👗 Using Stories scraper');
         const storiesProduct = await scrapeStories(url);
         
+        // Check if we need to fallback to generic scraper
+        if (storiesProduct.needsPuppeteer && !storiesProduct.name) {
+          console.log('⚠️ Stories requires Puppeteer, falling back to generic scraper');
+          return await scrapeGeneric(url);
+        }
+        
         // Extract price number from string
         const storiesPriceMatch = storiesProduct.price?.match(/[\d,]+\.?\d*/);
         const storiesPriceNumeric = storiesPriceMatch ? parseFloat(storiesPriceMatch[0].replace(',', '')) : 0;
