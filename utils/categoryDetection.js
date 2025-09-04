@@ -46,7 +46,7 @@ const brandMappings = {
 
 function detectCategory(productName, description, brand, scrapedCategory) {
   // 1. First check if scraped category matches our categories
-  if (scrapedCategory) {
+  if (scrapedCategory && typeof scrapedCategory === 'string') {
     const normalizedScraped = scrapedCategory.toLowerCase();
     for (const [category, keywords] of Object.entries(categoryKeywords)) {
       if (normalizedScraped.includes(category.toLowerCase()) || 

@@ -28,6 +28,7 @@ const { scrapeMadewell } = require('./madewell');
 const { scrapeAritzia } = require('./aritzia');
 const { scrapeLululemon } = require('./lululemon');
 const { scrapeFarfetch } = require('./farfetch');
+const { scrapeStories } = require('./stories');
 const { scrapeGeneric } = require('./generic');
 const { detectCategory } = require('../utils/categoryDetection');
 
@@ -124,6 +125,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('lululemon.')) {
     return 'lululemon';
+  }
+  if (hostname.includes('stories.')) {
+    return 'stories';
   }
   
   // Check for known Shopify domains
@@ -902,6 +906,56 @@ const scrapeProduct = async (url) => {
       case 'lululemon':
         console.log('🍋 Using Lululemon scraper');
         return await scrapeLululemon(url);
+      
+      case 'stories':
+        console.log('👗 Using Stories scraper');
+        const storiesProduct = await scrapeStories(url);
+        
+        // Extract price number from string
+        const storiesPriceMatch = storiesProduct.price?.match(/[\d,]+\.?\d*/);
+        const storiesPriceNumeric = storiesPriceMatch ? parseFloat(storiesPriceMatch[0].replace(',', '')) : 0;
+        
+        const storiesOriginalPriceMatch = storiesProduct.originalPrice?.match(/[\d,]+\.?\d*/);
+        const storiesOriginalPriceNumeric = storiesOriginalPriceMatch ? parseFloat(storiesOriginalPriceMatch[0].replace(',', '')) : storiesPriceNumeric;
+        
+        return {
+          success: true,
+          product: {
+            // Keep all original fields
+            ...storiesProduct,
+            
+            // Database schema fields
+            product_name: storiesProduct.name,
+            brand: storiesProduct.brand || 'Stories',
+            original_price: storiesOriginalPriceNumeric,
+            sale_price: storiesPriceNumeric,
+            is_on_sale: storiesProduct.isOnSale || false,
+            discount_percentage: storiesProduct.isOnSale && storiesOriginalPriceNumeric > 0 
+              ? Math.round((1 - storiesPriceNumeric / storiesOriginalPriceNumeric) * 100)
+              : null,
+            sale_badge: storiesProduct.isOnSale ? 'SALE' : null,
+            image_urls: storiesProduct.images || [],
+            vendor_url: storiesProduct.url,
+            color: storiesProduct.color || '',
+            category: detectCategory(
+              storiesProduct.name || '',
+              storiesProduct.description || '',
+              storiesProduct.brand || 'Stories',
+              storiesProduct.category
+            ),
+            material: '',
+            
+            // Legacy fields for backward compatibility
+            price: storiesPriceNumeric,
+            images: storiesProduct.images || [],
+            originalPrice: storiesOriginalPriceNumeric,
+            isOnSale: storiesProduct.isOnSale || false,
+            discountPercentage: storiesProduct.isOnSale && storiesOriginalPriceNumeric > 0
+              ? Math.round((1 - storiesPriceNumeric / storiesOriginalPriceNumeric) * 100)
+              : null,
+            saleBadge: storiesProduct.isOnSale ? 'SALE' : null
+          }
+        };
       
       case 'farfetch':
         console.log('🛍️ Using Farfetch scraper');
