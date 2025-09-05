@@ -200,21 +200,87 @@ const scrapeShopify = async (url) => {
     }
     
     if (product.images.length === 0) {
-      // Extract images from HTML
-      $('.product__media img, .product__image img, img[itemprop="image"]').each((i, img) => {
+      // Extract images from HTML - including picture elements (used by Emurj)
+      const imageSet = new Set();
+      
+      // Standard Shopify selectors
+      $('.product__media img, .product__image img, img[itemprop="image"], picture img').each((i, img) => {
         let imageUrl = $(img).attr('src') || $(img).attr('data-src');
+        
+        // Also check srcset for higher quality images
+        const srcset = $(img).attr('srcset');
+        if (srcset) {
+          // Get the highest resolution image from srcset
+          const srcsetParts = srcset.split(',');
+          const lastSrc = srcsetParts[srcsetParts.length - 1].trim().split(' ')[0];
+          if (lastSrc) {
+            imageUrl = lastSrc;
+          }
+        }
+        
         if (imageUrl) {
           // Convert to full URL if relative
           if (imageUrl.startsWith('//')) {
             imageUrl = 'https:' + imageUrl;
           }
-          // Get larger version of image
-          imageUrl = imageUrl.replace(/_\d+x\d+/, '').replace(/\?v=\d+/, '');
-          if (!product.images.includes(imageUrl)) {
-            product.images.push(imageUrl);
+          
+          // For Emurj-style URLs, extract a cleaner version
+          if (imageUrl.includes('/files/') && imageUrl.includes('?')) {
+            // Get base URL without parameters but keep version
+            const baseUrl = imageUrl.split('&')[0];
+            // Replace with higher resolution version
+            imageUrl = baseUrl.replace(/width=\d+/, 'width=1500').replace(/height=\d+/, 'height=1500');
+          } else {
+            // Standard Shopify image cleanup
+            imageUrl = imageUrl.replace(/_\d+x\d+/, '').replace(/\?v=\d+/, '');
           }
+          
+          imageSet.add(imageUrl);
         }
       });
+      
+      // Convert Set to Array to remove duplicates
+      product.images = Array.from(imageSet);
+      
+      // For Emurj/similar sites, dedupe by unique image ID and filter out related products
+      if (product.images.length > 0 && product.images[0].includes('/files/')) {
+        const uniqueImages = new Map();
+        
+        // First, identify the main product ID from URL
+        const urlMatch = url.match(/\/(\d+)(?:\?.*)?$/);
+        const productId = urlMatch ? urlMatch[1] : null;
+        
+        product.images.forEach(img => {
+          // Skip card images (related products)
+          if (img.includes('-card-') || img.includes('_card_')) {
+            return;
+          }
+          
+          // If we have a product ID, prioritize images that start with it
+          if (productId && img.includes(`/${productId}-`)) {
+            // Extract unique ID (e.g., "100341-918ef3f3-89d3-4629-a98a-40ed7bfc6903")
+            const match = img.match(/\/([^\/]+\-[a-f0-9\-]+)\.(png|jpg|jpeg|webp)/i);
+            if (match) {
+              const imageId = match[1];
+              // Keep the first occurrence of each unique image
+              if (!uniqueImages.has(imageId)) {
+                uniqueImages.set(imageId, img);
+              }
+            }
+          } else if (!productId) {
+            // If no product ID, keep non-card images
+            const match = img.match(/\/([^\/]+\-[a-f0-9\-]+)\.(png|jpg|jpeg|webp)/i);
+            if (match) {
+              const imageId = match[1];
+              if (!uniqueImages.has(imageId)) {
+                uniqueImages.set(imageId, img);
+              }
+            }
+          }
+        });
+        
+        product.images = Array.from(uniqueImages.values());
+      }
     }
     
     if (!product.description) {
