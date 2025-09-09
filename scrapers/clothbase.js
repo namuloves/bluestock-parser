@@ -1,7 +1,14 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const puppeteer = require('puppeteer');
 const { getAxiosConfig } = require('../config/proxy');
+
+// Make Puppeteer optional - only load if available
+let puppeteer;
+try {
+  puppeteer = require('puppeteer');
+} catch (e) {
+  console.log('⚠️ Puppeteer not available, will use axios only');
+}
 
 const scrapeClothbase = async (url) => {
   console.log('👔 Starting Clothbase scraper for:', url);
@@ -67,10 +74,17 @@ const scrapeClothbase = async (url) => {
         throw new Error(`HTTP ${response.status}`);
       }
     } catch (axiosError) {
-      console.log('⚠️ Axios failed, using Puppeteer...');
+      console.log('⚠️ Axios failed with error:', axiosError.message);
+      
+      // Fall back to Puppeteer only if available
+      if (!puppeteer) {
+        throw new Error('Unable to fetch page - Puppeteer not available and axios failed');
+      }
+      
+      console.log('📱 Using Puppeteer...');
       
       // Fall back to Puppeteer for sites with anti-bot protection
-      browser = await puppeteer.launch({
+      const puppeteerOptions = {
         headless: 'new',
         args: [
           '--no-sandbox',
@@ -81,7 +95,14 @@ const scrapeClothbase = async (url) => {
           '--no-zygote',
           '--disable-gpu'
         ]
-      });
+      };
+      
+      // Use system Chrome if available (for Docker/Railway)
+      if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        puppeteerOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+      }
+      
+      browser = await puppeteer.launch(puppeteerOptions);
       
       const page = await browser.newPage();
       

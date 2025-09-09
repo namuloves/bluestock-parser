@@ -193,10 +193,21 @@ const scrapeShopify = async (url) => {
     }
     
     if (!product.brand) {
-      product.brand = $('.product__vendor').text().trim() ||
+      // First try to get brand from meta tags or structured data
+      product.brand = $('meta[property="product:brand"]').attr('content') ||
                       $('[itemprop="brand"]').text().trim() ||
-                      $('meta[property="product:brand"]').attr('content') ||
-                      new URL(url).hostname.replace('www.', '').split('.')[0];
+                      $('.product__vendor').text().trim();
+      
+      // If no brand found or if it's a different designer, use domain name
+      const domainName = new URL(url).hostname.replace('www.', '').split('.')[0];
+      const domainBrand = domainName.charAt(0).toUpperCase() + domainName.slice(1);
+      
+      // Special handling for known designer sites
+      if (url.includes('ceciliebahnsen.com')) {
+        product.brand = 'Cecilie Bahnsen';
+      } else if (!product.brand) {
+        product.brand = domainBrand;
+      }
     }
     
     if (product.images.length === 0) {
