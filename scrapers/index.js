@@ -29,6 +29,8 @@ const { scrapeAritzia } = require('./aritzia');
 const { scrapeLululemon } = require('./lululemon');
 const { scrapeFarfetch } = require('./farfetch');
 const { scrapeStories } = require('./stories');
+const { scrapeMytheresa, isMytheresaStore } = require('./mytheresa');
+const { scrapeClothbase, isClothbase } = require('./clothbase');
 const { scrapeGeneric } = require('./generic');
 const { detectCategory } = require('../utils/categoryDetection');
 
@@ -128,6 +130,12 @@ const detectSite = (url) => {
   }
   if (hostname.includes('stories.')) {
     return 'stories';
+  }
+  if (hostname.includes('mytheresa.')) {
+    return 'mytheresa';
+  }
+  if (hostname.includes('clothbase.')) {
+    return 'clothbase';
   }
   
   // Check for known Shopify domains
@@ -960,6 +968,132 @@ const scrapeProduct = async (url) => {
               ? Math.round((1 - storiesPriceNumeric / storiesOriginalPriceNumeric) * 100)
               : null,
             saleBadge: storiesProduct.isOnSale ? 'SALE' : null
+          }
+        };
+      
+      case 'mytheresa':
+        console.log('🛍️ Using Mytheresa scraper');
+        const mytheresaProduct = await scrapeMytheresa(url);
+        
+        // Extract price number from string
+        let mytheresaPriceNumeric = 0;
+        if (mytheresaProduct.price) {
+          const priceMatch = mytheresaProduct.price.match(/[\d,]+\.?\d*/);
+          mytheresaPriceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+        }
+        
+        let mytheresaOriginalPriceNumeric = mytheresaPriceNumeric;
+        if (mytheresaProduct.originalPrice) {
+          const originalMatch = mytheresaProduct.originalPrice.match(/[\d,]+\.?\d*/);
+          mytheresaOriginalPriceNumeric = originalMatch ? parseFloat(originalMatch[0].replace(',', '')) : mytheresaPriceNumeric;
+        }
+        
+        const mytheresaIsOnSale = mytheresaProduct.originalPrice && mytheresaOriginalPriceNumeric > mytheresaPriceNumeric;
+        
+        return {
+          success: !mytheresaProduct.error,
+          product: {
+            // Keep all original fields
+            ...mytheresaProduct,
+            
+            // Database schema fields
+            product_name: mytheresaProduct.name,
+            brand: mytheresaProduct.brand || 'Mytheresa',
+            original_price: mytheresaOriginalPriceNumeric,
+            sale_price: mytheresaPriceNumeric,
+            is_on_sale: mytheresaIsOnSale,
+            discount_percentage: mytheresaIsOnSale ? 
+              Math.round((1 - mytheresaPriceNumeric / mytheresaOriginalPriceNumeric) * 100) : null,
+            sale_badge: mytheresaIsOnSale ? 'SALE' : null,
+            image_urls: mytheresaProduct.images || [],
+            vendor_url: mytheresaProduct.url || url,
+            color: mytheresaProduct.color || '',
+            colors: mytheresaProduct.colors || [],
+            sizes: mytheresaProduct.sizes || [],
+            category: detectCategory(
+              mytheresaProduct.name || '',
+              mytheresaProduct.description || '',
+              mytheresaProduct.brand || 'Mytheresa',
+              mytheresaProduct.category
+            ),
+            material: mytheresaProduct.material || '',
+            description: mytheresaProduct.description || '',
+            in_stock: mytheresaProduct.inStock !== false,
+            sku: mytheresaProduct.sku || '',
+            
+            // Legacy fields
+            name: mytheresaProduct.name,
+            price: mytheresaPriceNumeric,
+            images: mytheresaProduct.images || [],
+            originalPrice: mytheresaOriginalPriceNumeric,
+            isOnSale: mytheresaIsOnSale,
+            discountPercentage: mytheresaIsOnSale ? 
+              Math.round((1 - mytheresaPriceNumeric / mytheresaOriginalPriceNumeric) * 100) : null,
+            saleBadge: mytheresaIsOnSale ? 'SALE' : null
+          }
+        };
+      
+      case 'clothbase':
+        console.log('👔 Using Clothbase scraper');
+        const clothbaseProduct = await scrapeClothbase(url);
+        
+        // Extract price number from string
+        let clothbasePriceNumeric = 0;
+        if (clothbaseProduct.price) {
+          const priceMatch = clothbaseProduct.price.match(/[\d,]+\.?\d*/);
+          clothbasePriceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+        }
+        
+        let clothbaseOriginalPriceNumeric = clothbasePriceNumeric;
+        if (clothbaseProduct.originalPrice) {
+          const originalMatch = clothbaseProduct.originalPrice.match(/[\d,]+\.?\d*/);
+          clothbaseOriginalPriceNumeric = originalMatch ? parseFloat(originalMatch[0].replace(',', '')) : clothbasePriceNumeric;
+        }
+        
+        const clothbaseIsOnSale = clothbaseProduct.originalPrice && clothbaseOriginalPriceNumeric > clothbasePriceNumeric;
+        
+        return {
+          success: !clothbaseProduct.error,
+          product: {
+            // Keep all original fields
+            ...clothbaseProduct,
+            
+            // Database schema fields
+            product_name: clothbaseProduct.name,
+            brand: clothbaseProduct.brand || 'Unknown',
+            original_price: clothbaseOriginalPriceNumeric,
+            sale_price: clothbasePriceNumeric,
+            is_on_sale: clothbaseIsOnSale,
+            discount_percentage: clothbaseIsOnSale ? 
+              Math.round((1 - clothbasePriceNumeric / clothbaseOriginalPriceNumeric) * 100) : null,
+            sale_badge: clothbaseIsOnSale ? 'SALE' : null,
+            image_urls: clothbaseProduct.images || [],
+            vendor_url: clothbaseProduct.url || url,
+            color: clothbaseProduct.colors?.length > 0 ? clothbaseProduct.colors[0] : '',
+            colors: clothbaseProduct.colors || [],
+            sizes: clothbaseProduct.sizes || [],
+            category: detectCategory(
+              clothbaseProduct.name || '',
+              clothbaseProduct.description || '',
+              clothbaseProduct.brand || '',
+              null
+            ),
+            material: clothbaseProduct.material || '',
+            description: clothbaseProduct.description || '',
+            condition: clothbaseProduct.condition || '',
+            measurements: clothbaseProduct.measurements || {},
+            in_stock: clothbaseProduct.inStock !== false,
+            retailer: clothbaseProduct.retailer || 'Clothbase',
+            
+            // Legacy fields
+            name: clothbaseProduct.name,
+            price: clothbasePriceNumeric,
+            images: clothbaseProduct.images || [],
+            originalPrice: clothbaseOriginalPriceNumeric,
+            isOnSale: clothbaseIsOnSale,
+            discountPercentage: clothbaseIsOnSale ? 
+              Math.round((1 - clothbasePriceNumeric / clothbaseOriginalPriceNumeric) * 100) : null,
+            saleBadge: clothbaseIsOnSale ? 'SALE' : null
           }
         };
       
