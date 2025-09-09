@@ -210,16 +210,28 @@ const scrapeClothbase = async (url) => {
       }
     });
     
-    // Description - Look for description in various places
-    product.description = $('[class*="description"]').text().trim() ||
-                         $('[class*="MuiTypography"][color="textPrimary"]').filter((i, el) => {
-                           const text = $(el).text();
-                           return text.length > 50; // Likely a description if long
-                         }).first().text().trim() ||
-                         $('p').filter((i, el) => {
-                           const text = $(el).text();
-                           return text.length > 50;
-                         }).first().text().trim() || '';
+    // Description - Look for description in various places, but be careful not to get too much
+    let descriptionText = '';
+    
+    // First try specific description selectors
+    const descEl = $('[class*="description"]:not(script)').first();
+    if (descEl.length) {
+      descriptionText = descEl.text().trim();
+    }
+    
+    // If no description found or too long, try other methods
+    if (!descriptionText || descriptionText.length > 500) {
+      $('p, [class*="MuiTypography"]').each((i, el) => {
+        const text = $(el).clone().children().remove().end().text().trim();
+        // Look for description-like text (multiple sentences, proper length)
+        if (text.length > 50 && text.length < 500 && text.includes('.')) {
+          descriptionText = text;
+          return false;
+        }
+      });
+    }
+    
+    product.description = descriptionText;
     
     // Size - Look for size information
     $('[class*="MuiChip"], [class*="size"], span').each((i, el) => {
@@ -243,12 +255,18 @@ const scrapeClothbase = async (url) => {
       }
     }
     
-    // Material/Composition - Look for material info
-    $('*').each((i, el) => {
+    // Material/Composition - Look for material info more carefully
+    $('p, div, span').each((i, el) => {
       const text = $(el).text().trim();
-      if (text.match(/\d+%\s*(cotton|polyester|wool|silk|nylon|elastane|viscose)/i)) {
-        product.material = text;
-        return false; // Break the loop
+      // Only get direct text content, not nested elements
+      const directText = $(el).clone().children().remove().end().text().trim();
+      
+      if (directText && directText.match(/\d+%\s*(cotton|polyester|wool|silk|nylon|elastane|viscose|polyamide)/i)) {
+        // Only use if it's a reasonable length (not the whole page)
+        if (directText.length < 200) {
+          product.material = directText;
+          return false; // Break the loop
+        }
       }
     });
     
@@ -377,9 +395,13 @@ const scrapeClothbase = async (url) => {
               product.description = data.description;
             }
             
-            // Extract material
+            // Extract material (ensure it's clean text)
             if (!product.material && data.material) {
-              product.material = data.material;
+              // Clean the material text
+              const materialText = data.material.toString().trim();
+              if (materialText.length < 200 && !materialText.includes('{')) {
+                product.material = materialText;
+              }
             }
             
             // Extract SKU
@@ -460,12 +482,36 @@ const scrapeClothbase = async (url) => {
       product.originalPrice = '$' + product.originalPrice;
     }
     
-    // Clean up empty fields
+    // Clean up empty fields and remove any fields with JavaScript/HTML artifacts
     Object.keys(product).forEach(key => {
-      if (product[key] === '' || 
-          (Array.isArray(product[key]) && product[key].length === 0) ||
-          (typeof product[key] === 'object' && Object.keys(product[key]).length === 0)) {
+      const value = product[key];
+      
+      // Remove empty values
+      if (value === '' || 
+          (Array.isArray(value) && value.length === 0) ||
+          (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0)) {
         delete product[key];
+        return;
+      }
+      
+      // Clean string fields that might have JavaScript or excessive content
+      if (typeof value === 'string') {
+        // Check for JavaScript artifacts
+        if (value.includes('function') || value.includes('window.') || 
+            value.includes('document.') || value.includes('CLOTHBASE.') ||
+            value.length > 1000) {
+          // Try to extract just the relevant part for material
+          if (key === 'material') {
+            const materialMatch = value.match(/(\d+%\s*[a-z]+(?:,\s*\d+%\s*[a-z]+)*)/i);
+            if (materialMatch) {
+              product[key] = materialMatch[0];
+            } else {
+              delete product[key];
+            }
+          } else {
+            delete product[key];
+          }
+        }
       }
     });
     
