@@ -255,20 +255,8 @@ const scrapeClothbase = async (url) => {
       }
     }
     
-    // Material/Composition - Look for material info more carefully
-    $('p, div, span').each((i, el) => {
-      const text = $(el).text().trim();
-      // Only get direct text content, not nested elements
-      const directText = $(el).clone().children().remove().end().text().trim();
-      
-      if (directText && directText.match(/\d+%\s*(cotton|polyester|wool|silk|nylon|elastane|viscose|polyamide)/i)) {
-        // Only use if it's a reasonable length (not the whole page)
-        if (directText.length < 200) {
-          product.material = directText;
-          return false; // Break the loop
-        }
-      }
-    });
+    // Material/Composition - Don't set it here, will get from JSON-LD instead
+    // This section was causing issues by grabbing too much content
     
     // Condition (Clothbase is a resale platform)
     $('*').each((i, el) => {
@@ -482,6 +470,22 @@ const scrapeClothbase = async (url) => {
       product.originalPrice = '$' + product.originalPrice;
     }
     
+    // Final cleanup - ensure material field is clean
+    if (product.material) {
+      // Extract just the percentage composition if present
+      const materialMatch = product.material.match(/(\d+%\s*(?:polyester|cotton|wool|silk|nylon|elastane|viscose|polyamide)(?:,?\s*\d+%\s*(?:polyester|cotton|wool|silk|nylon|elastane|viscose|polyamide))*)/i);
+      if (materialMatch) {
+        product.material = materialMatch[0];
+      } else if (product.material.length > 100 || 
+                 product.material.includes('CLOTHBASE') || 
+                 product.material.includes('function') ||
+                 product.material.includes('window') ||
+                 product.material.includes('document')) {
+        // If material field is corrupted, delete it
+        delete product.material;
+      }
+    }
+    
     // Clean up empty fields and remove any fields with JavaScript/HTML artifacts
     Object.keys(product).forEach(key => {
       const value = product[key];
@@ -494,17 +498,24 @@ const scrapeClothbase = async (url) => {
         return;
       }
       
-      // Clean string fields that might have JavaScript or excessive content
-      if (typeof value === 'string') {
-        // Check for JavaScript artifacts
-        if (value.includes('function') || value.includes('window.') || 
-            value.includes('document.') || value.includes('CLOTHBASE.') ||
-            value.length > 1000) {
-          // Try to extract just the relevant part for material
-          if (key === 'material') {
-            const materialMatch = value.match(/(\d+%\s*[a-z]+(?:,\s*\d+%\s*[a-z]+)*)/i);
-            if (materialMatch) {
-              product[key] = materialMatch[0];
+      // For string fields, check for JavaScript contamination
+      if (typeof value === 'string' && key !== 'url') {
+        // Check for obvious JavaScript/HTML artifacts
+        if (value.includes('function') || 
+            value.includes('window.') || 
+            value.includes('document.') || 
+            value.includes('CLOTHBASE.') ||
+            value.includes('{') ||
+            value.includes('}') ||
+            value.includes('createElement') ||
+            value.includes('getElementById') ||
+            value.length > 500) {
+          
+          // For material, try one more extraction
+          if (key === 'material' && !product.material) {
+            const cleanMatch = value.match(/(\d+%\s*\w+(?:,\s*\d+%\s*\w+)*)/);
+            if (cleanMatch && cleanMatch[0].length < 100) {
+              product[key] = cleanMatch[0];
             } else {
               delete product[key];
             }
