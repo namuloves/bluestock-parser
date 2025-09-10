@@ -245,10 +245,13 @@ app.post('/scrape', async (req, res) => {
     res.json(normalizedProduct);
     
   } catch (error) {
-    console.error('Scraping error:', error);
+    console.error('❌ Scraping error:', error);
+    console.error('Stack trace:', error.stack);
     
     // Clear the timeout
-    clearTimeout(timeout);
+    if (timeout) {
+      clearTimeout(timeout);
+    }
     
     // Don't send response if already sent by timeout
     if (!res.headersSent) {
@@ -256,12 +259,17 @@ app.post('/scrape', async (req, res) => {
       if (error.message === 'Scraping timeout') {
         res.status(504).json({
           success: false,
-          error: 'Request timeout - the site may have anti-bot protection'
+          error: 'Request timeout - the site may have anti-bot protection',
+          details: error.message
         });
       } else {
+        // Log the full error for debugging
+        console.error('Full error object:', JSON.stringify(error, null, 2));
+        
         res.status(500).json({
           success: false,
-          error: error.message || 'Internal server error'
+          error: error.message || 'Internal server error',
+          details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
         });
       }
     }
