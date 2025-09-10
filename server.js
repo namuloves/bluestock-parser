@@ -138,10 +138,23 @@ app.get('/test', (req, res) => {
 // Main scraping endpoint
 app.post('/scrape', async (req, res) => {
   console.log('📥 /scrape endpoint hit');
+  
+  // Set a timeout for the entire request (30 seconds)
+  const timeout = setTimeout(() => {
+    console.log('⏱️ Request timeout after 30 seconds');
+    if (!res.headersSent) {
+      res.status(504).json({
+        success: false,
+        error: 'Request timeout - the site may have anti-bot protection'
+      });
+    }
+  }, 30000);
+  
   try {
     const { url } = req.body;
     
     if (!url) {
+      clearTimeout(timeout);
       return res.status(400).json({
         success: false,
         error: 'URL parameter is required'
@@ -151,8 +164,13 @@ app.post('/scrape', async (req, res) => {
     console.log('🔍 Scraping URL:', url);
     console.log('🔍 Scraping started at:', new Date().toISOString());
     
-    // Use actual scraper
-    const scrapeResult = await scrapeProduct(url);
+    // Use actual scraper with race condition against timeout
+    const scrapePromise = scrapeProduct(url);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Scraping timeout')), 28000)
+    );
+    
+    const scrapeResult = await Promise.race([scrapePromise, timeoutPromise]);
     
     console.log('🔍 Scrape result:', {
       success: scrapeResult.success,
@@ -220,15 +238,33 @@ app.post('/scrape', async (req, res) => {
     
     console.log('✅ Returning normalized product data');
     
+    // Clear the timeout since we're done
+    clearTimeout(timeout);
+    
     // Always return the product directly, not wrapped
     res.json(normalizedProduct);
     
   } catch (error) {
     console.error('Scraping error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error'
-    });
+    
+    // Clear the timeout
+    clearTimeout(timeout);
+    
+    // Don't send response if already sent by timeout
+    if (!res.headersSent) {
+      // Check if it's a timeout error
+      if (error.message === 'Scraping timeout') {
+        res.status(504).json({
+          success: false,
+          error: 'Request timeout - the site may have anti-bot protection'
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    }
   }
 });
 
