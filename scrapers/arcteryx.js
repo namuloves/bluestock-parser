@@ -2,12 +2,19 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const { getAxiosConfig } = require('../config/proxy');
 
-// Make Puppeteer optional - only load if available
+// Use puppeteer-extra with stealth plugin for better anti-detection
 let puppeteer;
 try {
-  puppeteer = require('puppeteer');
+  puppeteer = require('puppeteer-extra');
+  const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+  puppeteer.use(StealthPlugin());
 } catch (e) {
-  console.log('⚠️ Puppeteer not available, will use axios only');
+  // Fall back to regular puppeteer if puppeteer-extra not available
+  try {
+    puppeteer = require('puppeteer');
+  } catch (e2) {
+    console.log('⚠️ Puppeteer not available');
+  }
 }
 
 const scrapeArcteryx = async (url) => {
@@ -35,102 +42,202 @@ const scrapeArcteryx = async (url) => {
       sku: '',
       weight: ''
     };
-
-    // Try axios first with proper headers
-    const headers = {
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache',
-      'sec-ch-ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
-      'sec-ch-ua-mobile': '?0',
-      'sec-ch-ua-platform': '"macOS"',
-      'sec-fetch-dest': 'document',
-      'sec-fetch-mode': 'navigate',
-      'sec-fetch-site': 'none',
-      'sec-fetch-user': '?1',
-      'upgrade-insecure-requests': '1'
-    };
     
     let $;
     let htmlContent = '';
     
+    // Arc'teryx requires JavaScript rendering, so go straight to Puppeteer
+    console.log('📱 Arc\'teryx requires JavaScript - using Puppeteer...');
+    
+    if (!puppeteer) {
+      throw new Error('Puppeteer is required for Arc\'teryx scraping but not available');
+    }
+      
+    // Configure Puppeteer with better anti-detection
+    const puppeteerOptions = {
+      headless: process.env.NODE_ENV === 'production' ? 'new' : false, // Headless in production
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-blink-features=AutomationControlled',
+        '--disable-features=site-per-process',
+        '--window-size=1920,1080',
+        '--start-maximized',
+        '--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      ],
+      defaultViewport: null
+    };
+    
+    // Use system Chrome if available (for Docker/Railway)
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+      puppeteerOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
+    
+    browser = await puppeteer.launch(puppeteerOptions);
+    
+    const page = await browser.newPage();
+    
+    // Set viewport and user agent
+    await page.setViewport({ width: 1920, height: 1080 });
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+    
+    // Add extra headers to appear more legitimate
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1'
+    });
+    
+    // Navigate to the page with better wait strategy
+    console.log('📍 Navigating to URL:', url);
     try {
-      console.log('📡 Attempting to fetch with axios...');
-      const axiosConfig = getAxiosConfig(url, {
-        headers,
-        timeout: 30000,
-        maxRedirects: 5,
-        validateStatus: (status) => status < 500
-      });
-      
-      const response = await axios.get(url, axiosConfig);
-      
-      if (response.status === 200) {
-        console.log('✅ Successfully fetched with axios');
-        htmlContent = response.data;
-        $ = cheerio.load(htmlContent);
-      } else {
-        throw new Error(`HTTP ${response.status}`);
-      }
-    } catch (axiosError) {
-      console.log('⚠️ Axios failed with error:', axiosError.message);
-      
-      // Fall back to Puppeteer only if available
-      if (!puppeteer) {
-        throw new Error('Unable to fetch page - Puppeteer not available and axios failed');
-      }
-      
-      console.log('📱 Using Puppeteer...');
-      
-      // Fall back to Puppeteer for sites with anti-bot protection
-      const puppeteerOptions = {
-        headless: 'new',
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-gpu'
-        ]
-      };
-      
-      // Use system Chrome if available (for Docker/Railway)
-      if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-        puppeteerOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-      }
-      
-      browser = await puppeteer.launch(puppeteerOptions);
-      
-      const page = await browser.newPage();
-      
-      // Set viewport and user agent
-      await page.setViewport({ width: 1920, height: 1080 });
-      await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
-      
-      // Navigate to the page
       await page.goto(url, {
         waitUntil: 'networkidle2',
+        timeout: 60000
+      });
+    } catch (navError) {
+      console.log('⚠️ Initial navigation timed out, trying with reduced wait...');
+      await page.goto(url, {
+        waitUntil: 'domcontentloaded',
         timeout: 30000
       });
-      
-      // Wait for content to load - wait for specific Arc'teryx elements
-      try {
-        await page.waitForSelector('[data-testid="product-info"], .product-info, .pdp-main, h1', { timeout: 10000 });
-      } catch (e) {
-        console.log('⚠️ Could not find specific selectors, continuing...');
-      }
-      
-      // Get the HTML content
-      htmlContent = await page.content();
-      $ = cheerio.load(htmlContent);
-      
-      console.log('✅ Successfully fetched with Puppeteer');
     }
+    
+    // Check if we got redirected
+    const currentUrl = page.url();
+    if (currentUrl !== url) {
+      console.log('↪️ Redirected to:', currentUrl);
+      
+      // If redirected to a non-product page, throw error
+      if (!currentUrl.includes('/shop/') || currentUrl.endsWith('/shop') || currentUrl.endsWith('/shop/')) {
+        throw new Error('Redirected to shop page instead of product page. Please check the URL.');
+      }
+    }
+    
+    // Wait for the page to fully load with random delay to appear human
+    const randomDelay = 3000 + Math.random() * 2000;
+    await new Promise(resolve => setTimeout(resolve, randomDelay));
+      
+    // Wait for content to load - wait for specific Arc'teryx elements
+    try {
+      await page.waitForSelector('h1, [class*="product"], [data-testid*="product"]', { timeout: 15000 });
+      
+      // Extra wait for dynamic content
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    } catch (e) {
+      console.log('⚠️ Could not find specific selectors, continuing...');
+    }
+      
+    // Click on Product Details accordion sections to expand them
+    console.log('📋 Expanding product detail sections...');
+    
+    // Try to click all accordion buttons to expand product details
+    const accordionSelectors = [
+      'button:has-text("Product details")',
+      'button:has-text("Description")',
+      'button:has-text("Features & Specs")',
+      'button:has-text("Materials & Care")',
+      'button:has-text("Fit & Sizing")',
+      '[data-testid*="accordion"]',
+      '[aria-expanded="false"]',
+      '.accordion-button',
+      '[class*="accordion"][class*="button"]',
+      '[class*="expand"]',
+      '[class*="collapse-trigger"]'
+    ];
+      
+    for (const selector of accordionSelectors) {
+      try {
+        // Find all matching buttons
+        const buttons = await page.$$(selector);
+        
+        for (const button of buttons) {
+          try {
+            // Check if button is visible and clickable
+            const isVisible = await button.isIntersectingViewport();
+            if (isVisible) {
+              await button.click();
+              // Small delay to allow content to expand
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+          } catch (clickError) {
+            // Individual button click failed, continue with others
+          }
+        }
+      } catch (e) {
+        // Selector didn't match any elements, try next one
+      }
+    }
+    
+    // Alternative approach: Click "Product details" button specifically
+    try {
+      // Look for the Product details button and click it
+      const clicked = await page.evaluate(() => {
+        // Find button containing "Product details" text
+        const buttons = Array.from(document.querySelectorAll('button'));
+        const productDetailsBtn = buttons.find(btn => 
+          btn.textContent && btn.textContent.includes('Product details')
+        );
+        
+        if (productDetailsBtn) {
+          productDetailsBtn.click();
+          return true;
+        }
+        
+        // Also try clicking any closed accordions
+        const closedAccordions = document.querySelectorAll('[aria-expanded="false"]');
+        closedAccordions.forEach(acc => acc.click());
+        
+        return closedAccordions.length > 0;
+      });
+      
+      if (clicked) {
+        console.log('✅ Clicked Product details accordion');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    } catch (e) {
+      console.log('⚠️ Could not click Product details accordion');
+    }
+    
+    // Try to expand all tabs/accordions using various methods
+    const specificSections = [
+      { text: 'Description', wait: '[class*="description-content"]' },
+      { text: 'Features & Specs', wait: '[class*="features-content"]' },
+      { text: 'Materials & Care', wait: '[class*="materials-content"]' },
+      { text: 'Fit & Sizing', wait: '[class*="sizing-content"]' }
+    ];
+    
+    for (const section of specificSections) {
+      try {
+        // Use page.evaluate to find and click buttons with specific text
+        await page.evaluate((searchText) => {
+          const buttons = Array.from(document.querySelectorAll('button'));
+          const targetButton = buttons.find(btn => 
+            btn.textContent && btn.textContent.includes(searchText)
+          );
+          if (targetButton) {
+            targetButton.click();
+          }
+        }, section.text);
+        
+        // Wait a bit for content to expand
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } catch (e) {
+        // Section not found or couldn't be clicked
+      }
+    }
+    
+    // Wait for any animations to complete
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Get the HTML content after expanding sections
+    htmlContent = await page.content();
+    $ = cheerio.load(htmlContent);
+    
+    console.log('✅ Successfully fetched with Puppeteer and expanded accordions');
     
     // Extract product data
     console.log('📊 Extracting product data...');
@@ -173,65 +280,118 @@ const scrapeArcteryx = async (url) => {
     }
     
     // Description - Arc'teryx usually has detailed product descriptions
+    // Now also look in expanded accordion content
     product.description = $('[data-testid="product-description"]').text().trim() ||
                          $('.product-description').text().trim() ||
+                         $('[class*="description-content"]').text().trim() ||
+                         $('[aria-labelledby*="Description"]').text().trim() ||
+                         $('[id*="description-panel"]').text().trim() ||
+                         $('div:has(> h2:contains("Description")) + div').text().trim() ||
                          $('[class*="description"]').first().text().trim() || '';
     
     // Features - Arc'teryx products have detailed feature lists
+    // Check both regular selectors and expanded accordion content
     const featuresList = [];
+    
+    // First try standard feature selectors
     $('[data-testid="product-features"] li, .product-features li, .features-list li').each((i, el) => {
       const feature = $(el).text().trim();
       if (feature) {
         featuresList.push(feature);
       }
     });
+    
+    // Also check expanded Features & Specs section
+    $('[aria-labelledby*="Features"] li, [id*="features-panel"] li, [class*="features-content"] li').each((i, el) => {
+      const feature = $(el).text().trim();
+      if (feature && !featuresList.includes(feature)) {
+        featuresList.push(feature);
+      }
+    });
+    
+    // Look for technical features in a structured format
+    $('div:has(> h3:contains("Technical features"))').find('li').each((i, el) => {
+      const feature = $(el).text().trim();
+      if (feature && !featuresList.includes(feature)) {
+        featuresList.push(feature);
+      }
+    });
+    
     product.features = featuresList;
     
-    // Material/Fabric - Extract from description since Arc'teryx has it in expandable sections
-    // Look for GORE-TEX and fabric mentions in the description
-    if (product.description) {
-      // Extract GORE-TEX type (match "GORE-TEX ePE fabric" or similar)
+    // Material/Fabric - Check expanded Materials & Care section first
+    let materialText = '';
+    
+    // Look for expanded Materials & Care accordion content
+    const materialSelectors = [
+      '[aria-labelledby*="Materials"]',
+      '[id*="materials-panel"]',
+      '[class*="materials-content"]',
+      'div:has(> h2:contains("Materials & Care")) + div',
+      'div:has(> h3:contains("Materials")) + div',
+      '[data-testid="product-materials"]',
+      '.product-materials'
+    ];
+    
+    for (const selector of materialSelectors) {
+      const text = $(selector).first().text().trim();
+      if (text && text.length > 10) {
+        materialText = text;
+        break;
+      }
+    }
+    
+    // Also check Construction section which often has material info
+    if (!materialText) {
+      const constructionText = $('div:has(> h3:contains("Construction"))').parent().text().trim() ||
+                              $('div:has(> h4:contains("Construction"))').parent().text().trim() ||
+                              $('[class*="construction"]').text().trim();
+      if (constructionText) {
+        materialText = constructionText;
+      }
+    }
+    
+    // Extract specific material information from the text
+    if (materialText) {
+      // Extract GORE-TEX type
+      const goretexMatch = materialText.match(/GORE-TEX\s+[\w-]+(?:\s+(?:fabric|membrane))?/gi);
+      if (goretexMatch) {
+        product.material = goretexMatch[0];
+      }
+      
+      // Look for face fabric specifications
+      const fabricMatch = materialText.match(/\b\d+D\s+(?:face\s+)?(?:fabric|nylon|polyester)\b/gi);
+      if (fabricMatch) {
+        product.material = product.material ? 
+          `${product.material}, ${fabricMatch.join(', ')}` : 
+          fabricMatch.join(', ');
+      }
+      
+      // Look for material composition percentages
+      const compositionMatch = materialText.match(/\b\d+%\s+(?:nylon|polyester|polyamide|elastane|spandex|wool|cotton)\b/gi);
+      if (compositionMatch && !product.material) {
+        product.material = compositionMatch.join(', ');
+      }
+      
+      // Look for special materials like C-KNIT, ePE membrane
+      const specialMaterials = materialText.match(/(?:C-KNIT|ePE\s+membrane|PFC-free|DWR|RECCO|Coreloft)/gi);
+      if (specialMaterials && !product.material) {
+        product.material = specialMaterials.join(', ');
+      }
+    }
+    
+    // Fall back to checking description if no material found
+    if (!product.material && product.description) {
       const goretexMatch = product.description.match(/GORE-TEX\s+[\w-]+(?:\s+fabric)?/i);
       if (goretexMatch) {
         product.material = goretexMatch[0];
       }
       
-      // Also look for face fabric (like "80D face fabric")
       const fabricMatch = product.description.match(/\b\d+D\s+(?:face\s+)?fabric\b/i);
       if (fabricMatch) {
         product.material = product.material ? 
           `${product.material}, ${fabricMatch[0]}` : 
           fabricMatch[0];
-      }
-      
-      // Look for nylon/polyester percentages
-      const compositionMatch = product.description.match(/\b\d+%\s+(?:nylon|polyester|polyamide|elastane)\b/gi);
-      if (compositionMatch && !product.material) {
-        product.material = compositionMatch.join(', ');
-      }
-    }
-    
-    // Try other selectors if no material found yet
-    if (!product.material) {
-      // Look for materials in various possible locations
-      const materialSelectors = [
-        '[data-testid="product-materials"]',
-        '.product-materials',
-        'section:contains("Materials")',
-        'div:contains("Construction")',
-        '[class*="material"]'
-      ];
-      
-      for (const selector of materialSelectors) {
-        const text = $(selector).first().text().trim();
-        if (text && text.length < 200) {
-          // Extract GORE-TEX or technical fabric mentions
-          const techMatch = text.match(/(GORE-TEX[\s\w-]+|C-KNIT|ePE\s+membrane|\d+D\s+\w+)/i);
-          if (techMatch) {
-            product.material = techMatch[0];
-            break;
-          }
-        }
       }
     }
     
@@ -284,8 +444,24 @@ const scrapeArcteryx = async (url) => {
     }
     
     // Weight - Arc'teryx often lists product weight
-    const weightText = $('[data-testid="product-weight"]').text().trim() ||
-                      $('.product-weight').text().trim() || '';
+    // Check expanded specs section for weight
+    let weightText = $('[data-testid="product-weight"]').text().trim() ||
+                    $('.product-weight').text().trim() ||
+                    $('li:contains("Weight:")').text().trim() ||
+                    $('dt:contains("Weight")').next('dd').text().trim() ||
+                    $('span:contains("Weight:")').parent().text().trim() || '';
+    
+    // Also check in the expanded Features & Specs section
+    if (!weightText) {
+      const specsText = $('[aria-labelledby*="Features"]').text() || 
+                       $('[id*="features-panel"]').text() ||
+                       $('[class*="features-content"]').text() || '';
+      const weightLineMatch = specsText.match(/Weight[:\s]+(\d+(?:\.\d+)?)\s*(g|oz|kg|lb)/i);
+      if (weightLineMatch) {
+        weightText = weightLineMatch[0];
+      }
+    }
+    
     if (weightText) {
       const weightMatch = weightText.match(/(\d+(?:\.\d+)?)\s*(g|oz|kg|lb)/i);
       if (weightMatch) {

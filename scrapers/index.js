@@ -32,6 +32,7 @@ const { scrapeStories } = require('./stories');
 const { scrapeMytheresa, isMytheresaStore } = require('./mytheresa');
 const { scrapeClothbase, isClothbase } = require('./clothbase');
 const { scrapeArcteryx, isArcteryx } = require('./arcteryx');
+const { scrapeSongForTheMute, isSongForTheMute } = require('./songforthemute');
 const { scrapeGeneric } = require('./generic');
 const { detectCategory } = require('../utils/categoryDetection');
 
@@ -140,6 +141,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('arcteryx.')) {
     return 'arcteryx';
+  }
+  if (hostname.includes('songforthemute.')) {
+    return 'songforthemute';
   }
   
   // Check for known Shopify domains
@@ -1034,6 +1038,66 @@ const scrapeProduct = async (url) => {
             discountPercentage: mytheresaIsOnSale ? 
               Math.round((1 - mytheresaPriceNumeric / mytheresaOriginalPriceNumeric) * 100) : null,
             saleBadge: mytheresaIsOnSale ? 'SALE' : null
+          }
+        };
+      
+      case 'songforthemute':
+        console.log('🎵 Using Song for the Mute scraper');
+        const sftmProduct = await scrapeSongForTheMute(url);
+        
+        // Extract price number from string
+        let sftmPriceNumeric = 0;
+        if (sftmProduct.price) {
+          const priceMatch = sftmProduct.price.match(/[\d,]+\.?\d*/);
+          sftmPriceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+        }
+        
+        let sftmOriginalPriceNumeric = sftmPriceNumeric;
+        if (sftmProduct.originalPrice) {
+          const originalMatch = sftmProduct.originalPrice.match(/[\d,]+\.?\d*/);
+          sftmOriginalPriceNumeric = originalMatch ? parseFloat(originalMatch[0].replace(',', '')) : sftmPriceNumeric;
+        }
+        
+        const sftmIsOnSale = sftmProduct.originalPrice && sftmOriginalPriceNumeric > sftmPriceNumeric;
+        
+        return {
+          success: !sftmProduct.error,
+          product: {
+            // Keep all original fields
+            ...sftmProduct,
+            
+            // Database schema fields
+            product_name: sftmProduct.name,
+            brand: sftmProduct.brand || 'Song for the Mute',
+            original_price: sftmOriginalPriceNumeric,
+            sale_price: sftmPriceNumeric,
+            is_on_sale: sftmIsOnSale,
+            discount_percentage: sftmIsOnSale ? 
+              Math.round((1 - sftmPriceNumeric / sftmOriginalPriceNumeric) * 100) : null,
+            sale_badge: sftmIsOnSale ? 'SALE' : null,
+            image_urls: sftmProduct.images || [],
+            vendor_url: sftmProduct.url || url,
+            color: sftmProduct.colors?.length > 0 ? sftmProduct.colors[0] : '',
+            colors: sftmProduct.colors || [],
+            sizes: sftmProduct.sizes || [],
+            category: detectCategory(
+              sftmProduct.name || '',
+              sftmProduct.description || '',
+              sftmProduct.brand || 'Song for the Mute',
+              sftmProduct.category
+            ),
+            material: sftmProduct.material || '',
+            description: sftmProduct.description || '',
+            
+            // Legacy fields for backward compatibility
+            name: sftmProduct.name,
+            price: sftmPriceNumeric,
+            images: sftmProduct.images || [],
+            originalPrice: sftmOriginalPriceNumeric,
+            isOnSale: sftmIsOnSale,
+            discountPercentage: sftmIsOnSale ? 
+              Math.round((1 - sftmPriceNumeric / sftmOriginalPriceNumeric) * 100) : null,
+            saleBadge: sftmIsOnSale ? 'SALE' : null
           }
         };
       
