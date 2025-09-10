@@ -50,11 +50,13 @@ process.on('unhandledRejection', (error) => {
   }
 });
 
-// CORS configuration
+// CORS configuration - more permissive for production
 const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
       'https://bluestock-bay.vercel.app',
+      'https://bluestock.vercel.app',
+      'https://bluestock-git-main.vercel.app',
       'http://localhost:3000', // For local development
       'http://localhost:3001',
       process.env.FRONTEND_URL // Dynamic frontend URL from env
@@ -63,9 +65,15 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or Postman)
     if (!origin) return callback(null, true);
     
+    // Allow any Vercel deployment
+    if (origin && (origin.includes('vercel.app') || origin.includes('localhost'))) {
+      return callback(null, true);
+    }
+    
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.log('⚠️ CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
