@@ -2,12 +2,21 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const { getAxiosConfig } = require('../config/proxy');
 
-// Try to load Puppeteer if available
+// Use puppeteer-extra with stealth plugin for better anti-detection
 let puppeteer;
 try {
-  puppeteer = require('puppeteer');
+  puppeteer = require('puppeteer-extra');
+  const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+  puppeteer.use(StealthPlugin());
+  console.log('✅ Using puppeteer-extra with stealth plugin');
 } catch (e) {
-  console.log('⚠️ Puppeteer not available for Net-a-Porter, will try axios');
+  // Fall back to regular puppeteer if puppeteer-extra not available
+  try {
+    puppeteer = require('puppeteer');
+    console.log('⚠️ Using regular puppeteer (no stealth)');
+  } catch (e2) {
+    console.log('❌ Puppeteer not available');
+  }
 }
 
 const scrapeNetAPorter = async (url) => {
@@ -66,18 +75,18 @@ const scrapeNetAPorter = async (url) => {
       console.log('📱 Using Puppeteer for Net-a-Porter...');
       
       const puppeteerOptions = {
-        headless: 'new',
+        headless: process.env.NODE_ENV === 'production' ? 'new' : false, // Headless in production
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-gpu',
           '--disable-blink-features=AutomationControlled',
-          '--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-        ]
+          '--disable-features=site-per-process',
+          '--window-size=1920,1080',
+          '--start-maximized'
+        ],
+        defaultViewport: null,
+        ignoreDefaultArgs: ['--enable-automation']
       };
       
       // Use system Chrome if available (for Docker/Railway)
@@ -88,21 +97,65 @@ const scrapeNetAPorter = async (url) => {
       browser = await puppeteer.launch(puppeteerOptions);
       const page = await browser.newPage();
       
-      // Set viewport and user agent
-      await page.setViewport({ width: 1920, height: 1080 });
-      await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+      // Randomize viewport to appear more human
+      const viewports = [
+        { width: 1920, height: 1080 },
+        { width: 1366, height: 768 },
+        { width: 1440, height: 900 }
+      ];
+      const randomViewport = viewports[Math.floor(Math.random() * viewports.length)];
+      await page.setViewport(randomViewport);
       
-      // Set extra headers
+      // Rotate user agents
+      const userAgents = [
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15'
+      ];
+      const randomUA = userAgents[Math.floor(Math.random() * userAgents.length)];
+      await page.setUserAgent(randomUA);
+      
+      // Set extra headers to appear more legitimate
       await page.setExtraHTTPHeaders({
         'Accept-Language': 'en-US,en;q=0.9',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1'
+      });
+      
+      // Add mouse movements to appear human
+      await page.evaluateOnNewDocument(() => {
+        Object.defineProperty(navigator, 'webdriver', {
+          get: () => undefined
+        });
       });
       
       console.log('📍 Navigating to URL...');
+      
+      // Navigate with dom content loaded first
       await page.goto(url, {
-        waitUntil: 'networkidle2',
-        timeout: 20000
+        waitUntil: 'domcontentloaded',
+        timeout: 30000
       });
+      
+      // Wait and simulate human behavior
+      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
+      
+      // Move mouse to simulate human
+      await page.mouse.move(100, 100);
+      await page.mouse.move(200, 300);
+      
+      // Wait for network to settle
+      try {
+        await page.waitForTimeout(2000);
+      } catch (e) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
       
       // Wait for product content to load
       try {
