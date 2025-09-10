@@ -31,6 +31,7 @@ const { scrapeFarfetch } = require('./farfetch');
 const { scrapeStories } = require('./stories');
 const { scrapeMytheresa, isMytheresaStore } = require('./mytheresa');
 const { scrapeClothbase, isClothbase } = require('./clothbase');
+const { scrapeArcteryx, isArcteryx } = require('./arcteryx');
 const { scrapeGeneric } = require('./generic');
 const { detectCategory } = require('../utils/categoryDetection');
 
@@ -136,6 +137,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('clothbase.')) {
     return 'clothbase';
+  }
+  if (hostname.includes('arcteryx.')) {
+    return 'arcteryx';
   }
   
   // Check for known Shopify domains
@@ -1033,6 +1037,71 @@ const scrapeProduct = async (url) => {
           }
         };
       
+      case 'arcteryx':
+        console.log('🏔️ Using Arc\'teryx scraper');
+        const arcteryxProduct = await scrapeArcteryx(url);
+        
+        // Extract price number from string
+        let arcteryxPriceNumeric = 0;
+        if (arcteryxProduct.price) {
+          const priceMatch = arcteryxProduct.price.match(/[\d,]+\.?\d*/);
+          arcteryxPriceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+        }
+        
+        let arcteryxOriginalPriceNumeric = arcteryxPriceNumeric;
+        if (arcteryxProduct.originalPrice) {
+          const originalMatch = arcteryxProduct.originalPrice.match(/[\d,]+\.?\d*/);
+          arcteryxOriginalPriceNumeric = originalMatch ? parseFloat(originalMatch[0].replace(',', '')) : arcteryxPriceNumeric;
+        }
+        
+        const arcteryxIsOnSale = arcteryxProduct.originalPrice && arcteryxOriginalPriceNumeric > arcteryxPriceNumeric;
+        
+        return {
+          success: !arcteryxProduct.error,
+          product: {
+            // Keep all original fields
+            ...arcteryxProduct,
+            
+            // Database schema fields
+            product_name: arcteryxProduct.name,
+            brand: arcteryxProduct.brand || 'Arc\'teryx',
+            original_price: arcteryxOriginalPriceNumeric,
+            sale_price: arcteryxPriceNumeric,
+            is_on_sale: arcteryxIsOnSale,
+            discount_percentage: arcteryxIsOnSale ? 
+              Math.round((1 - arcteryxPriceNumeric / arcteryxOriginalPriceNumeric) * 100) : null,
+            sale_badge: arcteryxIsOnSale ? 'SALE' : null,
+            image_urls: arcteryxProduct.images || [],
+            vendor_url: arcteryxProduct.url || url,
+            color: arcteryxProduct.colors?.length > 0 ? arcteryxProduct.colors[0] : '',
+            colors: arcteryxProduct.colors || [],
+            sizes: arcteryxProduct.sizes || [],
+            category: detectCategory(
+              arcteryxProduct.name || '',
+              arcteryxProduct.description || '',
+              arcteryxProduct.brand || 'Arc\'teryx',
+              arcteryxProduct.category
+            ),
+            material: arcteryxProduct.material || '',
+            description: arcteryxProduct.description || '',
+            features: arcteryxProduct.features || [],
+            weight: arcteryxProduct.weight || '',
+            sku: arcteryxProduct.sku || '',
+            in_stock: arcteryxProduct.inStock !== false,
+            retailer: arcteryxProduct.retailer || 'Arc\'teryx',
+            
+            // Legacy fields for backward compatibility
+            name: arcteryxProduct.name,
+            price: arcteryxPriceNumeric,
+            images: arcteryxProduct.images || [],
+            originalPrice: arcteryxOriginalPriceNumeric,
+            isOnSale: arcteryxIsOnSale,
+            discountPercentage: arcteryxIsOnSale ? 
+              Math.round((1 - arcteryxPriceNumeric / arcteryxOriginalPriceNumeric) * 100) : null,
+            saleBadge: arcteryxIsOnSale ? 'SALE' : null
+          }
+        };
+        
       case 'clothbase':
         console.log('👔 Using Clothbase scraper');
         const clothbaseProduct = await scrapeClothbase(url);

@@ -293,53 +293,141 @@ const scrapeClothbase = async (url) => {
     // Images
     const imageSet = new Set();
     
-    // Clothbase uses Material UI and React, so images might be in various places
-    $('img').each((i, img) => {
-      let imageUrl = $(img).attr('src') || 
-                    $(img).attr('data-src') || 
-                    $(img).attr('data-lazy-src') || '';
+    // First, try to find images in the main product container
+    // Exclude related products section
+    const mainProductSelectors = [
+      '.card-content img',  // Main product card
+      '[class*="ItemDetail"] img',  // Item detail section
+      '[class*="product-detail"] img',  // Product detail section
+      'main img:not([data-section="item-cards"] img)',  // Images in main, but not in item-cards
+      '.responsive-img'  // Responsive images are often product images
+    ];
+    
+    let foundMainImages = false;
+    
+    // Try each selector to find main product images
+    for (const selector of mainProductSelectors) {
+      $(selector).each((i, img) => {
+        // Skip if this image is within the related items section
+        if ($(img).closest('[data-section="item-cards"]').length > 0 ||
+            $(img).closest('[class*="related"]').length > 0 ||
+            $(img).closest('[class*="RELATED"]').length > 0) {
+          return;
+        }
+        
+        let imageUrl = $(img).attr('src') || 
+                      $(img).attr('data-src') || 
+                      $(img).attr('data-lazy-src') || '';
+        
+        // Skip icons and small images
+        const alt = $(img).attr('alt') || '';
+        if (alt.toLowerCase().includes('icon') || 
+            alt.toLowerCase().includes('logo') ||
+            imageUrl.includes('icon') ||
+            imageUrl.includes('logo')) {
+          return;
+        }
+        
+        // Check srcset for higher quality
+        const srcset = $(img).attr('srcset') || $(img).attr('data-srcset');
+        if (srcset) {
+          const srcsetParts = srcset.split(',');
+          const highRes = srcsetParts[srcsetParts.length - 1].trim().split(' ')[0];
+          if (highRes) {
+            imageUrl = highRes;
+          }
+        }
+        
+        if (imageUrl) {
+          // Convert to full URL if relative
+          if (imageUrl.startsWith('//')) {
+            imageUrl = 'https:' + imageUrl;
+          } else if (imageUrl.startsWith('/')) {
+            const baseUrl = new URL(url);
+            imageUrl = `${baseUrl.protocol}//${baseUrl.host}${imageUrl}`;
+          }
+          
+          // Skip placeholder, tiny images, or base64 data URLs
+          if (!imageUrl.includes('placeholder') && 
+              !imageUrl.includes('blank.gif') &&
+              !imageUrl.includes('1x1') &&
+              !imageUrl.startsWith('data:') &&
+              imageUrl.includes('http')) {
+            imageSet.add(imageUrl);
+            foundMainImages = true;
+          }
+        }
+      });
       
-      // Skip icons and small images
-      const alt = $(img).attr('alt') || '';
-      if (alt.toLowerCase().includes('icon') || 
-          alt.toLowerCase().includes('logo') ||
-          imageUrl.includes('icon') ||
-          imageUrl.includes('logo')) {
+      // If we found images with this selector, stop looking
+      if (foundMainImages) {
+        break;
+      }
+    }
+    
+    // If no main images found, fall back to more general search (but still exclude related)
+    if (!foundMainImages) {
+      $('img').each((i, img) => {
+        // Skip if this image is within the related items section
+        if ($(img).closest('[data-section="item-cards"]').length > 0 ||
+            $(img).closest('[class*="related"]').length > 0 ||
+            $(img).closest('[class*="RELATED"]').length > 0) {
+          return;
+        }
+        
+        let imageUrl = $(img).attr('src') || 
+                      $(img).attr('data-src') || 
+                      $(img).attr('data-lazy-src') || '';
+        
+        // Skip icons and small images
+        const alt = $(img).attr('alt') || '';
+        if (alt.toLowerCase().includes('icon') || 
+            alt.toLowerCase().includes('logo') ||
+            imageUrl.includes('icon') ||
+            imageUrl.includes('logo')) {
+          return;
+        }
+        
+        // Check srcset for higher quality
+        const srcset = $(img).attr('srcset') || $(img).attr('data-srcset');
+        if (srcset) {
+          const srcsetParts = srcset.split(',');
+          const highRes = srcsetParts[srcsetParts.length - 1].trim().split(' ')[0];
+          if (highRes) {
+            imageUrl = highRes;
+          }
+        }
+        
+        if (imageUrl) {
+          // Convert to full URL if relative
+          if (imageUrl.startsWith('//')) {
+            imageUrl = 'https:' + imageUrl;
+          } else if (imageUrl.startsWith('/')) {
+            const baseUrl = new URL(url);
+            imageUrl = `${baseUrl.protocol}//${baseUrl.host}${imageUrl}`;
+          }
+          
+          // Skip placeholder, tiny images, or base64 data URLs
+          if (!imageUrl.includes('placeholder') && 
+              !imageUrl.includes('blank.gif') &&
+              !imageUrl.includes('1x1') &&
+              !imageUrl.startsWith('data:') &&
+              imageUrl.includes('http')) {
+            imageSet.add(imageUrl);
+          }
+        }
+      });
+    }
+    
+    // Also check for background images in style attributes (but not in related sections)
+    $('[style*="background-image"]').each((i, el) => {
+      // Skip if within related items section
+      if ($(el).closest('[data-section="item-cards"]').length > 0 ||
+          $(el).closest('[class*="related"]').length > 0 ||
+          $(el).closest('[class*="RELATED"]').length > 0) {
         return;
       }
       
-      // Check srcset for higher quality
-      const srcset = $(img).attr('srcset') || $(img).attr('data-srcset');
-      if (srcset) {
-        const srcsetParts = srcset.split(',');
-        const highRes = srcsetParts[srcsetParts.length - 1].trim().split(' ')[0];
-        if (highRes) {
-          imageUrl = highRes;
-        }
-      }
-      
-      if (imageUrl) {
-        // Convert to full URL if relative
-        if (imageUrl.startsWith('//')) {
-          imageUrl = 'https:' + imageUrl;
-        } else if (imageUrl.startsWith('/')) {
-          const baseUrl = new URL(url);
-          imageUrl = `${baseUrl.protocol}//${baseUrl.host}${imageUrl}`;
-        }
-        
-        // Skip placeholder, tiny images, or base64 data URLs
-        if (!imageUrl.includes('placeholder') && 
-            !imageUrl.includes('blank.gif') &&
-            !imageUrl.includes('1x1') &&
-            !imageUrl.startsWith('data:') &&
-            imageUrl.includes('http')) {
-          imageSet.add(imageUrl);
-        }
-      }
-    });
-    
-    // Also check for background images in style attributes
-    $('[style*="background-image"]').each((i, el) => {
       const style = $(el).attr('style') || '';
       const match = style.match(/url\(['"]?(https?:\/\/[^'")]+)/);
       if (match) {
@@ -347,8 +435,15 @@ const scrapeClothbase = async (url) => {
       }
     });
     
-    // Look for image links in React data attributes
+    // Look for image links in React data attributes (but not in related sections)
     $('[data-testid*="image"], [role="img"]').each((i, el) => {
+      // Skip if within related items section
+      if ($(el).closest('[data-section="item-cards"]').length > 0 ||
+          $(el).closest('[class*="related"]').length > 0 ||
+          $(el).closest('[class*="RELATED"]').length > 0) {
+        return;
+      }
+      
       const dataImage = $(el).attr('data-image') || 
                        $(el).attr('data-src') ||
                        $(el).attr('data-zoom-image');
@@ -357,7 +452,8 @@ const scrapeClothbase = async (url) => {
       }
     });
     
-    product.images = Array.from(imageSet);
+    // Filter out thumbnail versions (images with ?class=thumbnail are duplicates)
+    product.images = Array.from(imageSet).filter(img => !img.includes('?class=thumbnail'));
     
     // Check for JSON-LD structured data
     $('script[type="application/ld+json"]').each((i, script) => {
