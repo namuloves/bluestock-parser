@@ -139,16 +139,23 @@ app.get('/test', (req, res) => {
 app.post('/scrape', async (req, res) => {
   console.log('📥 /scrape endpoint hit');
   
-  // Set a timeout for the entire request (30 seconds)
+  // Check if this is a Massimo Dutti URL that needs more time
+  const url = req.body.url || '';
+  const needsLongerTimeout = url.includes('massimodutti.com') || 
+                             url.includes('net-a-porter.com') ||
+                             url.includes('ssense.com');
+  
+  // Set a timeout for the entire request (60 seconds for protected sites, 30 for others)
+  const timeoutDuration = needsLongerTimeout ? 60000 : 30000;
   const timeout = setTimeout(() => {
-    console.log('⏱️ Request timeout after 30 seconds');
+    console.log(`⏱️ Request timeout after ${timeoutDuration/1000} seconds`);
     if (!res.headersSent) {
       res.status(504).json({
         success: false,
         error: 'Request timeout - the site may have anti-bot protection'
       });
     }
-  }, 30000);
+  }, timeoutDuration);
   
   try {
     const { url } = req.body;
