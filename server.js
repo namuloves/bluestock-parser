@@ -166,8 +166,9 @@ app.post('/scrape', async (req, res) => {
     
     // Use actual scraper with race condition against timeout
     const scrapePromise = scrapeProduct(url);
+    // Increase timeout to 90 seconds for Apify requests
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Scraping timeout')), 28000)
+      setTimeout(() => reject(new Error('Scraping timeout')), 90000)
     );
     
     const scrapeResult = await Promise.race([scrapePromise, timeoutPromise]);

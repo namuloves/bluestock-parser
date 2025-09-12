@@ -1,6 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { getAxiosConfig } = require('../config/proxy');
+const { scrapeWithApifyPuppeteer } = require('./apify-puppeteer');
 
 // Use puppeteer-extra with stealth plugin for better anti-detection
 let puppeteer;
@@ -89,6 +90,13 @@ const scrapeNetAPorter = async (url) => {
         ignoreDefaultArgs: ['--enable-automation']
       };
       
+      // Add Decodo proxy configuration if available
+      if (process.env.DECODO_USERNAME && process.env.DECODO_PASSWORD) {
+        const proxyServer = 'http://gate.decodo.com:10001';
+        puppeteerOptions.args.push(`--proxy-server=${proxyServer}`);
+        console.log('🔐 Configuring Puppeteer with Decodo proxy');
+      }
+      
       // Use system Chrome if available (for Docker/Railway)
       if (process.env.PUPPETEER_EXECUTABLE_PATH) {
         puppeteerOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
@@ -96,6 +104,15 @@ const scrapeNetAPorter = async (url) => {
       
       browser = await puppeteer.launch(puppeteerOptions);
       const page = await browser.newPage();
+      
+      // Authenticate proxy if configured
+      if (process.env.DECODO_USERNAME && process.env.DECODO_PASSWORD) {
+        await page.authenticate({
+          username: process.env.DECODO_USERNAME,
+          password: process.env.DECODO_PASSWORD
+        });
+        console.log('🔑 Proxy authentication configured');
+      }
       
       // Randomize viewport to appear more human
       const viewports = [
@@ -360,6 +377,23 @@ const scrapeNetAPorter = async (url) => {
         delete product[key];
       }
     });
+    
+    // Check if we got blocked (common indicators)
+    if (product.name === 'Access Denied' || 
+        product.name?.includes('blocked') ||
+        !product.name || 
+        product.name.length < 3) {
+      
+      console.log('⚠️ Detected blocking, trying Apify...');
+      
+      // Try with Apify if we have the API token
+      if (process.env.APIFY_API_TOKEN) {
+        if (browser) await browser.close();
+        return await scrapeWithApifyPuppeteer(url, 'netaporter');
+      } else {
+        console.warn('❌ Apify API token not configured. Add APIFY_API_TOKEN to .env file');
+      }
+    }
     
     console.log('✅ Successfully scraped Net-a-Porter product:', product.name || 'Unknown');
     

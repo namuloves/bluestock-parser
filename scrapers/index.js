@@ -34,6 +34,7 @@ const { scrapeClothbase, isClothbase } = require('./clothbase');
 const { scrapeArcteryx, isArcteryx } = require('./arcteryx');
 const { scrapeSongForTheMute, isSongForTheMute } = require('./songforthemute');
 const { scrapeGeneric } = require('./generic');
+const { scrapeMassimoDutti } = require('./massimodutti');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -144,6 +145,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('songforthemute.')) {
     return 'songforthemute';
+  }
+  if (hostname.includes('massimodutti.')) {
+    return 'massimodutti';
   }
   
   // Check for known Shopify domains
@@ -1227,6 +1231,55 @@ const scrapeProduct = async (url) => {
             discountPercentage: clothbaseIsOnSale ? 
               Math.round((1 - clothbasePriceNumeric / clothbaseOriginalPriceNumeric) * 100) : null,
             saleBadge: clothbaseIsOnSale ? 'SALE' : null
+          }
+        };
+      
+      case 'massimodutti':
+        console.log('👔 Using Massimo Dutti scraper');
+        const mdProduct = await scrapeMassimoDutti(url);
+        
+        // Extract price number
+        const mdPriceNumeric = typeof mdProduct.price === 'number' ? mdProduct.price : 0;
+        const mdOriginalPriceNumeric = mdProduct.originalPrice || mdPriceNumeric;
+        
+        return {
+          success: true,
+          product: {
+            // Keep all original fields
+            ...mdProduct,
+            
+            // Database schema fields
+            product_name: mdProduct.name,
+            brand: mdProduct.brand || 'Massimo Dutti',
+            original_price: mdOriginalPriceNumeric,
+            sale_price: mdPriceNumeric,
+            is_on_sale: mdProduct.isOnSale || false,
+            discount_percentage: mdProduct.isOnSale && mdOriginalPriceNumeric > mdPriceNumeric ? 
+              Math.round((1 - mdPriceNumeric / mdOriginalPriceNumeric) * 100) : null,
+            sale_badge: mdProduct.isOnSale ? 'SALE' : null,
+            image_urls: mdProduct.images || [],
+            vendor_url: mdProduct.url || url,
+            color: mdProduct.color || '',
+            category: detectCategory(
+              mdProduct.name || '',
+              mdProduct.description || '',
+              mdProduct.brand || 'Massimo Dutti',
+              mdProduct.category
+            ),
+            material: mdProduct.materials?.join(', ') || '',
+            description: mdProduct.description || '',
+            sizes: mdProduct.sizes || [],
+            in_stock: mdProduct.inStock !== false,
+            
+            // Legacy fields for backward compatibility
+            name: mdProduct.name,
+            price: mdPriceNumeric,
+            images: mdProduct.images || [],
+            originalPrice: mdOriginalPriceNumeric,
+            isOnSale: mdProduct.isOnSale || false,
+            discountPercentage: mdProduct.isOnSale && mdOriginalPriceNumeric > mdPriceNumeric ? 
+              Math.round((1 - mdPriceNumeric / mdOriginalPriceNumeric) * 100) : null,
+            saleBadge: mdProduct.isOnSale ? 'SALE' : null
           }
         };
       
