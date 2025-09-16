@@ -309,22 +309,11 @@ const scrapeMiuMiu = async (url) => {
   } catch (error) {
     console.error('❌ Miu Miu scraping error:', error.message);
 
-    // If regular scraping fails due to bot protection, return with Puppeteer requirement
-    if (error.message.includes('timeout') || error.response?.status === 403) {
-      console.log('⚠️ Miu Miu requires Puppeteer fallback');
-      return {
-        success: false,
-        needsPuppeteer: true,
-        error: error.message,
-        product: {
-          url,
-          brand: 'Miu Miu'
-        }
-      };
-    }
-
+    // Always use Puppeteer for Miu Miu as it's heavily protected
+    console.log('⚠️ Miu Miu requires Puppeteer fallback');
     return {
       success: false,
+      needsPuppeteer: true,
       error: error.message,
       product: {
         url,
