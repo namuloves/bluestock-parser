@@ -38,8 +38,11 @@ const scrapeMiuMiuWithPuppeteer = async (url) => {
     // Wait for product content
     await page.waitForSelector('h1, .product-name, [itemprop="name"]', { timeout: 10000 }).catch(() => {});
 
-    // Wait a bit for dynamic content to load
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Wait for price to load (often loads after initial page)
+    await page.waitForSelector('[class*="price"], [data-price], [itemprop="price"]', { timeout: 10000 }).catch(() => {});
+
+    // Wait a bit more for all dynamic content to load
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Extract product code from URL
     const urlMatch = url.match(/\/([A-Z0-9]+_[A-Z0-9]+_[A-Z0-9]+(?:_[A-Z0-9]+)*)/);
@@ -67,25 +70,48 @@ const scrapeMiuMiuWithPuppeteer = async (url) => {
                      document.querySelector('[itemprop="name"]')?.textContent?.trim() ||
                      document.querySelector('.product-title')?.textContent?.trim() || '';
 
-      // Price extraction
+      // Price extraction - try multiple approaches
       const priceSelectors = [
         '.product-price',
         '.price-sales',
         '[data-price]',
         '.product-price-value',
         '[itemprop="price"]',
-        '.price'
+        '.price',
+        '[data-testid="price"]',
+        '.pdp-price',
+        '.product-detail-price',
+        'span[class*="price"]',
+        'div[class*="price"]'
       ];
 
-      for (const selector of priceSelectors) {
-        const priceElement = document.querySelector(selector);
-        if (priceElement) {
-          const priceText = priceElement.textContent || priceElement.getAttribute('data-price');
-          if (priceText) {
-            const priceMatch = priceText.match(/[\d,]+(?:\.\d+)?/);
-            if (priceMatch) {
-              product.price = priceMatch[0];
-              break;
+      // First, try to find any element containing currency symbols
+      const allElements = document.querySelectorAll('*');
+      for (const element of allElements) {
+        const text = element.textContent?.trim();
+        if (text && (text.includes('€') || text.includes('$') || text.includes('£'))) {
+          // Check if it's a price pattern
+          const priceMatch = text.match(/[€$£]\s*[\d,]+(?:\.\d+)?/);
+          if (priceMatch && !product.price) {
+            product.price = priceMatch[0];
+            console.log('Found price via currency search:', product.price);
+            break;
+          }
+        }
+      }
+
+      // Fallback to selectors
+      if (!product.price) {
+        for (const selector of priceSelectors) {
+          const priceElement = document.querySelector(selector);
+          if (priceElement) {
+            const priceText = priceElement.textContent || priceElement.getAttribute('data-price');
+            if (priceText) {
+              const priceMatch = priceText.match(/[\d,]+(?:\.\d+)?/);
+              if (priceMatch) {
+                product.price = priceMatch[0];
+                break;
+              }
             }
           }
         }
