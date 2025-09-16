@@ -3,8 +3,20 @@ const cheerio = require('cheerio');
 const { getAxiosConfig } = require('../config/proxy');
 
 const scrapeMiuMiu = async (url) => {
-  console.log('👜 Starting Miu Miu scraper for:', url);
+  console.log('👜 Miu Miu detected - requires Puppeteer for bot-protected site');
 
+  // Miu Miu is always bot-protected, immediately return Puppeteer requirement
+  return {
+    success: false,
+    needsPuppeteer: true,
+    error: 'Miu Miu requires Puppeteer',
+    product: {
+      url,
+      brand: 'Miu Miu'
+    }
+  };
+
+  // Original code below (unreachable but kept for reference)
   try {
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',

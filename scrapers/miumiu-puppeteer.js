@@ -106,22 +106,39 @@ const scrapeMiuMiuWithPuppeteer = async (url) => {
                            document.querySelector('[itemprop="description"]')?.textContent?.trim() ||
                            document.querySelector('.description-content')?.textContent?.trim() || '';
 
-      // Images - collect all image URLs
+      // Images - collect ONLY product-specific image URLs
       const imageSelectors = [
         '.product-image img',
         '.product-gallery img',
         '.product-images img',
         '.product-carousel img',
-        '.swiper-slide img',
-        '[data-image]',
-        'picture img',
-        '.media-gallery img',
+        '.pdp-images img',  // Product detail page images
+        '.pdp-carousel img',
+        '[data-testid="product-image"] img',
+        '.main-image img',
         'img[itemprop="image"]'
       ];
 
       const seenImages = new Set();
-      imageSelectors.forEach(selector => {
-        document.querySelectorAll(selector).forEach(img => {
+
+      // First try to get images that contain the product SKU in the URL
+      if (sku) {
+        document.querySelectorAll('img').forEach(img => {
+          const src = img.src || img.getAttribute('data-src');
+          if (src && src.includes(sku.split('_')[0])) {  // Use first part of SKU
+            const cleanUrl = src.split('?')[0];
+            if (!seenImages.has(cleanUrl) && !cleanUrl.includes('placeholder')) {
+              seenImages.add(cleanUrl);
+              product.images.push(cleanUrl);
+            }
+          }
+        });
+      }
+
+      // If no SKU-specific images found, try selectors
+      if (product.images.length === 0) {
+        imageSelectors.forEach(selector => {
+          document.querySelectorAll(selector).forEach(img => {
           let imgUrl = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
           if (imgUrl && !imgUrl.includes('placeholder') && !imgUrl.includes('loading') && !imgUrl.includes('data:image')) {
             // Ensure full URL
@@ -137,6 +154,7 @@ const scrapeMiuMiuWithPuppeteer = async (url) => {
           }
         });
       });
+      }
 
       // Extract from srcset for high-res images
       document.querySelectorAll('img[srcset], source[srcset]').forEach(el => {
