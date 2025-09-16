@@ -35,6 +35,8 @@ const { scrapeArcteryx, isArcteryx } = require('./arcteryx');
 const { scrapeSongForTheMute, isSongForTheMute } = require('./songforthemute');
 const { scrapeGeneric } = require('./generic');
 const { scrapeMassimoDutti } = require('./massimodutti');
+const scrapeCamperlab = require('./camperlab');
+const { scrapeFWRD } = require('./fwrd');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -149,7 +151,13 @@ const detectSite = (url) => {
   if (hostname.includes('massimodutti.')) {
     return 'massimodutti';
   }
-  
+  if (hostname.includes('camperlab.')) {
+    return 'camperlab';
+  }
+  if (hostname.includes('fwrd.')) {
+    return 'fwrd';
+  }
+
   // Check for known Shopify domains
   const shopifyDomains = [
     'chavastudio.com',
@@ -1283,16 +1291,147 @@ const scrapeProduct = async (url) => {
           }
         };
       
+      case 'camperlab':
+        console.log('👟 Using Camperlab scraper');
+        const camperlabProduct = await scrapeCamperlab(url);
+        
+        // Handle both listing page and product page responses
+        if (camperlabProduct.products) {
+          // Listing page response
+          return {
+            success: true,
+            products: camperlabProduct.products,
+            totalProducts: camperlabProduct.totalProducts
+          };
+        }
+        
+        // Product page response - extract price number
+        const camperlabPriceNumeric = typeof camperlabProduct.price === 'string' ? 
+          parseFloat(camperlabProduct.price.replace(/[^0-9.]/g, '')) : 
+          (typeof camperlabProduct.price === 'number' ? camperlabProduct.price : 0);
+        
+        const camperlabOriginalPriceNumeric = camperlabProduct.originalPrice ? 
+          parseFloat(camperlabProduct.originalPrice.replace(/[^0-9.]/g, '')) : 
+          camperlabPriceNumeric;
+        
+        const camperlabIsOnSale = camperlabOriginalPriceNumeric > camperlabPriceNumeric;
+        
+        return {
+          success: true,
+          product: {
+            // Keep all original fields
+            ...camperlabProduct,
+            
+            // Database schema fields
+            product_name: camperlabProduct.name,
+            brand: camperlabProduct.brand || 'Camperlab',
+            original_price: camperlabOriginalPriceNumeric,
+            sale_price: camperlabPriceNumeric,
+            is_on_sale: camperlabIsOnSale,
+            discount_percentage: camperlabIsOnSale && camperlabOriginalPriceNumeric > 0 ? 
+              Math.round((1 - camperlabPriceNumeric / camperlabOriginalPriceNumeric) * 100) : null,
+            sale_badge: camperlabIsOnSale ? 'SALE' : null,
+            image_urls: camperlabProduct.images || [],
+            vendor_url: camperlabProduct.url || url,
+            color: camperlabProduct.colors?.join(', ') || '',
+            category: detectCategory(
+              camperlabProduct.name || '',
+              camperlabProduct.description || '',
+              camperlabProduct.brand || 'Camperlab',
+              camperlabProduct.category || 'Shoes'
+            ),
+            material: '',
+            description: camperlabProduct.description || '',
+            sizes: camperlabProduct.sizes || [],
+            sku: camperlabProduct.sku || '',
+            in_stock: camperlabProduct.inStock !== false,
+            
+            // Legacy fields for backward compatibility
+            name: camperlabProduct.name,
+            price: camperlabPriceNumeric,
+            images: camperlabProduct.images || [],
+            originalPrice: camperlabOriginalPriceNumeric,
+            isOnSale: camperlabIsOnSale,
+            discountPercentage: camperlabIsOnSale && camperlabOriginalPriceNumeric > 0 ? 
+              Math.round((1 - camperlabPriceNumeric / camperlabOriginalPriceNumeric) * 100) : null,
+            saleBadge: camperlabIsOnSale ? 'SALE' : null
+          }
+        };
+      
+      case 'fwrd':
+        console.log('🛍️ Using FWRD scraper');
+        const fwrdResult = await scrapeFWRD(url);
+
+        if (fwrdResult.success && fwrdResult.product) {
+          const fwrdProduct = fwrdResult.product;
+
+          // Extract price number
+          const fwrdPriceNumeric = typeof fwrdProduct.price === 'string' ?
+            parseFloat(fwrdProduct.price.replace(/[^0-9.]/g, '')) :
+            (typeof fwrdProduct.price === 'number' ? fwrdProduct.price : 0);
+
+          const fwrdOriginalPriceNumeric = fwrdProduct.originalPrice ?
+            parseFloat(fwrdProduct.originalPrice.replace(/[^0-9.]/g, '')) :
+            fwrdPriceNumeric;
+
+          const fwrdIsOnSale = fwrdOriginalPriceNumeric > fwrdPriceNumeric;
+
+          return {
+            success: true,
+            product: {
+              // Keep all original fields
+              ...fwrdProduct,
+
+              // Database schema fields
+              product_name: fwrdProduct.name,
+              brand: fwrdProduct.brand || 'FWRD',
+              original_price: fwrdOriginalPriceNumeric,
+              sale_price: fwrdPriceNumeric,
+              is_on_sale: fwrdIsOnSale,
+              discount_percentage: fwrdIsOnSale && fwrdOriginalPriceNumeric > 0 ?
+                Math.round((1 - fwrdPriceNumeric / fwrdOriginalPriceNumeric) * 100) : null,
+              sale_badge: fwrdIsOnSale ? 'SALE' : null,
+              image_urls: fwrdProduct.images || [],
+              vendor_url: fwrdProduct.url || url,
+              color: fwrdProduct.colors?.join(', ') || '',
+              colors: fwrdProduct.colors || [],
+              sizes: fwrdProduct.sizes || [],
+              category: detectCategory(
+                fwrdProduct.name || '',
+                fwrdProduct.description || '',
+                fwrdProduct.brand || 'FWRD',
+                fwrdProduct.category
+              ),
+              material: '',
+              description: fwrdProduct.description || '',
+              sku: fwrdProduct.sku || '',
+              in_stock: fwrdProduct.inStock !== false,
+
+              // Legacy fields for backward compatibility
+              name: fwrdProduct.name,
+              price: fwrdPriceNumeric,
+              images: fwrdProduct.images || [],
+              originalPrice: fwrdOriginalPriceNumeric,
+              isOnSale: fwrdIsOnSale,
+              discountPercentage: fwrdIsOnSale && fwrdOriginalPriceNumeric > 0 ?
+                Math.round((1 - fwrdPriceNumeric / fwrdOriginalPriceNumeric) * 100) : null,
+              saleBadge: fwrdIsOnSale ? 'SALE' : null
+            }
+          };
+        }
+
+        return fwrdResult;
+
       case 'farfetch':
         console.log('🛍️ Using Farfetch scraper');
         const farfetchProduct = await scrapeFarfetch(url);
-        
+
         // Handle potential Puppeteer fallback requirement
         if (farfetchProduct.needsPuppeteer) {
           console.log('⚠️ Farfetch requires Puppeteer, falling back to generic scraper');
           return await scrapeGeneric(url);
         }
-        
+
         return farfetchProduct;
       
       case 'generic':
