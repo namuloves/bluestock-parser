@@ -153,6 +153,16 @@ const scrapeMiuMiuWithPuppeteer = async (url) => {
       ];
 
       const seenImages = new Set();
+      const baseImageUrls = new Map(); // Track base images to avoid duplicates
+
+      // Helper function to extract base image URL (without size suffix)
+      const getBaseImageUrl = (url) => {
+        // Remove resolution suffixes like _1000.1000.jpg, _2000.2000.jpg
+        // Also remove _SLF, _MDF, _SLR suffixes (different views)
+        const base = url.replace(/\/cq5dam\.web\.[^\/]+\.\d+\.\d+\.jpg$/, '')
+                       .replace(/\/_jcr_content\/renditions.*$/, '');
+        return base;
+      };
 
       // First try to get images that contain the product SKU in the URL
       if (sku) {
@@ -160,9 +170,23 @@ const scrapeMiuMiuWithPuppeteer = async (url) => {
           const src = img.src || img.getAttribute('data-src');
           if (src && src.includes(sku.split('_')[0])) {  // Use first part of SKU
             const cleanUrl = src.split('?')[0];
-            if (!seenImages.has(cleanUrl) && !cleanUrl.includes('placeholder')) {
-              seenImages.add(cleanUrl);
-              product.images.push(cleanUrl);
+
+            // Get the base image URL
+            const baseUrl = getBaseImageUrl(cleanUrl);
+
+            // Check if this is a main product image (contains specific view suffixes)
+            if (cleanUrl.includes('_SLF') || cleanUrl.includes('_MDF') || cleanUrl.includes('_SLR') ||
+                cleanUrl.includes('_MDR') || cleanUrl.includes('_SLD') || cleanUrl.includes('_MDD')) {
+
+              // Only add if we haven't seen this base image
+              if (!baseImageUrls.has(baseUrl)) {
+                baseImageUrls.set(baseUrl, cleanUrl);
+                // Use the highest quality version available
+                const highQualityUrl = cleanUrl.includes('/_jcr_content/renditions/')
+                  ? cleanUrl.replace(/\.\d+\.\d+\.jpg$/, '.2400.2400.jpg')
+                  : cleanUrl;
+                product.images.push(highQualityUrl);
+              }
             }
           }
         });
@@ -189,41 +213,35 @@ const scrapeMiuMiuWithPuppeteer = async (url) => {
       });
       }
 
-      // Extract from srcset for high-res images
-      document.querySelectorAll('img[srcset], source[srcset]').forEach(el => {
-        const srcset = el.getAttribute('srcset');
-        if (srcset) {
-          const matches = srcset.match(/https?:\/\/[^\s,]+/g);
-          if (matches) {
-            matches.forEach(url => {
-              const cleanUrl = url.split('?')[0];
-              if (!seenImages.has(cleanUrl) && !cleanUrl.includes('placeholder')) {
-                seenImages.add(cleanUrl);
-                product.images.push(cleanUrl);
-              }
-            });
-          }
-        }
-      });
+      // Don't extract from srcset as it creates duplicates
+      // We already have the high-quality versions from above
 
-      // Try to find images in scripts
-      const scripts = document.querySelectorAll('script');
-      scripts.forEach(script => {
-        const content = script.textContent;
-        if (content && content.includes('image') && content.includes('.jpg')) {
-          // Extract image URLs from script content
-          const imageMatches = content.match(/https?:\/\/[^"'\s]+\.(?:jpg|jpeg|png|webp)/gi);
-          if (imageMatches) {
-            imageMatches.forEach(url => {
-              const cleanUrl = url.split('?')[0];
-              if (!seenImages.has(cleanUrl) && !cleanUrl.includes('placeholder')) {
-                seenImages.add(cleanUrl);
-                product.images.push(cleanUrl);
-              }
-            });
+      // Try to find additional unique images in scripts
+      if (sku) {
+        const scripts = document.querySelectorAll('script');
+        scripts.forEach(script => {
+          const content = script.textContent;
+          if (content && content.includes(sku.split('_')[0])) {
+            // Extract image URLs from script content
+            const imageMatches = content.match(/https?:\/\/[^"'\s]+\.(?:jpg|jpeg|png|webp)/gi);
+            if (imageMatches) {
+              imageMatches.forEach(url => {
+                const cleanUrl = url.split('?')[0];
+                const baseUrl = getBaseImageUrl(cleanUrl);
+
+                // Only add if it's a product image we haven't seen
+                if (cleanUrl.includes(sku.split('_')[0]) && !baseImageUrls.has(baseUrl)) {
+                  baseImageUrls.set(baseUrl, cleanUrl);
+                  const highQualityUrl = cleanUrl.includes('/_jcr_content/renditions/')
+                    ? cleanUrl.replace(/\.\d+\.\d+\.jpg$/, '.2400.2400.jpg')
+                    : cleanUrl;
+                  product.images.push(highQualityUrl);
+                }
+              });
+            }
           }
-        }
-      });
+        });
+      }
 
       // Sizes
       document.querySelectorAll('.size-selector button, .size-option, select[name="size"] option, [data-size]').forEach(el => {
