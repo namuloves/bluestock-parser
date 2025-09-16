@@ -37,6 +37,7 @@ const { scrapeGeneric } = require('./generic');
 const { scrapeMassimoDutti } = require('./massimodutti');
 const scrapeCamperlab = require('./camperlab');
 const { scrapeFWRD } = require('./fwrd');
+const { scrapeMiuMiu } = require('./miumiu');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -156,6 +157,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('fwrd.')) {
     return 'fwrd';
+  }
+  if (hostname.includes('miumiu.')) {
+    return 'miumiu';
   }
 
   // Check for known Shopify domains
@@ -1421,6 +1425,132 @@ const scrapeProduct = async (url) => {
         }
 
         return fwrdResult;
+
+      case 'miumiu':
+        console.log('👜 Using Miu Miu scraper');
+        const miuMiuResult = await scrapeMiuMiu(url);
+
+        // Check if Puppeteer is needed
+        if (miuMiuResult.needsPuppeteer) {
+          console.log('🔄 Miu Miu requires Puppeteer, using enhanced scraper...');
+          const { scrapeMiuMiuWithPuppeteer } = require('./miumiu-puppeteer');
+          const puppeteerResult = await scrapeMiuMiuWithPuppeteer(url);
+
+          if (puppeteerResult.success && puppeteerResult.product) {
+            const miuMiuProduct = puppeteerResult.product;
+
+            // Extract price number
+            const miuMiuPriceNumeric = typeof miuMiuProduct.price === 'string' ?
+              parseFloat(miuMiuProduct.price.replace(/[^0-9.]/g, '')) :
+              (typeof miuMiuProduct.price === 'number' ? miuMiuProduct.price : 0);
+
+            const miuMiuOriginalPriceNumeric = miuMiuProduct.originalPrice ?
+              parseFloat(miuMiuProduct.originalPrice.replace(/[^0-9.]/g, '')) :
+              miuMiuPriceNumeric;
+
+            const miuMiuIsOnSale = miuMiuOriginalPriceNumeric > miuMiuPriceNumeric;
+
+            return {
+              success: true,
+              product: {
+                ...miuMiuProduct,
+                product_name: miuMiuProduct.name,
+                brand: miuMiuProduct.brand || 'Miu Miu',
+                original_price: miuMiuOriginalPriceNumeric,
+                sale_price: miuMiuPriceNumeric,
+                is_on_sale: miuMiuIsOnSale,
+                discount_percentage: miuMiuIsOnSale && miuMiuOriginalPriceNumeric > 0 ?
+                  Math.round((1 - miuMiuPriceNumeric / miuMiuOriginalPriceNumeric) * 100) : null,
+                sale_badge: miuMiuIsOnSale ? 'SALE' : null,
+                image_urls: miuMiuProduct.images || [],
+                vendor_url: miuMiuProduct.url || url,
+                color: miuMiuProduct.colors?.join(', ') || '',
+                colors: miuMiuProduct.colors || [],
+                sizes: miuMiuProduct.sizes || [],
+                category: detectCategory(
+                  miuMiuProduct.name || '',
+                  miuMiuProduct.description || '',
+                  miuMiuProduct.brand || 'Miu Miu',
+                  miuMiuProduct.category
+                ),
+                material: miuMiuProduct.material || '',
+                description: miuMiuProduct.description || '',
+                sku: miuMiuProduct.sku || '',
+                in_stock: miuMiuProduct.inStock !== false,
+                name: miuMiuProduct.name,
+                price: miuMiuPriceNumeric,
+                images: miuMiuProduct.images || [],
+                originalPrice: miuMiuOriginalPriceNumeric,
+                isOnSale: miuMiuIsOnSale,
+                discountPercentage: miuMiuIsOnSale && miuMiuOriginalPriceNumeric > 0 ?
+                  Math.round((1 - miuMiuPriceNumeric / miuMiuOriginalPriceNumeric) * 100) : null,
+                saleBadge: miuMiuIsOnSale ? 'SALE' : null
+              }
+            };
+          }
+
+          return puppeteerResult;
+        }
+
+        if (miuMiuResult.success && miuMiuResult.product) {
+          const miuMiuProduct = miuMiuResult.product;
+
+          // Extract price number
+          const miuMiuPriceNumeric = typeof miuMiuProduct.price === 'string' ?
+            parseFloat(miuMiuProduct.price.replace(/[^0-9.]/g, '')) :
+            (typeof miuMiuProduct.price === 'number' ? miuMiuProduct.price : 0);
+
+          const miuMiuOriginalPriceNumeric = miuMiuProduct.originalPrice ?
+            parseFloat(miuMiuProduct.originalPrice.replace(/[^0-9.]/g, '')) :
+            miuMiuPriceNumeric;
+
+          const miuMiuIsOnSale = miuMiuOriginalPriceNumeric > miuMiuPriceNumeric;
+
+          return {
+            success: true,
+            product: {
+              // Keep all original fields
+              ...miuMiuProduct,
+
+              // Database schema fields
+              product_name: miuMiuProduct.name,
+              brand: miuMiuProduct.brand || 'Miu Miu',
+              original_price: miuMiuOriginalPriceNumeric,
+              sale_price: miuMiuPriceNumeric,
+              is_on_sale: miuMiuIsOnSale,
+              discount_percentage: miuMiuIsOnSale && miuMiuOriginalPriceNumeric > 0 ?
+                Math.round((1 - miuMiuPriceNumeric / miuMiuOriginalPriceNumeric) * 100) : null,
+              sale_badge: miuMiuIsOnSale ? 'SALE' : null,
+              image_urls: miuMiuProduct.images || [],
+              vendor_url: miuMiuProduct.url || url,
+              color: miuMiuProduct.colors?.join(', ') || '',
+              colors: miuMiuProduct.colors || [],
+              sizes: miuMiuProduct.sizes || [],
+              category: detectCategory(
+                miuMiuProduct.name || '',
+                miuMiuProduct.description || '',
+                miuMiuProduct.brand || 'Miu Miu',
+                miuMiuProduct.category
+              ),
+              material: miuMiuProduct.material || '',
+              description: miuMiuProduct.description || '',
+              sku: miuMiuProduct.sku || '',
+              in_stock: miuMiuProduct.inStock !== false,
+
+              // Legacy fields for backward compatibility
+              name: miuMiuProduct.name,
+              price: miuMiuPriceNumeric,
+              images: miuMiuProduct.images || [],
+              originalPrice: miuMiuOriginalPriceNumeric,
+              isOnSale: miuMiuIsOnSale,
+              discountPercentage: miuMiuIsOnSale && miuMiuOriginalPriceNumeric > 0 ?
+                Math.round((1 - miuMiuPriceNumeric / miuMiuOriginalPriceNumeric) * 100) : null,
+              saleBadge: miuMiuIsOnSale ? 'SALE' : null
+            }
+          };
+        }
+
+        return miuMiuResult;
 
       case 'farfetch':
         console.log('🛍️ Using Farfetch scraper');

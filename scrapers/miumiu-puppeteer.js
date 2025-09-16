@@ -1,0 +1,259 @@
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+// Use stealth plugin to avoid detection
+puppeteer.use(StealthPlugin());
+
+const scrapeMiuMiuWithPuppeteer = async (url) => {
+  console.log('🎭 Starting Miu Miu Puppeteer scraper for:', url);
+
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu'
+      ]
+    });
+
+    const page = await browser.newPage();
+
+    // Set a realistic user agent
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+
+    // Set viewport
+    await page.setViewport({ width: 1920, height: 1080 });
+
+    // Navigate to the page
+    console.log('📄 Loading Miu Miu page...');
+    await page.goto(url, {
+      waitUntil: 'networkidle2',
+      timeout: 60000
+    });
+
+    // Wait for product content
+    await page.waitForSelector('h1, .product-name, [itemprop="name"]', { timeout: 10000 }).catch(() => {});
+
+    // Wait a bit for dynamic content to load
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Extract product code from URL
+    const urlMatch = url.match(/\/([A-Z0-9]+_[A-Z0-9]+_[A-Z0-9]+(?:_[A-Z0-9]+)*)/);
+    const productCode = urlMatch ? urlMatch[1] : null;
+
+    // Extract product data
+    const productData = await page.evaluate((sku) => {
+      const product = {
+        name: '',
+        brand: 'Miu Miu',
+        price: '',
+        originalPrice: '',
+        description: '',
+        images: [],
+        sizes: [],
+        colors: [],
+        material: '',
+        category: '',
+        sku: sku || ''
+      };
+
+      // Product name
+      product.name = document.querySelector('h1')?.textContent?.trim() ||
+                     document.querySelector('.product-name')?.textContent?.trim() ||
+                     document.querySelector('[itemprop="name"]')?.textContent?.trim() ||
+                     document.querySelector('.product-title')?.textContent?.trim() || '';
+
+      // Price extraction
+      const priceSelectors = [
+        '.product-price',
+        '.price-sales',
+        '[data-price]',
+        '.product-price-value',
+        '[itemprop="price"]',
+        '.price'
+      ];
+
+      for (const selector of priceSelectors) {
+        const priceElement = document.querySelector(selector);
+        if (priceElement) {
+          const priceText = priceElement.textContent || priceElement.getAttribute('data-price');
+          if (priceText) {
+            const priceMatch = priceText.match(/[\d,]+(?:\.\d+)?/);
+            if (priceMatch) {
+              product.price = priceMatch[0];
+              break;
+            }
+          }
+        }
+      }
+
+      // Check for price in meta tags
+      if (!product.price) {
+        const metaPrice = document.querySelector('meta[property="product:price:amount"]')?.getAttribute('content') ||
+                         document.querySelector('meta[name="product:price:amount"]')?.getAttribute('content');
+        if (metaPrice) {
+          product.price = metaPrice;
+        }
+      }
+
+      // Description
+      product.description = document.querySelector('.product-description')?.textContent?.trim() ||
+                           document.querySelector('.product-details')?.textContent?.trim() ||
+                           document.querySelector('[itemprop="description"]')?.textContent?.trim() ||
+                           document.querySelector('.description-content')?.textContent?.trim() || '';
+
+      // Images - collect all image URLs
+      const imageSelectors = [
+        '.product-image img',
+        '.product-gallery img',
+        '.product-images img',
+        '.product-carousel img',
+        '.swiper-slide img',
+        '[data-image]',
+        'picture img',
+        '.media-gallery img',
+        'img[itemprop="image"]'
+      ];
+
+      const seenImages = new Set();
+      imageSelectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(img => {
+          let imgUrl = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
+          if (imgUrl && !imgUrl.includes('placeholder') && !imgUrl.includes('loading') && !imgUrl.includes('data:image')) {
+            // Ensure full URL
+            if (!imgUrl.startsWith('http')) {
+              imgUrl = new URL(imgUrl, window.location.origin).href;
+            }
+            // Clean up the URL
+            imgUrl = imgUrl.split('?')[0]; // Remove query params
+            if (!seenImages.has(imgUrl)) {
+              seenImages.add(imgUrl);
+              product.images.push(imgUrl);
+            }
+          }
+        });
+      });
+
+      // Extract from srcset for high-res images
+      document.querySelectorAll('img[srcset], source[srcset]').forEach(el => {
+        const srcset = el.getAttribute('srcset');
+        if (srcset) {
+          const matches = srcset.match(/https?:\/\/[^\s,]+/g);
+          if (matches) {
+            matches.forEach(url => {
+              const cleanUrl = url.split('?')[0];
+              if (!seenImages.has(cleanUrl) && !cleanUrl.includes('placeholder')) {
+                seenImages.add(cleanUrl);
+                product.images.push(cleanUrl);
+              }
+            });
+          }
+        }
+      });
+
+      // Try to find images in scripts
+      const scripts = document.querySelectorAll('script');
+      scripts.forEach(script => {
+        const content = script.textContent;
+        if (content && content.includes('image') && content.includes('.jpg')) {
+          // Extract image URLs from script content
+          const imageMatches = content.match(/https?:\/\/[^"'\s]+\.(?:jpg|jpeg|png|webp)/gi);
+          if (imageMatches) {
+            imageMatches.forEach(url => {
+              const cleanUrl = url.split('?')[0];
+              if (!seenImages.has(cleanUrl) && !cleanUrl.includes('placeholder')) {
+                seenImages.add(cleanUrl);
+                product.images.push(cleanUrl);
+              }
+            });
+          }
+        }
+      });
+
+      // Sizes
+      document.querySelectorAll('.size-selector button, .size-option, select[name="size"] option, [data-size]').forEach(el => {
+        const size = el.textContent?.trim() || el.value || el.getAttribute('data-size');
+        if (size && size !== 'Select Size' && !el.disabled && !el.classList.contains('disabled')) {
+          if (!product.sizes.includes(size)) {
+            product.sizes.push(size);
+          }
+        }
+      });
+
+      // Colors
+      document.querySelectorAll('.color-option, .color-selector button, [data-color]').forEach(el => {
+        const color = el.getAttribute('data-color') ||
+                     el.getAttribute('title') ||
+                     el.getAttribute('aria-label') ||
+                     el.textContent?.trim();
+        if (color && !product.colors.includes(color)) {
+          product.colors.push(color);
+        }
+      });
+
+      // Material
+      product.material = document.querySelector('.product-material')?.textContent?.trim() ||
+                        document.querySelector('.material-content')?.textContent?.trim() ||
+                        document.querySelector('.product-composition')?.textContent?.trim() || '';
+
+      // Category from breadcrumbs
+      const breadcrumbs = document.querySelectorAll('.breadcrumb a, nav[aria-label="breadcrumb"] a, .breadcrumbs a');
+      breadcrumbs.forEach(breadcrumb => {
+        const text = breadcrumb.textContent?.trim();
+        if (text && !text.toLowerCase().includes('home') && !text.toLowerCase().includes('miu miu')) {
+          product.category = text;
+        }
+      });
+
+      return product;
+    }, productCode);
+
+    await browser.close();
+
+    // Format price with currency if needed
+    if (productData.price && !productData.price.includes('€') && !productData.price.includes('$')) {
+      // Default to EUR for Miu Miu
+      productData.price = `€${productData.price}`;
+    }
+
+    // Clean the data
+    productData.url = url;
+    productData.inStock = true;
+
+    // Remove empty fields
+    Object.keys(productData).forEach(key => {
+      if (productData[key] === '' || (Array.isArray(productData[key]) && productData[key].length === 0)) {
+        delete productData[key];
+      }
+    });
+
+    console.log(`✅ Successfully scraped Miu Miu product with Puppeteer: ${productData.name || 'Unknown'}`);
+    console.log(`   Found ${productData.images?.length || 0} images`);
+    console.log(`   Price: ${productData.price || 'Not found'}`);
+
+    return {
+      success: true,
+      product: productData
+    };
+
+  } catch (error) {
+    console.error('❌ Miu Miu Puppeteer scraping error:', error.message);
+    if (browser) {
+      await browser.close();
+    }
+    return {
+      success: false,
+      error: error.message,
+      product: {
+        url,
+        brand: 'Miu Miu'
+      }
+    };
+  }
+};
+
+module.exports = { scrapeMiuMiuWithPuppeteer };
