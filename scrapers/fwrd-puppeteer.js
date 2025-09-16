@@ -16,8 +16,15 @@ const scrapeFWRDWithPuppeteer = async (url) => {
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
-        '--disable-gpu'
-      ]
+        '--disable-gpu',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-blink-features=AutomationControlled'
+      ],
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
     });
 
     const page = await browser.newPage();
