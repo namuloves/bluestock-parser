@@ -35,15 +35,33 @@ const scrapeFWRDWithPuppeteer = async (url) => {
     // Set viewport
     await page.setViewport({ width: 1920, height: 1080 });
 
-    // Navigate to the page
+    // Navigate to the page with error handling
     console.log('📄 Loading page...');
-    await page.goto(url, {
-      waitUntil: 'networkidle2',
-      timeout: 60000
-    });
+    try {
+      await page.goto(url, {
+        waitUntil: 'domcontentloaded',
+        timeout: 30000
+      });
+    } catch (navError) {
+      console.log('⚠️ Navigation timeout, attempting to continue...');
+      // Continue even if navigation times out - page might still be usable
+    }
 
     // Wait for product content
     await page.waitForSelector('h1, .product-title, [itemprop="name"]', { timeout: 10000 }).catch(() => {});
+
+    // Click on Details tab if present to load description
+    await page.evaluate(() => {
+      const detailsTab = document.querySelector('[data-tab-content=".pdp-details"]') ||
+                        Array.from(document.querySelectorAll('.tabs__link')).find(el =>
+                          el.textContent?.toLowerCase().includes('detail'));
+      if (detailsTab) {
+        detailsTab.click();
+      }
+    });
+
+    // Wait for tab content to load
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Extract product data
     const productData = await page.evaluate(() => {
@@ -60,44 +78,95 @@ const scrapeFWRDWithPuppeteer = async (url) => {
         category: ''
       };
 
-      // Product name
-      product.name = document.querySelector('h1')?.textContent?.trim() ||
-                     document.querySelector('.product-title')?.textContent?.trim() ||
-                     document.querySelector('[itemprop="name"]')?.textContent?.trim() || '';
+      // Product name - clean up whitespace and newlines
+      const nameElement = document.querySelector('h1') ||
+                         document.querySelector('.product-title') ||
+                         document.querySelector('[itemprop="name"]');
+      if (nameElement) {
+        product.name = nameElement.textContent.replace(/\s+/g, ' ').trim();
+      }
 
       // Brand
       product.brand = document.querySelector('.product-brand')?.textContent?.trim() ||
                       document.querySelector('.designer-name')?.textContent?.trim() ||
                       document.querySelector('[itemprop="brand"]')?.textContent?.trim() || '';
 
-      // Price
-      const priceElement = document.querySelector('.product-price') ||
-                          document.querySelector('.price-current') ||
-                          document.querySelector('[itemprop="price"]');
-      if (priceElement) {
-        const priceText = priceElement.textContent;
+      // Price - look for sale price first
+      const salePriceElement = document.querySelector('.price__sale') ||
+                              document.querySelector('[class*="price__sale"]') ||
+                              document.querySelector('[class*="sale-price"]');
+      const retailPriceElement = document.querySelector('.price__retail') ||
+                                 document.querySelector('[class*="price__retail"]') ||
+                                 document.querySelector('[class*="original-price"]');
+
+      if (salePriceElement) {
+        const priceText = salePriceElement.textContent;
         const priceMatch = priceText.match(/[\d,]+\.?\d*/);
         if (priceMatch) {
           product.price = `$${priceMatch[0]}`;
         }
+      } else if (retailPriceElement) {
+        const priceText = retailPriceElement.textContent;
+        const priceMatch = priceText.match(/[\d,]+\.?\d*/);
+        if (priceMatch) {
+          product.price = `$${priceMatch[0]}`;
+        }
+      } else {
+        // Fallback to any element with price
+        const anyPriceElement = document.querySelector('span[class*="price"]') ||
+                               document.querySelector('div[class*="price"]');
+        if (anyPriceElement) {
+          const priceText = anyPriceElement.textContent;
+          const priceMatch = priceText.match(/[\d,]+\.?\d*/);
+          if (priceMatch) {
+            product.price = `$${priceMatch[0]}`;
+          }
+        }
       }
 
-      // Original price
-      const originalPriceElement = document.querySelector('.price-original') ||
-                                   document.querySelector('.price-was') ||
-                                   document.querySelector('span.strikethrough');
-      if (originalPriceElement) {
-        const originalText = originalPriceElement.textContent;
+      // Original price (retail price when there's a sale)
+      if (retailPriceElement && salePriceElement) {
+        const originalText = retailPriceElement.textContent;
         const originalMatch = originalText.match(/[\d,]+\.?\d*/);
         if (originalMatch) {
           product.originalPrice = `$${originalMatch[0]}`;
         }
       }
 
-      // Description
-      product.description = document.querySelector('.product-description')?.textContent?.trim() ||
-                           document.querySelector('.product-details')?.textContent?.trim() ||
-                           document.querySelector('[itemprop="description"]')?.textContent?.trim() || '';
+      // Description - look specifically for the details tab content
+      const detailsPanel = document.querySelector('.pdp-details') ||
+                          document.querySelector('[data-tab-content-target=".pdp-details"]') ||
+                          Array.from(document.querySelectorAll('.tabs__content'))
+                            .find(el => el.querySelector('li')); // Details usually has list items
+
+      if (detailsPanel) {
+        const descText = detailsPanel.textContent?.replace(/\s+/g, ' ').trim();
+        // Make sure it's actual product details (often contains material info)
+        if (descText && (descText.includes('%') || descText.includes('Made in') ||
+            descText.includes('clean') || descText.includes('wash'))) {
+          product.description = descText;
+        }
+      }
+
+      // If still no description, look for the first tab panel that isn't "Complete the Look"
+      if (!product.description) {
+        const tabPanels = document.querySelectorAll('.tabs__content');
+        for (const panel of tabPanels) {
+          const text = panel.textContent?.replace(/\s+/g, ' ').trim();
+          if (text && !text.includes('PREVIOUS') && !text.includes('Complete') &&
+              !text.includes('$') && text.length > 20) {
+            product.description = text;
+            break;
+          }
+        }
+      }
+
+      // Fallback to other description selectors
+      if (!product.description) {
+        product.description = document.querySelector('.product-description')?.textContent?.trim() ||
+                             document.querySelector('.product-details')?.textContent?.trim() ||
+                             document.querySelector('[itemprop="description"]')?.textContent?.trim() || '';
+      }
 
       // Images - collect all image URLs
       const imageSelectors = [
@@ -142,13 +211,35 @@ const scrapeFWRDWithPuppeteer = async (url) => {
         }
       });
 
-      // Sizes
-      document.querySelectorAll('.size-selector button, .size-option, select[name="size"] option').forEach(el => {
+      // Sizes - look for radio button labels (FWRD specific)
+      document.querySelectorAll('input[type="radio"][name*="size"] + label').forEach(el => {
         const size = el.textContent?.trim();
-        if (size && size !== 'Select Size' && !el.disabled && !el.classList.contains('disabled')) {
+        const radioInput = el.previousElementSibling;
+        const isAvailable = !radioInput?.disabled && !el.classList.contains('disabled');
+
+        if (size && size !== 'Select Size' && isAvailable) {
           product.sizes.push(size);
         }
       });
+
+      // Fallback to other size selectors
+      if (product.sizes.length === 0) {
+        document.querySelectorAll('button[data-size], .size-button, [class*="SizeButton"], [data-testid*="size-button"]').forEach(el => {
+          const size = el.getAttribute('data-size') || el.textContent?.trim();
+          if (size && size !== 'Select Size' && !size.includes('Guide') && !size.includes('measurements') &&
+              !el.disabled && !el.classList.contains('disabled')) {
+            product.sizes.push(size);
+          }
+        });
+
+        // Also check for select options
+        document.querySelectorAll('select[name="size"] option, select[class*="size"] option').forEach(el => {
+          const size = el.textContent?.trim();
+          if (size && size !== 'Select Size' && !el.disabled) {
+            product.sizes.push(size);
+          }
+        });
+      }
 
       // Colors
       document.querySelectorAll('.color-option, .color-selector button, [data-color]').forEach(el => {

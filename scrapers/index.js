@@ -38,6 +38,7 @@ const { scrapeMassimoDutti } = require('./massimodutti');
 const scrapeCamperlab = require('./camperlab');
 const { scrapeFWRD } = require('./fwrd');
 const { scrapeMiuMiu } = require('./miumiu');
+const { scrapeChiclara } = require('./chiclara');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -160,6 +161,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('miumiu.')) {
     return 'miumiu';
+  }
+  if (hostname.includes('chiclara.')) {
+    return 'chiclara';
   }
 
   // Check for known Shopify domains
@@ -1551,6 +1555,61 @@ const scrapeProduct = async (url) => {
         }
 
         return miuMiuResult;
+
+      case 'chiclara':
+        console.log('🛍️ Using Chiclara scraper');
+        const chiclaraResult = await scrapeChiclara(url);
+
+        if (chiclaraResult.success && chiclaraResult.product) {
+          const chiclaraProduct = chiclaraResult.product;
+
+          // Extract price number
+          const chiclaraPriceNumeric = typeof chiclaraProduct.sale_price === 'number' ?
+            chiclaraProduct.sale_price : 0;
+
+          const chiclaraOriginalPriceNumeric = chiclaraProduct.original_price ?
+            chiclaraProduct.original_price : chiclaraPriceNumeric;
+
+          const chiclaraIsOnSale = chiclaraOriginalPriceNumeric > chiclaraPriceNumeric;
+
+          return {
+            success: true,
+            product: {
+              // Primary fields
+              product_name: chiclaraProduct.product_name,
+              brand: chiclaraProduct.brand || 'CHICLARA',
+              sale_price: chiclaraPriceNumeric,
+              original_price: chiclaraOriginalPriceNumeric,
+              currency: chiclaraProduct.currency || 'USD',
+              product_url: url,
+              image_urls: chiclaraProduct.image_urls || [],
+              sizes: chiclaraProduct.sizes || [],
+              colors: chiclaraProduct.colors || [],
+              category: detectCategory(
+                chiclaraProduct.product_name,
+                chiclaraProduct.description || '',
+                chiclaraProduct.brand || 'CHICLARA',
+                chiclaraProduct.category
+              ),
+              material: chiclaraProduct.material || '',
+              description: chiclaraProduct.description || '',
+              sku: chiclaraProduct.sku || '',
+              in_stock: chiclaraProduct.in_stock !== false,
+
+              // Legacy fields for backward compatibility
+              name: chiclaraProduct.product_name,
+              price: chiclaraPriceNumeric,
+              images: chiclaraProduct.image_urls || [],
+              originalPrice: chiclaraOriginalPriceNumeric,
+              isOnSale: chiclaraIsOnSale,
+              discountPercentage: chiclaraIsOnSale && chiclaraOriginalPriceNumeric > 0 ?
+                Math.round((1 - chiclaraPriceNumeric / chiclaraOriginalPriceNumeric) * 100) : null,
+              saleBadge: chiclaraIsOnSale ? 'SALE' : null
+            }
+          };
+        }
+
+        return chiclaraResult;
 
       case 'farfetch':
         console.log('🛍️ Using Farfetch scraper');

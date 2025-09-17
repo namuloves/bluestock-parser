@@ -6,6 +6,11 @@ const { scrapeFWRDWithPuppeteer } = require('./fwrd-puppeteer');
 const scrapeFWRD = async (url) => {
   console.log('🛍️ Starting FWRD scraper for:', url);
 
+  // FWRD often requires Puppeteer due to anti-bot measures
+  // Skip straight to Puppeteer for better success rate
+  console.log('🔄 Falling back to Puppeteer for FWRD...');
+  return await scrapeFWRDWithPuppeteer(url);
+
   try {
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
