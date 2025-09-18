@@ -39,6 +39,8 @@ const scrapeCamperlab = require('./camperlab');
 const { scrapeFWRD } = require('./fwrd');
 const { scrapeMiuMiu } = require('./miumiu');
 const { scrapeChiclara } = require('./chiclara');
+const { scrapeGalleryDept } = require('./gallerydept');
+const { scrapeBoden } = require('./boden');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -164,6 +166,12 @@ const detectSite = (url) => {
   }
   if (hostname.includes('chiclara.')) {
     return 'chiclara';
+  }
+  if (hostname.includes('gallerydept.')) {
+    return 'gallerydept';
+  }
+  if (hostname.includes('boden.')) {
+    return 'boden';
   }
 
   // Check for known Shopify domains
@@ -1610,6 +1618,111 @@ const scrapeProduct = async (url) => {
         }
 
         return chiclaraResult;
+
+      case 'boden':
+        console.log('👗 Using Boden scraper');
+        const bodenProduct = await scrapeBoden(url);
+
+        // Extract price (already numeric from scraper)
+        const bodenPriceNumeric = bodenProduct.price || 0;
+        const bodenOriginalPriceNumeric = bodenProduct.originalPrice || bodenPriceNumeric;
+
+        return {
+          success: true,
+          product: {
+            // Keep all original fields
+            ...bodenProduct,
+
+            // Database schema fields
+            product_name: bodenProduct.name,
+            brand: bodenProduct.brand || 'Boden',
+            original_price: bodenOriginalPriceNumeric,
+            sale_price: bodenPriceNumeric,
+            is_on_sale: bodenProduct.isOnSale || false,
+            discount_percentage: bodenProduct.isOnSale && bodenOriginalPriceNumeric > bodenPriceNumeric ?
+              Math.round((1 - bodenPriceNumeric / bodenOriginalPriceNumeric) * 100) : null,
+            sale_badge: bodenProduct.isOnSale ? 'SALE' : null,
+            image_urls: bodenProduct.images || [],
+            vendor_url: bodenProduct.url || url,
+            color: bodenProduct.color || '',
+            colors: bodenProduct.colors || [],
+            sizes: bodenProduct.sizes || [],
+            category: detectCategory(
+              bodenProduct.name || '',
+              bodenProduct.description || '',
+              bodenProduct.brand || 'Boden',
+              bodenProduct.category
+            ),
+            material: '',
+            description: bodenProduct.description || '',
+            sku: bodenProduct.sku || '',
+            in_stock: bodenProduct.inStock !== false,
+
+            // Legacy fields for backward compatibility
+            name: bodenProduct.name,
+            price: bodenPriceNumeric,
+            images: bodenProduct.images || [],
+            originalPrice: bodenOriginalPriceNumeric,
+            isOnSale: bodenProduct.isOnSale || false,
+            discountPercentage: bodenProduct.isOnSale && bodenOriginalPriceNumeric > bodenPriceNumeric ?
+              Math.round((1 - bodenPriceNumeric / bodenOriginalPriceNumeric) * 100) : null,
+            saleBadge: bodenProduct.isOnSale ? 'SALE' : null
+          }
+        };
+
+      case 'gallerydept':
+        console.log('🎨 Using Gallery Dept scraper');
+        const galleryDeptResult = await scrapeGalleryDept(url);
+
+        if (galleryDeptResult.success && galleryDeptResult.product) {
+          const gdProduct = galleryDeptResult.product;
+
+          // Extract price numbers
+          const gdPriceNumeric = typeof gdProduct.sale_price === 'number' ?
+            gdProduct.sale_price : 0;
+
+          const gdOriginalPriceNumeric = gdProduct.original_price || gdPriceNumeric;
+
+          const gdIsOnSale = gdOriginalPriceNumeric > gdPriceNumeric;
+
+          return {
+            success: true,
+            product: {
+              // Primary fields
+              product_name: gdProduct.product_name,
+              brand: gdProduct.brand || 'GALLERY DEPT',
+              sale_price: gdPriceNumeric,
+              original_price: gdOriginalPriceNumeric,
+              currency: gdProduct.currency || 'USD',
+              product_url: url,
+              image_urls: gdProduct.image_urls || [],
+              sizes: gdProduct.sizes || [],
+              colors: gdProduct.colors || [],
+              category: detectCategory(
+                gdProduct.product_name,
+                gdProduct.description || '',
+                gdProduct.brand || 'GALLERY DEPT',
+                gdProduct.category
+              ),
+              material: gdProduct.material || '',
+              description: gdProduct.description || '',
+              sku: gdProduct.sku || '',
+              in_stock: gdProduct.in_stock !== false,
+
+              // Legacy fields for backward compatibility
+              name: gdProduct.product_name,
+              price: gdPriceNumeric,
+              images: gdProduct.image_urls || [],
+              originalPrice: gdOriginalPriceNumeric,
+              isOnSale: gdIsOnSale,
+              discountPercentage: gdIsOnSale && gdOriginalPriceNumeric > 0 ?
+                Math.round((1 - gdPriceNumeric / gdOriginalPriceNumeric) * 100) : null,
+              saleBadge: gdIsOnSale ? 'SALE' : null
+            }
+          };
+        }
+
+        return galleryDeptResult;
 
       case 'farfetch':
         console.log('🛍️ Using Farfetch scraper');
