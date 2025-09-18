@@ -97,11 +97,29 @@ const scrapeMiuMiuWithPuppeteer = async (url) => {
       for (const element of allElements) {
         const text = element.textContent?.trim();
         if (text && (text.includes('€') || text.includes('$') || text.includes('£'))) {
-          // Check if it's a price pattern
-          const priceMatch = text.match(/[€$£]\s*[\d,]+(?:\.\d+)?/);
+          // Check if it's a price pattern - improved regex to capture full price
+          // Match currency followed by any combination of digits, commas, and optional decimals
+          // Use lookahead to ensure we get all consecutive digits
+          const pricePattern = /[€$£]\s*([\d,]+(?:\.\d{1,2})?)/;
+          const priceMatch = text.match(pricePattern);
           if (priceMatch && !product.price) {
-            product.price = priceMatch[0];
-            console.log('Found price via currency search:', product.price);
+            // Get the full price including currency
+            const fullPrice = priceMatch[0];
+
+            // Also try to extract just after the currency to ensure we get all digits
+            const currencySymbol = fullPrice.match(/[€$£]/)[0];
+            const numbersAfter = text.split(currencySymbol)[1];
+            if (numbersAfter) {
+              const numberMatch = numbersAfter.match(/^\s*([\d,]+(?:\.\d{1,2})?)/);
+              if (numberMatch) {
+                product.price = currencySymbol + numberMatch[1];
+                console.log('Found price via currency search (method 2):', product.price);
+                break;
+              }
+            }
+
+            product.price = fullPrice;
+            console.log('Found price via currency search (method 1):', product.price);
             break;
           }
         }
@@ -112,11 +130,21 @@ const scrapeMiuMiuWithPuppeteer = async (url) => {
         for (const selector of priceSelectors) {
           const priceElement = document.querySelector(selector);
           if (priceElement) {
-            const priceText = priceElement.textContent || priceElement.getAttribute('data-price');
+            const priceText = priceElement.textContent?.trim() || priceElement.getAttribute('data-price');
             if (priceText) {
-              const priceMatch = priceText.match(/[\d,]+(?:\.\d+)?/);
+              // First try to find price with currency symbol
+              let priceMatch = priceText.match(/[€$£]\s*[\d,]{1,}(?:\.\d{1,2})?/);
               if (priceMatch) {
                 product.price = priceMatch[0];
+                console.log('Found price via selector with currency:', product.price);
+                break;
+              }
+              // If no currency symbol, extract just the numbers
+              // Make sure to capture all consecutive digits with commas
+              priceMatch = priceText.match(/[\d,]{1,}(?:\.\d{1,2})?/);
+              if (priceMatch) {
+                product.price = priceMatch[0];
+                console.log('Found price via selector (numbers only):', product.price);
                 break;
               }
             }
@@ -288,6 +316,9 @@ const scrapeMiuMiuWithPuppeteer = async (url) => {
       // Default to EUR for Miu Miu
       productData.price = `€${productData.price}`;
     }
+
+    // Ensure price formatting is preserved
+    console.log('Final extracted price:', productData.price);
 
     // Clean the data
     productData.url = url;
