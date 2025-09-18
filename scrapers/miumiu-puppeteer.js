@@ -77,57 +77,25 @@ const scrapeMiuMiuWithPuppeteer = async (url) => {
                      document.querySelector('[itemprop="name"]')?.textContent?.trim() ||
                      document.querySelector('.product-title')?.textContent?.trim() || '';
 
-      // Price extraction - try multiple approaches
+      // Price extraction - try multiple approaches with priority order
       const priceSelectors = [
-        '.product-price',
+        '.product-price:not(.old-price):not(.compare-price)', // Exclude old/compare prices
         '.price-sales',
-        '[data-price]',
+        '.current-price',
+        '[data-price]:not([data-price="0"])',
         '.product-price-value',
         '[itemprop="price"]',
-        '.price',
+        '.price:not(.old-price):not(.was-price)',
         '[data-testid="price"]',
         '.pdp-price',
         '.product-detail-price',
-        'span[class*="price"]',
-        'div[class*="price"]'
+        'span[class*="price"]:not([class*="old"]):not([class*="was"]):not([class*="compare"])',
+        'div[class*="price"]:not([class*="old"]):not([class*="was"]):not([class*="compare"])'
       ];
 
-      // First, try to find any element containing currency symbols
-      const allElements = document.querySelectorAll('*');
-      for (const element of allElements) {
-        const text = element.textContent?.trim();
-        if (text && (text.includes('€') || text.includes('$') || text.includes('£'))) {
-          // Check if it's a price pattern - improved regex to capture full price
-          // Match currency followed by any combination of digits, commas, and optional decimals
-          // Use lookahead to ensure we get all consecutive digits
-          const pricePattern = /[€$£]\s*([\d,]+(?:\.\d{1,2})?)/;
-          const priceMatch = text.match(pricePattern);
-          if (priceMatch && !product.price) {
-            // Get the full price including currency
-            const fullPrice = priceMatch[0];
-
-            // Also try to extract just after the currency to ensure we get all digits
-            const currencySymbol = fullPrice.match(/[€$£]/)[0];
-            const numbersAfter = text.split(currencySymbol)[1];
-            if (numbersAfter) {
-              const numberMatch = numbersAfter.match(/^\s*([\d,]+(?:\.\d{1,2})?)/);
-              if (numberMatch) {
-                product.price = currencySymbol + numberMatch[1];
-                console.log('Found price via currency search (method 2):', product.price);
-                break;
-              }
-            }
-
-            product.price = fullPrice;
-            console.log('Found price via currency search (method 1):', product.price);
-            break;
-          }
-        }
-      }
-
-      // Fallback to selectors
-      if (!product.price) {
-        for (const selector of priceSelectors) {
+      // Use targeted selectors to find the actual product price
+      // Start with most specific selectors first
+      for (const selector of priceSelectors) {
           const priceElement = document.querySelector(selector);
           if (priceElement) {
             const priceText = priceElement.textContent?.trim() || priceElement.getAttribute('data-price');
@@ -150,7 +118,6 @@ const scrapeMiuMiuWithPuppeteer = async (url) => {
             }
           }
         }
-      }
 
       // Check for price in meta tags
       if (!product.price) {
