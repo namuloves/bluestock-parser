@@ -41,6 +41,7 @@ const { scrapeMiuMiu } = require('./miumiu');
 const { scrapeChiclara } = require('./chiclara');
 const { scrapeGalleryDept } = require('./gallerydept');
 const { scrapeBoden } = require('./boden');
+const { scrapeWConcept } = require('./wconcept');
 const { detectCategory } = require('../utils/categoryDetection');
 
 // Site detection function
@@ -172,6 +173,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('boden.')) {
     return 'boden';
+  }
+  if (hostname.includes('wconcept.')) {
+    return 'wconcept';
   }
 
   // Check for known Shopify domains
@@ -1618,6 +1622,58 @@ const scrapeProduct = async (url) => {
         }
 
         return chiclaraResult;
+
+      case 'wconcept':
+        console.log('🛍️ Using W Concept scraper');
+        const wconceptProduct = await scrapeWConcept(url);
+
+        // Extract price (already numeric from scraper)
+        const wconceptPriceNumeric = wconceptProduct.price || 0;
+        const wconceptOriginalPriceNumeric = wconceptProduct.originalPrice || wconceptPriceNumeric;
+
+        return {
+          success: true,
+          product: {
+            // Keep all original fields
+            ...wconceptProduct,
+
+            // Database schema fields
+            product_name: wconceptProduct.name,
+            brand: wconceptProduct.brand || 'W Concept',
+            original_price: wconceptOriginalPriceNumeric,
+            sale_price: wconceptPriceNumeric,
+            is_on_sale: wconceptProduct.isOnSale || false,
+            discount_percentage: wconceptProduct.isOnSale && wconceptOriginalPriceNumeric > wconceptPriceNumeric ?
+              Math.round((1 - wconceptPriceNumeric / wconceptOriginalPriceNumeric) * 100) : null,
+            sale_badge: wconceptProduct.isOnSale ? 'SALE' : null,
+            image_urls: wconceptProduct.images || [],
+            vendor_url: wconceptProduct.url || url,
+            color: wconceptProduct.color || '',
+            colors: [],
+            sizes: wconceptProduct.sizes || [],
+            category: detectCategory(
+              wconceptProduct.name || '',
+              wconceptProduct.description || '',
+              wconceptProduct.brand || 'W Concept',
+              wconceptProduct.category
+            ),
+            material: '',
+            description: wconceptProduct.description || '',
+            sku: wconceptProduct.sku || '',
+            in_stock: wconceptProduct.inStock !== false,
+            product_id: wconceptProduct.productId || '',
+
+            // Legacy fields for backward compatibility
+            name: wconceptProduct.name,
+            price: wconceptPriceNumeric,
+            images: wconceptProduct.images || [],
+            originalPrice: wconceptOriginalPriceNumeric,
+            isOnSale: wconceptProduct.isOnSale || false,
+            discountPercentage: wconceptProduct.isOnSale && wconceptOriginalPriceNumeric > wconceptPriceNumeric ?
+              Math.round((1 - wconceptPriceNumeric / wconceptOriginalPriceNumeric) * 100) : null,
+            saleBadge: wconceptProduct.isOnSale ? 'SALE' : null
+          }
+        };
 
       case 'boden':
         console.log('👗 Using Boden scraper');
