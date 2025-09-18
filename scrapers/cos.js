@@ -73,22 +73,27 @@ async function scrapeCOSHTML(url) {
       
       // Extract sizes from offers (different SKUs usually mean different sizes)
       const sizes = [];
-      const offers = jsonLdData.offers || [];
-      
+      const offers = Array.isArray(jsonLdData.offers) ? jsonLdData.offers : (jsonLdData.offers ? [jsonLdData.offers] : []);
+
       // Get price from first available offer
       let price = 0;
       let currency = 'USD';
       let inStock = false;
-      
-      offers.forEach(offer => {
-        if (offer.price && !price) {
-          price = offer.price;
-          currency = offer.priceCurrency || 'USD';
+
+      if (offers.length > 0) {
+        // Get price from first offer
+        const firstOffer = offers[0];
+        if (firstOffer.price) {
+          price = firstOffer.price;
+          currency = firstOffer.priceCurrency || 'USD';
         }
-        if (offer.availability?.includes('InStock')) {
-          inStock = true;
-        }
-      });
+        // Check if any offer is in stock
+        offers.forEach(offer => {
+          if (offer.availability?.includes('InStock')) {
+            inStock = true;
+          }
+        });
+      }
       
       // Try to extract color from name or description
       const name = jsonLdData.name || '';
@@ -116,7 +121,7 @@ async function scrapeCOSHTML(url) {
       // Build the final product object
       productData = {
         name: name,
-        price: currency === 'USD' ? `$${price}` : `${price} ${currency}`,
+        price: price, // Return numeric price, not formatted string
         originalPrice: null,
         images: images,
         description: description,
@@ -127,7 +132,8 @@ async function scrapeCOSHTML(url) {
         category: '',
         isOnSale: false,
         inStock: inStock,
-        url: url
+        url: url,
+        currency: currency
       };
     }
     
