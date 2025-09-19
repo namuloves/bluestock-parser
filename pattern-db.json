@@ -1,8 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2024-01-18",
-    "total_sites": 12
+    "updated": "2025-09-19T02:02:12.962Z",
+    "total_sites": 12,
+    "successful_extractions": 1
   },
   "global_patterns": {
     "price": [
@@ -290,5 +291,15 @@
     ],
     "lastSuccess": null,
     "confidence": 0.5
+  },
+  "learned_patterns": {
+    "us.boden.com": {
+      "name": "jsonLd",
+      "price": "jsonLd",
+      "brand": "jsonLd",
+      "images": "jsonLd",
+      "lastSuccess": "2025-09-19T02:02:12.961Z",
+      "successCount": 1
+    }
   }
 }
