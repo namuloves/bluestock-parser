@@ -1,3 +1,73 @@
+// ============================================
+// UNIVERSAL PARSER INTEGRATION - DO NOT DELETE
+// ============================================
+const UniversalParser = require('../universal-parser');
+let universalParser;
+
+try {
+  universalParser = new UniversalParser();
+  console.log('✅ Universal parser initialized');
+} catch (e) {
+  console.error('❌ Universal parser failed to initialize:', e.message);
+  universalParser = null;
+}
+
+// Universal parser wrapper with fallback
+async function tryUniversalParser(url) {
+  if (!universalParser) return null;
+
+  try {
+    const result = await universalParser.parse(url);
+    console.log(`📊 Universal parser confidence: ${result.confidence}`);
+
+    if (result.confidence > 0.7 && result.name && result.price) {
+      return {
+        success: true,
+        product: normalizeToExistingFormat(result),
+        extraction_method: 'universal',
+        confidence: result.confidence
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.log('Universal parser error:', error.message);
+    return null;
+  }
+}
+
+// Convert universal parser output to match existing format
+function normalizeToExistingFormat(data) {
+  return {
+    product_name: data.name,
+    brand: data.brand || 'Unknown',
+    original_price: data.price || 0,
+    sale_price: data.sale_price || data.price || 0,
+    is_on_sale: false,
+    discount_percentage: null,
+    image_urls: data.images || [],
+    description: data.description || '',
+    currency: data.currency || 'USD',
+    availability: data.availability || 'in_stock',
+    vendor_url: data.url,
+
+    // Legacy fields for compatibility
+    name: data.name,
+    price: data.price || 0,
+    images: data.images || [],
+    url: data.url,
+    sku: data.sku,
+    category: '',
+    sizes: [],
+    colors: [],
+    material: ''
+  };
+}
+// ============================================
+// END UNIVERSAL PARSER INTEGRATION
+// ============================================
+
+// EXISTING IMPORTS - DO NOT MODIFY
 const { scrapeAmazonProduct } = require('./amazon');
 const { scrapeGarmentory } = require('./garmentory');
 const { scrapeEbay } = require('./ebay');
@@ -209,12 +279,53 @@ const detectSite = (url) => {
 };
 
 // Main scraping function with site routing
-const scrapeProduct = async (url) => {
+const scrapeProduct = async (url, options = {}) => {
   console.log('🔍 Detecting site for:', url);
-  
+
+  // ============================================
+  // TRY UNIVERSAL PARSER FIRST (NEW)
+  // ============================================
+  if (!options.skipUniversal && process.env.UNIVERSAL_MODE !== 'off') {
+    const mode = process.env.UNIVERSAL_MODE || 'shadow';
+
+    if (mode === 'shadow') {
+      // Shadow mode: run but don't use results
+      const universalResult = await tryUniversalParser(url);
+      if (universalResult) {
+        console.log('🔬 [SHADOW MODE] Universal parser would have returned:', {
+          confidence: universalResult.confidence,
+          hasData: !!(universalResult.product?.name && universalResult.product?.price)
+        });
+      }
+    } else if (mode === 'partial') {
+      // Partial mode: only use for specific sites
+      const allowedSites = (process.env.UNIVERSAL_SITES || 'zara.com,hm.com').split(',');
+      const hostname = new URL(url).hostname.replace('www.', '');
+
+      if (allowedSites.some(site => hostname.includes(site))) {
+        const universalResult = await tryUniversalParser(url);
+        if (universalResult) {
+          console.log('✅ Universal parser succeeded (partial mode)');
+          return universalResult;
+        }
+      }
+    } else if (mode === 'full') {
+      // Full mode: try universal parser for all sites
+      const universalResult = await tryUniversalParser(url);
+      if (universalResult) {
+        console.log('✅ Universal parser succeeded');
+        return universalResult;
+      }
+      console.log('📌 Falling back to site-specific scraper');
+    }
+  }
+  // ============================================
+  // END UNIVERSAL PARSER INTEGRATION
+  // ============================================
+
   const site = detectSite(url);
   console.log('🏷️ Detected site:', site);
-  
+
   try {
     switch (site) {
       case 'amazon':
