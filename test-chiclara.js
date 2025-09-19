@@ -1,9 +1,9 @@
 const { scrapeProduct } = require('./scrapers/index');
 
-const testUrl = 'https://www.fwrd.com/product-bode-spirit-sweater-in-blue/BOFE-MK12/?d=Mens&utm_campaign=pinterest_performance_catalogsales&utm_medium=paidsocial&';
+const testUrl = 'https://chiclara.com/products/oversized-sweater-with-contrast-stitching?variant=44936391393455&pins_campaign_id=626755692937&utm_campaign=626755692937&utm_medium=PaidSocial&utm_source=Pinterest&utm_content=2680086328350&pp=0&epik=dj0yJnU9dVBVLWxjMlZ1c2FrUi1fSHZoZmFhNHpqWmxjNm94RDcmcD0xJm49amlSOWRHa1FjWFR1eFU3TlJ6WjdRUSZ0PUFBQUFBR2pKZFJj';
 
-async function testFWRD() {
-  console.log('\n🧪 Testing FWRD with URL:', testUrl, '\n');
+async function testChiclara() {
+  console.log('\n🧪 Testing Chiclara with current scraper...\n');
 
   try {
     const result = await scrapeProduct(testUrl);
@@ -32,8 +32,7 @@ async function testFWRD() {
     }
   } catch (error) {
     console.error('❌ Error:', error.message);
-    console.error('Stack:', error.stack);
   }
 }
 
-testFWRD().catch(console.error);
+testChiclara().catch(console.error);

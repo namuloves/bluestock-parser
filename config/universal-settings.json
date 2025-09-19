@@ -1,0 +1,15 @@
+{
+  "mode": "partial",
+  "confidence_threshold": 0.7,
+  "enabled_sites": [],
+  "disabled_sites": [],
+  "auto_promote_threshold": 0.8,
+  "auto_promote_min_requests": 10,
+  "performance_targets": {
+    "min_confidence": 0.7,
+    "max_response_time": 3000,
+    "min_success_rate": 0.7
+  },
+  "rollout_schedule": [],
+  "last_updated": "2025-09-19T01:41:55.912Z"
+}

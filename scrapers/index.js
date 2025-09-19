@@ -2,11 +2,19 @@
 // UNIVERSAL PARSER INTEGRATION - DO NOT DELETE
 // ============================================
 const UniversalParser = require('../universal-parser');
+const { getMetricsCollector } = require('../monitoring/metrics-collector');
 let universalParser;
+let metricsCollector;
 
 try {
   universalParser = new UniversalParser();
   console.log('✅ Universal parser initialized');
+
+  // Initialize metrics collector if monitoring is enabled
+  if (process.env.ENABLE_MONITORING !== 'false') {
+    metricsCollector = getMetricsCollector();
+    console.log('📊 Metrics collector initialized');
+  }
 } catch (e) {
   console.error('❌ Universal parser failed to initialize:', e.message);
   universalParser = null;
@@ -282,6 +290,11 @@ const detectSite = (url) => {
 const scrapeProduct = async (url, options = {}) => {
   console.log('🔍 Detecting site for:', url);
 
+  // Start timing for metrics
+  const startTime = Date.now();
+  let universalResult = null;
+  let specificResult = null;
+
   // ============================================
   // TRY UNIVERSAL PARSER FIRST (NEW)
   // ============================================
@@ -290,7 +303,7 @@ const scrapeProduct = async (url, options = {}) => {
 
     if (mode === 'shadow') {
       // Shadow mode: run but don't use results
-      const universalResult = await tryUniversalParser(url);
+      universalResult = await tryUniversalParser(url);
       if (universalResult) {
         console.log('🔬 [SHADOW MODE] Universal parser would have returned:', {
           confidence: universalResult.confidence,
@@ -303,17 +316,35 @@ const scrapeProduct = async (url, options = {}) => {
       const hostname = new URL(url).hostname.replace('www.', '');
 
       if (allowedSites.some(site => hostname.includes(site))) {
-        const universalResult = await tryUniversalParser(url);
+        universalResult = await tryUniversalParser(url);
         if (universalResult) {
           console.log('✅ Universal parser succeeded (partial mode)');
+
+          // Record metrics
+          if (metricsCollector) {
+            await metricsCollector.recordRequest(url, universalResult, universalResult, {
+              startTime,
+              endTime: Date.now()
+            });
+          }
+
           return universalResult;
         }
       }
     } else if (mode === 'full') {
       // Full mode: try universal parser for all sites
-      const universalResult = await tryUniversalParser(url);
+      universalResult = await tryUniversalParser(url);
       if (universalResult) {
         console.log('✅ Universal parser succeeded');
+
+        // Record metrics
+        if (metricsCollector) {
+          await metricsCollector.recordRequest(url, universalResult, universalResult, {
+            startTime,
+            endTime: Date.now()
+          });
+        }
+
         return universalResult;
       }
       console.log('📌 Falling back to site-specific scraper');

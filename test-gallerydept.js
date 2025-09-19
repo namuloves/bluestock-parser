@@ -1,9 +1,9 @@
 const { scrapeProduct } = require('./scrapers/index');
 
-const testUrl = 'https://www.fwrd.com/product-bode-spirit-sweater-in-blue/BOFE-MK12/?d=Mens&utm_campaign=pinterest_performance_catalogsales&utm_medium=paidsocial&';
+const testUrl = 'https://gallerydept.com/collections/mens/products/painted-carpenter-flare-natural';
 
-async function testFWRD() {
-  console.log('\n🧪 Testing FWRD with URL:', testUrl, '\n');
+async function testGalleryDept() {
+  console.log('\n🧪 Testing Gallery Dept with URL:', testUrl, '\n');
 
   try {
     const result = await scrapeProduct(testUrl);
@@ -36,4 +36,4 @@ async function testFWRD() {
   }
 }
 
-testFWRD().catch(console.error);
+testGalleryDept().catch(console.error);
