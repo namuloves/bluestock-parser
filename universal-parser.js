@@ -340,7 +340,18 @@ class UniversalParser {
       name: ['h1', '.product-title', '.product-name', '[data-testid="product-name"]', '.item-name'],
       price: ['.price', '.product-price', '[data-price]', '.current-price', '.now-price', '.sale-price'],
       brand: ['.brand', '.product-brand', '[data-brand]', '.designer', '.vendor'],
-      images: ['.product-image img', '.gallery img', '.product-photo img', '.media img'],
+      images: [
+        '.product__media img',
+        '.product-image img',
+        '.swiper-slide img',
+        '.gallery img',
+        '.product-photo img',
+        '.media img',
+        '.product-images img',
+        '.product-gallery img',
+        'img[src*="product"]',
+        'img[srcset]'
+      ],
       description: ['.product-description', '.description', '[data-description]', '.product-details']
     };
 
@@ -352,8 +363,36 @@ class UniversalParser {
           if (field === 'images') {
             const imgs = [];
             $(selector).each((i, el) => {
-              const src = $(el).attr('src') || $(el).attr('data-src') || $(el).attr('data-original');
-              if (src && !src.includes('placeholder') && !src.includes('blank')) {
+              // Try multiple attributes
+              let src = $(el).attr('src') ||
+                       $(el).attr('data-src') ||
+                       $(el).attr('data-original');
+
+              // Handle srcset
+              if (!src && $(el).attr('srcset')) {
+                const srcset = $(el).attr('srcset');
+                // Get the first URL from srcset
+                src = srcset.split(',')[0].trim().split(' ')[0];
+              }
+
+              // Handle data-srcset
+              if (!src && $(el).attr('data-srcset')) {
+                const srcset = $(el).attr('data-srcset');
+                src = srcset.split(',')[0].trim().split(' ')[0];
+              }
+
+              // Filter out placeholders and ensure it's a real image
+              if (src &&
+                  !src.includes('placeholder') &&
+                  !src.includes('blank.gif') &&
+                  !src.includes('data:image') &&
+                  !src.includes('transparent.png')) {
+
+                // Ensure full URL
+                if (src.startsWith('//')) {
+                  src = 'https:' + src;
+                }
+
                 imgs.push(src);
               }
             });
@@ -386,8 +425,9 @@ class UniversalParser {
   mergeStrategies(strategies) {
     const merged = {};
     const priority = ['jsonLd', 'openGraph', 'patterns', 'microdata', 'generic'];
-    const fields = ['name', 'price', 'brand', 'images', 'description', 'currency', 'availability', 'sku'];
+    const fields = ['name', 'price', 'brand', 'description', 'currency', 'availability', 'sku'];
 
+    // Handle most fields normally
     for (const field of fields) {
       for (const strategy of priority) {
         const value = strategies[strategy]?.[field];
@@ -397,6 +437,29 @@ class UniversalParser {
           break;
         }
       }
+    }
+
+    // Special handling for images - combine from multiple sources
+    const allImages = [];
+    const imageSources = [];
+
+    for (const strategy of priority) {
+      const images = strategies[strategy]?.images;
+      if (images && Array.isArray(images) && images.length > 0) {
+        images.forEach(img => {
+          if (img && !allImages.includes(img)) {
+            allImages.push(img);
+          }
+        });
+        if (!imageSources.includes(strategy)) {
+          imageSources.push(strategy);
+        }
+      }
+    }
+
+    if (allImages.length > 0) {
+      merged.images = allImages;
+      merged.images_source = imageSources.join('+');
     }
 
     // Post-process images
