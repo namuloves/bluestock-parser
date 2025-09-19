@@ -538,20 +538,41 @@ class UniversalParser {
   processImages(images) {
     if (!images || !Array.isArray(images)) return [];
 
-    // Remove duplicates and invalid URLs
-    const processed = [...new Set(images)]
-      .filter(img => img && img.startsWith('http'))
+    // First, normalize protocol-relative URLs and ensure full URLs
+    const normalized = images.map(img => {
+      if (!img) return null;
+
+      // Handle protocol-relative URLs
+      if (img.startsWith('//')) {
+        return 'https:' + img;
+      }
+
+      // Already has protocol
+      if (img.startsWith('http://') || img.startsWith('https://')) {
+        return img;
+      }
+
+      // Relative URL - we can't process without base URL
+      return null;
+    }).filter(img => img !== null);
+
+    // Remove duplicates and limit to max
+    const processed = [...new Set(normalized)]
       .slice(0, this.normalization.images.maxImages);
 
     // Apply transformations based on domain
     return processed.map(img => {
-      const url = new URL(img);
-      const domain = url.hostname;
+      try {
+        const url = new URL(img);
+        const domain = url.hostname;
 
-      for (const [pattern, transform] of Object.entries(this.normalization.images.transforms)) {
-        if (domain.includes(pattern)) {
-          return transform(img);
+        for (const [pattern, transform] of Object.entries(this.normalization.images.transforms)) {
+          if (domain.includes(pattern)) {
+            return transform(img);
+          }
         }
+      } catch (e) {
+        // If URL parsing fails, return as is
       }
       return img;
     });
