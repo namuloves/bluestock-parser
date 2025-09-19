@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-09-19T02:02:12.962Z",
+    "updated": "2025-09-19T18:04:22.318Z",
     "total_sites": 12,
-    "successful_extractions": 1
+    "successful_extractions": 11
   },
   "global_patterns": {
     "price": [
@@ -122,8 +122,14 @@
       ".product-media-container img",
       ".product-photo img"
     ],
-    "lastSuccess": null,
-    "confidence": 0.6
+    "lastSuccess": "2025-09-19T17:34:41.691Z",
+    "confidence": 0.6,
+    "successCount": null,
+    "patterns": {
+      "name": "h1",
+      "price": null,
+      "brand": "New Era"
+    }
   },
   "asos.com": {
     "price": [
@@ -164,8 +170,9 @@
       ".product-images-container img",
       ".product-image img"
     ],
-    "lastSuccess": null,
-    "confidence": 0.5
+    "lastSuccess": "2025-09-19T18:03:36.407Z",
+    "confidence": 0.5,
+    "successCount": 3
   },
   "farfetch.com": {
     "price": [
@@ -300,6 +307,15 @@
       "images": "jsonLd",
       "lastSuccess": "2025-09-19T02:02:12.961Z",
       "successCount": 1
+    }
+  },
+  "uniqlo.com": {
+    "successCount": 5,
+    "lastSuccess": "2025-09-19T18:04:22.318Z",
+    "patterns": {
+      "name": "h1",
+      "price": null,
+      "brand": "Uniqlo"
     }
   }
 }

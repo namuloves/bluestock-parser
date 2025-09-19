@@ -1,0 +1,66 @@
+{
+  "passed": 1,
+  "failed": 4,
+  "details": [
+    {
+      "site": "uniqlo",
+      "status": "FAILED",
+      "confidence": 0.75,
+      "checks": {
+        "name": true,
+        "price": false,
+        "images": true,
+        "confidence": true
+      },
+      "time": "0.7"
+    },
+    {
+      "site": "nordstrom",
+      "status": "FAILED",
+      "confidence": 0,
+      "checks": {
+        "name": false,
+        "price": false,
+        "images": false,
+        "confidence": false
+      },
+      "time": "32.2"
+    },
+    {
+      "site": "ssense",
+      "status": "PASSED",
+      "confidence": 0.9,
+      "checks": {
+        "name": true,
+        "price": true,
+        "images": true,
+        "confidence": true
+      },
+      "time": "4.4"
+    },
+    {
+      "site": "farfetch",
+      "status": "FAILED",
+      "confidence": 0,
+      "checks": {
+        "name": false,
+        "price": false,
+        "images": false,
+        "confidence": false
+      },
+      "time": "30.1"
+    },
+    {
+      "site": "net-a-porter",
+      "status": "FAILED",
+      "confidence": 0.25,
+      "checks": {
+        "name": true,
+        "price": false,
+        "images": false,
+        "confidence": false
+      },
+      "time": "2.7"
+    }
+  ]
+}

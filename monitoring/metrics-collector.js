@@ -186,6 +186,23 @@ class MetricsCollector {
     }
   }
 
+  async getMetrics() {
+    return {
+      current: this.currentMetrics,
+      session: this.sessionMetrics,
+      v1: {
+        successRate: this.currentMetrics.fallbackUsed > 0 ?
+          (this.currentMetrics.fallbackUsed / this.currentMetrics.totalRequests) * 100 : 0,
+        avgConfidence: this.currentMetrics.avgConfidence || 0
+      },
+      v2: {
+        successRate: this.currentMetrics.universalSuccess > 0 ?
+          (this.currentMetrics.universalSuccess / this.currentMetrics.universalAttempts) * 100 : 0,
+        avgConfidence: this.currentMetrics.avgConfidence || 0
+      }
+    };
+  }
+
   getSessionSummary() {
     if (this.sessionMetrics.length === 0) {
       return { message: 'No metrics collected yet' };

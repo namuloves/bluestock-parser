@@ -8,6 +8,7 @@ const { scrapeProduct } = require('./scrapers');
 const { enhanceWithAI } = require('./scrapers/ebay');
 const ClaudeAIService = require('./services/claude-ai');
 const SizeChartParser = require('./scrapers/sizeChartParser');
+const healthRoutes = require('./routes/health');
 
 // Initialize AI service if API key is available
 let aiService = null;
@@ -86,14 +87,19 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Health check routes (before other routes)
+app.use('/', healthRoutes);
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.send('Bluestock Parser API is running!');
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', service: 'bluestock-parser' });
+// Health endpoint moved to routes/health.js
+
+// Serve dashboard HTML
+app.get('/dashboard', (req, res) => {
+  res.sendFile(__dirname + '/dashboard.html');
 });
 
 // Debug SSENSE endpoint
@@ -342,6 +348,147 @@ process.on('SIGINT', async () => {
   console.log('Shutting down gracefully...');
   await sizeChartParser.cleanup();
   process.exit(0);
+});
+
+// ============================================
+// MONITORING DASHBOARD ENDPOINTS
+// ============================================
+
+// Parser performance dashboard
+app.get('/api/parser/dashboard', async (req, res) => {
+  try {
+    const UniversalParserV2 = require('./universal-parser-v2');
+    const { getMetricsCollector } = require('./monitoring/metrics-collector');
+    const { getUniversalConfig } = require('./config/universal-config');
+
+    const v2Parser = new UniversalParserV2();
+    const metricsCollector = getMetricsCollector();
+    const config = getUniversalConfig();
+
+    // Get V2 metrics
+    const v2Metrics = v2Parser.getMetrics ? v2Parser.getMetrics() : v2Parser.metrics;
+
+    // Get collector metrics
+    const collectorMetrics = await metricsCollector.getMetrics();
+
+    // Get configuration status
+    const configStatus = config.getStatus();
+
+    // Calculate performance comparison
+    const comparison = {
+      successRate: {
+        v1: collectorMetrics.v1?.successRate || 0,
+        v2: (v2Metrics.successes / (v2Metrics.attempts || 1)) * 100,
+        improvement: null
+      },
+      avgConfidence: {
+        v1: collectorMetrics.v1?.avgConfidence || 0,
+        v2: collectorMetrics.v2?.avgConfidence || 0,
+        improvement: null
+      },
+      strategyBreakdown: v2Metrics.byStrategy
+    };
+
+    // Calculate improvements
+    if (comparison.successRate.v1 > 0) {
+      comparison.successRate.improvement =
+        ((comparison.successRate.v2 - comparison.successRate.v1) / comparison.successRate.v1) * 100;
+    }
+
+    if (comparison.avgConfidence.v1 > 0) {
+      comparison.avgConfidence.improvement =
+        comparison.avgConfidence.v2 - comparison.avgConfidence.v1;
+    }
+
+    // Generate recommendations
+    const recommendations = [];
+
+    if (comparison.successRate.v2 > 80 && configStatus.mode === 'shadow') {
+      recommendations.push({
+        action: 'PROMOTE_TO_PARTIAL',
+        reason: 'V2 parser showing 80%+ success rate',
+        command: 'node universal-manager.js mode partial'
+      });
+    }
+
+    if (v2Metrics.byStrategy.puppeteer.attempts > v2Metrics.byStrategy.direct.attempts) {
+      recommendations.push({
+        action: 'OPTIMIZE_PROXY',
+        reason: 'High Puppeteer usage indicates many sites blocking direct access',
+        sites: ['cos.com', 'hm.com', 'aritzia.com']
+      });
+    }
+
+    const dashboard = {
+      timestamp: new Date().toISOString(),
+      mode: configStatus.mode,
+      v2Parser: {
+        ...v2Metrics,
+        successRate: (v2Metrics.successes / (v2Metrics.attempts || 1)) * 100
+      },
+      comparison,
+      recommendations,
+      config: {
+        mode: configStatus.mode,
+        enabledSites: configStatus.enabled_sites,
+        confidenceThreshold: configStatus.confidence_threshold
+      }
+    };
+
+    res.json(dashboard);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to generate dashboard',
+      message: error.message
+    });
+  }
+});
+
+// A/B Testing endpoint
+app.get('/api/parser/abtest', async (req, res) => {
+  const { url } = req.query;
+
+  if (!url) {
+    return res.status(400).json({ error: 'URL parameter required' });
+  }
+
+  try {
+    const { scrapeProduct } = require('./scrapers');
+
+    // Run V1 parser
+    process.env.USE_PARSER_V2 = 'false';
+    const v1Start = Date.now();
+    const v1Result = await scrapeProduct(url);
+    const v1Time = Date.now() - v1Start;
+
+    // Run V2 parser
+    process.env.USE_PARSER_V2 = 'true';
+    const v2Start = Date.now();
+    const v2Result = await scrapeProduct(url);
+    const v2Time = Date.now() - v2Start;
+
+    res.json({
+      url,
+      v1: {
+        success: v1Result.success,
+        confidence: v1Result.confidence || 0,
+        time: v1Time,
+        hasData: !!(v1Result.product?.product_name && v1Result.product?.sale_price)
+      },
+      v2: {
+        success: v2Result.success,
+        confidence: v2Result.confidence || 0,
+        time: v2Time,
+        hasData: !!(v2Result.product?.product_name && v2Result.product?.sale_price)
+      },
+      winner: v2Result.confidence > v1Result.confidence ? 'V2' : 'V1'
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'A/B test failed',
+      message: error.message
+    });
+  }
 });
 
 process.on('SIGTERM', async () => {

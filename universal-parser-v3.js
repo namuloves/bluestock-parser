@@ -1,0 +1,901 @@
+const cheerio = require('cheerio');
+const axios = require('axios');
+const puppeteerExtra = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const fs = require('fs').promises;
+const { getProxyConfig, getAxiosConfig } = require('./config/proxy');
+
+// Add stealth plugin to puppeteer
+puppeteerExtra.use(StealthPlugin());
+
+class UniversalParserV3 {
+  constructor() {
+    this.browserInstance = null;
+    this.cache = new Map();
+    this.apiDataCache = new Map(); // Cache for intercepted API data
+    this.metrics = {
+      attempts: 0,
+      successes: 0,
+      failures: 0,
+      apiInterceptions: 0,
+      byStrategy: {
+        direct: { attempts: 0, successes: 0 },
+        puppeteer: { attempts: 0, successes: 0 },
+        api: { attempts: 0, successes: 0 }
+      }
+    };
+
+    // Sites that require browser rendering
+    this.requiresBrowser = new Set([
+      'zara.com',
+      'farfetch.com',
+      'ssense.com',
+      'net-a-porter.com',
+      'cultgaia.com',
+      'matchesfashion.com',
+      'mytheresa.com',
+      'wconcept.com',
+      'aritzia.com',
+      'revolve.com',
+      'fwrd.com',
+      'nordstrom.com',
+      'saksfifthavenue.com',
+      'bloomingdales.com',
+      'uniqlo.com'  // Added - loads price dynamically
+    ]);
+
+    // Sites that block axios requests
+    this.blocksDirectFetch = new Set([
+      'cos.com',
+      'arket.com',
+      'stories.com',
+      'hm.com',
+      'www2.hm.com',
+      'aritzia.com',
+      'urbanoutfitters.com'
+    ]);
+
+    // API patterns to intercept for each site
+    this.apiPatterns = {
+      'uniqlo.com': [
+        /api.*product/i,
+        /graphql/i,
+        /pricing/i,
+        /inventory/i,
+        /hmall-d/i,  // Uniqlo's API endpoint
+        /data.*product/i,
+        /query/i
+      ],
+      'nordstrom.com': [
+        /api.*product/i,
+        /style.*api/i,
+        /price/i
+      ],
+      'zara.com': [
+        /api.*product/i,
+        /commercial/i,
+        /availability/i
+      ],
+      'farfetch.com': [
+        /api.*product/i,
+        /graphql/i,
+        /listing/i
+      ],
+      'ssense.com': [
+        /api.*product/i,
+        /graphql/i,
+        /plp-products/i
+      ],
+      'net-a-porter.com': [
+        /api.*product/i,
+        /nap/i,
+        /yoox/i
+      ],
+      'bloomingdales.com': [
+        /api.*product/i,
+        /xapi/i,
+        /digital/i
+      ],
+      'saksfifthavenue.com': [
+        /api.*product/i,
+        /catalog/i,
+        /graphql/i
+      ]
+    };
+
+    // Enhanced site-specific patterns
+    this.sitePatterns = {
+      'zara.com': {
+        name: ['h1.product-detail-info__header-name', '.product-name', '[data-qa-qualifier="product-name"]'],
+        price: ['.price-current__amount', '.price__amount-current', '[data-qa-qualifier="product-price"]'],
+        images: ['.media-image img', '.product-detail-images__image img', 'picture.media-image source'],
+        brand: () => 'Zara'
+      },
+      'cos.com': {
+        name: ['h1[itemprop="name"]', '.product-item-headline', 'h1.ProductName'],
+        price: ['span[itemprop="price"]', '.product-item-price', '.ProductPrice'],
+        images: ['.product-detail-main__images img', '.product-images img', '.slick-slide img'],
+        brand: () => 'COS'
+      },
+      'hm.com': {
+        name: ['h1.product-item-header', '.primary.product-item-headline', 'h1[data-test="product-name"]'],
+        price: ['.price.parbase', 'span[data-test="product-price"]', '.ProductPrice-module--productItemPrice__3K5pF'],
+        images: ['.product-detail-main-image-container img', '.product-detail-thumbnail-image'],
+        brand: () => 'H&M'
+      },
+      'uniqlo.com': {
+        name: ['h1.product-name', '.product-main-info h1', '[data-test="product-title"]', 'h1.fr-ec-title'],
+        price: ['.fr-ec-price-text', '.price-now', '.product-main-info__price', '[data-test="product-price-now"]', '.fr-ec-price'],
+        images: ['.fr-ec-image__image img', '.product-main-image img', '.product-image-carousel img', '.slick-slide img'],
+        brand: () => 'Uniqlo'
+      },
+      'aritzia.com': {
+        name: ['h1.product-name', '.pdp-product-name h1', '[data-test-id="product-name"]'],
+        price: ['.product-price', '.pdp-product-price', '[data-test-id="product-price"]'],
+        images: ['.product-image img', '.pdp-image img', '.product-images-carousel img'],
+        brand: () => 'Aritzia'
+      },
+      'net-a-porter.com': {
+        name: ['span.ProductDetails24__name', '.product-name', 'h1[itemprop="name"]'],
+        price: ['.PriceWithSchema9__value', '.product-price', 'span[itemprop="price"]'],
+        images: ['.ProductImageCarousel__image img', '.product-image img', '.swiper-slide img'],
+        brand: ['span.ProductDetails24__designer', '.product-designer', '[itemprop="brand"]']
+      },
+      'ssense.com': {
+        name: ['h1.product-name', '.product-name-price h1', 'h1[itemprop="name"]'],
+        price: ['.product-price', '.price-group span', 'span[itemprop="price"]'],
+        images: ['.product-images-container img', '.image-container img'],
+        brand: ['.product-brand', '.product-name-price p', '[itemprop="brand"]']
+      },
+      'nordstrom.com': {
+        name: ['h1.eAjwI', 'h1[itemprop="name"]', '.ProductTitle__ProductName'],
+        price: ['.cjvZl', 'span[itemprop="price"]', '.Price__PriceAmount'],
+        images: ['.ZoomImage__Image img', '.ProductMediaList__Image img'],
+        brand: ['.JZkLE', '[itemprop="brand"]', '.ProductTitle__Brand']
+      },
+      'farfetch.com': {
+        name: ['h1._3f80c9', 'h1[itemprop="name"]', '.product-detail-info h1'],
+        price: ['span._0d415e', 'span[itemprop="price"]', '.product-detail-price'],
+        images: ['.product-detail-image img', '.slick-slide img'],
+        brand: ['a._27d965', '[itemprop="brand"]', '.product-detail-brand']
+      }
+    };
+
+    // Generic patterns as fallback
+    this.genericPatterns = {
+      name: [
+        'h1',
+        '.product-name',
+        '.product-title',
+        '[itemprop="name"]',
+        '[data-testid="product-name"]',
+        '.pdp-name',
+        '.product-info h1'
+      ],
+      price: [
+        '.price',
+        '.product-price',
+        '[itemprop="price"]',
+        '.price-now',
+        '.sale-price',
+        '.current-price',
+        '[data-testid="product-price"]',
+        '.pdp-price',
+        '.price-sales'
+      ],
+      images: [
+        '.product-image img',
+        '.product-photo img',
+        '.gallery img',
+        '.swiper-slide img',
+        'picture img',
+        '[data-testid="product-image"] img',
+        '.pdp-image img',
+        '.product-images img'
+      ],
+      brand: [
+        '.brand',
+        '.product-brand',
+        '[itemprop="brand"]',
+        '.designer',
+        '.vendor',
+        '.manufacturer'
+      ]
+    };
+
+    this.logLevel = process.env.UNIVERSAL_LOG_LEVEL || 'normal';
+  }
+
+  async getBrowser() {
+    if (!this.browserInstance) {
+      this.browserInstance = await puppeteerExtra.launch({
+        headless: 'new',
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=IsolateOrigins,site-per-process',
+          '--disable-blink-features=AutomationControlled'
+        ]
+      });
+    }
+    return this.browserInstance;
+  }
+
+  async parse(url) {
+    const hostname = new URL(url).hostname.replace('www.', '');
+    this.metrics.attempts++;
+
+    if (this.logLevel !== 'quiet') {
+      console.log(`\n🧠 Universal Parser V3 attempting: ${hostname}`);
+    }
+
+    // Check cache
+    const cached = this.cache.get(url);
+    if (cached && Date.now() - cached.timestamp < 3600000) {
+      if (this.logLevel === 'verbose') {
+        console.log('📦 Returning cached result');
+      }
+      return cached.data;
+    }
+
+    try {
+      let html;
+      let interceptedData = null;
+      let strategy = 'direct';
+
+      // Determine fetch strategy
+      if (this.requiresBrowser.has(hostname) || this.blocksDirectFetch.has(hostname)) {
+        strategy = 'puppeteer';
+        const result = await this.fetchWithPuppeteerAndIntercept(url, hostname);
+        html = result.html;
+        interceptedData = result.interceptedData;
+      } else {
+        // Try direct fetch first
+        try {
+          html = await this.fetchDirect(url);
+          // Quick check if we got real content
+          if (html.length < 5000 || !html.includes('product')) {
+            if (this.logLevel === 'verbose') {
+              console.log('⚠️  Minimal HTML received, trying Puppeteer with interception');
+            }
+            strategy = 'puppeteer';
+            const result = await this.fetchWithPuppeteerAndIntercept(url, hostname);
+            html = result.html;
+            interceptedData = result.interceptedData;
+          }
+        } catch (error) {
+          if (error.response?.status === 403 || error.response?.status === 429) {
+            if (this.logLevel === 'verbose') {
+              console.log(`⚠️  ${error.response.status} error, trying Puppeteer with interception`);
+            }
+            strategy = 'puppeteer';
+            const result = await this.fetchWithPuppeteerAndIntercept(url, hostname);
+            html = result.html;
+            interceptedData = result.interceptedData;
+          } else {
+            throw error;
+          }
+        }
+      }
+
+      this.metrics.byStrategy[strategy].attempts++;
+
+      // Parse HTML
+      const $ = cheerio.load(html);
+      let result = await this.extractData($, hostname, url);
+
+      // Enhance with intercepted API data if available
+      if (interceptedData) {
+        result = this.mergeApiData(result, interceptedData);
+        if (this.logLevel === 'verbose') {
+          console.log('🎯 Enhanced with API data:', {
+            hadPrice: !!interceptedData.price,
+            hadName: !!interceptedData.name,
+            hadImages: interceptedData.images?.length > 0
+          });
+        }
+      }
+
+      if (result.confidence > 0.5) {
+        this.metrics.successes++;
+        this.metrics.byStrategy[strategy].successes++;
+
+        // Cache successful results
+        this.cache.set(url, {
+          data: result,
+          timestamp: Date.now()
+        });
+
+        // Learn from success (save patterns)
+        await this.learnFromSuccess(hostname, result, $);
+      } else {
+        this.metrics.failures++;
+      }
+
+      if (this.logLevel === 'verbose') {
+        console.log('📊 Extraction result:', {
+          strategy,
+          confidence: result.confidence,
+          hasName: !!result.name,
+          hasPrice: !!result.price,
+          imageCount: result.images?.length || 0,
+          apiDataUsed: !!interceptedData
+        });
+      }
+
+      return result;
+
+    } catch (error) {
+      this.metrics.failures++;
+      console.error(`❌ Parser error for ${url}:`, error.message);
+      return {
+        error: error.message,
+        confidence: 0,
+        url
+      };
+    }
+  }
+
+  async fetchDirect(url) {
+    const axiosConfig = getAxiosConfig(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      timeout: 10000,
+      maxRedirects: 5
+    });
+
+    const response = await axios.get(url, axiosConfig);
+    return response.data;
+  }
+
+  async fetchWithPuppeteerAndIntercept(url, hostname) {
+    const browser = await this.getBrowser();
+    const page = await browser.newPage();
+    const interceptedData = {
+      price: null,
+      name: null,
+      images: [],
+      brand: null,
+      variants: []
+    };
+
+    try {
+      await page.setViewport({ width: 1920, height: 1080 });
+      await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+      // Enable request interception
+      await page.setRequestInterception(true);
+
+      // Set up request/response interceptors
+      const apiPatterns = this.apiPatterns[hostname] || [/api/i, /graphql/i, /product/i];
+
+      page.on('request', request => {
+        // Continue all requests
+        request.continue();
+      });
+
+      page.on('response', async response => {
+        const url = response.url();
+        const status = response.status();
+
+        // Check if this is an API call we're interested in
+        const isApiCall = apiPatterns.some(pattern => pattern.test(url));
+
+        if (isApiCall && status === 200) {
+          try {
+            const contentType = response.headers()['content-type'] || '';
+
+            if (contentType.includes('application/json')) {
+              const data = await response.json();
+
+              // Extract data from various API response formats
+              this.extractFromApiResponse(data, interceptedData, hostname);
+
+              if (this.logLevel === 'verbose') {
+                console.log(`🎯 Intercepted API: ${url.substring(0, 80)}...`);
+              }
+
+              this.metrics.apiInterceptions++;
+            }
+          } catch (e) {
+            // Silently ignore parsing errors for non-JSON responses
+          }
+        }
+      });
+
+      // Navigate with increased timeout
+      await page.goto(url, {
+        waitUntil: 'domcontentloaded',  // Faster than networkidle0
+        timeout: 20000
+      });
+
+      // Wait for common product elements
+      try {
+        await page.waitForSelector('h1, .product-name, .product-title, [data-testid="product-name"]', {
+          timeout: 5000
+        });
+      } catch (e) {
+        // Continue even if selector not found
+      }
+
+      // Scroll to trigger lazy loading and API calls
+      await page.evaluate(() => {
+        window.scrollBy(0, window.innerHeight);
+      });
+
+      // Wait for API calls to complete
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Scroll more to ensure all content loads
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const html = await page.content();
+
+      return { html, interceptedData };
+
+    } finally {
+      await page.close();
+    }
+  }
+
+  extractFromApiResponse(data, interceptedData, hostname) {
+    // Generic extraction patterns that work across many sites
+    const searchObject = (obj, depth = 0) => {
+      if (depth > 10 || !obj) return;
+
+      for (const [key, value] of Object.entries(obj)) {
+        const lowerKey = key.toLowerCase();
+
+        // Price extraction
+        if (!interceptedData.price &&
+            (lowerKey.includes('price') || lowerKey === 'amount' || lowerKey === 'cost')) {
+          if (typeof value === 'number' && value > 0 && value < 100000) {
+            interceptedData.price = value;
+          } else if (typeof value === 'string' && /\d/.test(value)) {
+            const parsed = parseFloat(value.replace(/[^0-9.]/g, ''));
+            if (!isNaN(parsed) && parsed > 0) {
+              interceptedData.price = parsed;
+            }
+          }
+        }
+
+        // Name extraction
+        if (!interceptedData.name &&
+            (lowerKey === 'name' || lowerKey === 'title' || lowerKey === 'productname')) {
+          if (typeof value === 'string' && value.length > 3 && value.length < 200) {
+            interceptedData.name = value;
+          }
+        }
+
+        // Brand extraction
+        if (!interceptedData.brand &&
+            (lowerKey === 'brand' || lowerKey === 'manufacturer' || lowerKey === 'vendor')) {
+          if (typeof value === 'string' && value.length > 1 && value.length < 100) {
+            interceptedData.brand = value;
+          }
+        }
+
+        // Image extraction
+        if (lowerKey.includes('image') || lowerKey === 'url' || lowerKey === 'src') {
+          if (typeof value === 'string' && value.match(/\.(jpg|jpeg|png|webp|gif)/i)) {
+            if (!interceptedData.images.includes(value)) {
+              interceptedData.images.push(value);
+            }
+          } else if (Array.isArray(value)) {
+            value.forEach(img => {
+              if (typeof img === 'string' && img.match(/\.(jpg|jpeg|png|webp|gif)/i)) {
+                if (!interceptedData.images.includes(img)) {
+                  interceptedData.images.push(img);
+                }
+              }
+            });
+          }
+        }
+
+        // Recursive search
+        if (typeof value === 'object' && value !== null) {
+          if (Array.isArray(value)) {
+            value.forEach(item => {
+              if (typeof item === 'object') {
+                searchObject(item, depth + 1);
+              }
+            });
+          } else {
+            searchObject(value, depth + 1);
+          }
+        }
+      }
+    };
+
+    // Site-specific patterns
+    if (hostname === 'uniqlo.com') {
+      // Uniqlo specific patterns
+      if (data.result?.price?.promo?.value) {
+        interceptedData.price = data.result.price.promo.value;
+      } else if (data.result?.price?.base?.value) {
+        interceptedData.price = data.result.price.base.value;
+      } else if (data.result?.priceGroup) {
+        // Price groups API response
+        if (data.result.priceGroup.salePrice) {
+          interceptedData.price = parseFloat(data.result.priceGroup.salePrice.value);
+        } else if (data.result.priceGroup.promoPrice) {
+          interceptedData.price = parseFloat(data.result.priceGroup.promoPrice.value);
+        } else if (data.result.priceGroup.price) {
+          interceptedData.price = parseFloat(data.result.priceGroup.price.value);
+        }
+      } else if (data.priceGroup) {
+        // Direct price group response
+        if (data.priceGroup.salePrice?.value) {
+          interceptedData.price = parseFloat(data.priceGroup.salePrice.value);
+        } else if (data.priceGroup.price?.value) {
+          interceptedData.price = parseFloat(data.priceGroup.price.value);
+        }
+      }
+
+      if (data.result?.name) {
+        interceptedData.name = data.result.name;
+      } else if (data.name) {
+        interceptedData.name = data.name;
+      }
+    }
+
+    // GraphQL responses
+    if (data.data?.product) {
+      const product = data.data.product;
+      if (product.price) interceptedData.price = parseFloat(product.price);
+      if (product.name) interceptedData.name = product.name;
+      if (product.brand) interceptedData.brand = product.brand;
+      if (product.images) interceptedData.images = product.images;
+    }
+
+    // Run generic search
+    searchObject(data);
+  }
+
+  mergeApiData(result, apiData) {
+    // Merge intercepted API data with scraped data
+    if (!result.price && apiData.price) {
+      result.price = apiData.price;
+      result.priceSource = 'api';
+    }
+
+    if (!result.name && apiData.name) {
+      result.name = apiData.name;
+      result.nameSource = 'api';
+    }
+
+    if (!result.brand && apiData.brand) {
+      result.brand = apiData.brand;
+      result.brandSource = 'api';
+    }
+
+    if ((!result.images || result.images.length === 0) && apiData.images.length > 0) {
+      result.images = apiData.images;
+      result.imagesSource = 'api';
+    }
+
+    // Recalculate confidence with API data
+    result.confidence = this.calculateConfidence(result);
+
+    return result;
+  }
+
+  async extractData($, hostname, url) {
+    const result = {
+      url,
+      confidence: 0
+    };
+
+    // Try multiple extraction strategies
+    const strategies = [
+      this.extractJsonLd($),
+      this.extractOpenGraph($),
+      this.extractSiteSpecific($, hostname),
+      this.extractGeneric($)
+    ];
+
+    // Merge results from all strategies
+    for (const strategy of strategies) {
+      if (strategy.name && !result.name) result.name = strategy.name;
+      if (strategy.price && !result.price) result.price = strategy.price;
+      if (strategy.brand && !result.brand) result.brand = strategy.brand;
+      if (strategy.images?.length > 0 && (!result.images || result.images.length === 0)) {
+        result.images = strategy.images;
+      }
+      if (strategy.description && !result.description) result.description = strategy.description;
+    }
+
+    // Calculate confidence
+    result.confidence = this.calculateConfidence(result);
+
+    // Normalize data
+    if (result.price) {
+      result.price = this.normalizePrice(result.price);
+    }
+    if (result.images) {
+      result.images = this.normalizeImages(result.images, url);
+    }
+
+    return result;
+  }
+
+  extractJsonLd($) {
+    const result = {};
+    $('script[type="application/ld+json"]').each((i, elem) => {
+      try {
+        const data = JSON.parse($(elem).html());
+        if (data['@type'] === 'Product' || data.mainEntity?.['@type'] === 'Product') {
+          const product = data.mainEntity || data;
+          result.name = product.name;
+          result.price = product.offers?.price || product.price;
+          result.brand = product.brand?.name || product.brand;
+          result.description = product.description;
+          result.images = Array.isArray(product.image) ? product.image : [product.image].filter(Boolean);
+        }
+      } catch (e) {
+        // Silent fail
+      }
+    });
+    return result;
+  }
+
+  extractOpenGraph($) {
+    return {
+      name: $('meta[property="og:title"]').attr('content'),
+      price: $('meta[property="og:price:amount"]').attr('content') ||
+             $('meta[property="product:price:amount"]').attr('content'),
+      images: [$('meta[property="og:image"]').attr('content')].filter(Boolean),
+      description: $('meta[property="og:description"]').attr('content'),
+      brand: $('meta[property="product:brand"]').attr('content')
+    };
+  }
+
+  extractSiteSpecific($, hostname) {
+    const patterns = this.sitePatterns[hostname];
+    if (!patterns) return {};
+
+    const result = {};
+
+    for (const [field, selectors] of Object.entries(patterns)) {
+      if (typeof selectors === 'function') {
+        result[field] = selectors();
+        continue;
+      }
+
+      for (const selector of selectors) {
+        try {
+          if (field === 'images') {
+            const images = [];
+            $(selector).each((i, el) => {
+              let src = $(el).attr('src') || $(el).attr('data-src') || $(el).attr('srcset');
+              if (src) {
+                if (src.includes(',')) {
+                  src = src.split(',')[0].trim().split(' ')[0];
+                }
+                images.push(src);
+              }
+            });
+            if (images.length > 0) {
+              result[field] = images;
+              break;
+            }
+          } else {
+            const value = $(selector).first().text()?.trim();
+            if (value) {
+              result[field] = value;
+              break;
+            }
+          }
+        } catch (e) {
+          // Silent fail
+        }
+      }
+    }
+
+    return result;
+  }
+
+  extractGeneric($) {
+    const result = {};
+
+    for (const [field, selectors] of Object.entries(this.genericPatterns)) {
+      for (const selector of selectors) {
+        try {
+          if (field === 'images') {
+            const images = [];
+            $(selector).slice(0, 10).each((i, el) => {
+              let src = $(el).attr('src') || $(el).attr('data-src');
+              if (src && !src.includes('placeholder')) {
+                images.push(src);
+              }
+            });
+            if (images.length > 0) {
+              result[field] = images;
+              break;
+            }
+          } else {
+            const value = $(selector).first().text()?.trim();
+            if (value) {
+              result[field] = value;
+              break;
+            }
+          }
+        } catch (e) {
+          // Silent fail
+        }
+      }
+    }
+
+    return result;
+  }
+
+  calculateConfidence(result) {
+    let score = 0;
+    const weights = {
+      name: 0.25,
+      price: 0.25,
+      images: 0.25,
+      brand: 0.15,
+      description: 0.10
+    };
+
+    for (const [field, weight] of Object.entries(weights)) {
+      if (result[field]) {
+        if (field === 'images' && result[field].length === 0) continue;
+        score += weight;
+      }
+    }
+
+    return Math.min(score, 1);
+  }
+
+  normalizePrice(price) {
+    if (typeof price === 'number') return price;
+
+    const cleaned = price.toString()
+      .replace(/[^0-9.,]/g, '')
+      .replace(',', '');
+
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  normalizeImages(images, baseUrl) {
+    if (!Array.isArray(images)) return [];
+
+    const normalized = [];
+    const baseUrlObj = new URL(baseUrl);
+
+    for (let img of images) {
+      if (!img || typeof img !== 'string') continue;
+
+      // Handle protocol-relative URLs
+      if (img.startsWith('//')) {
+        img = 'https:' + img;
+      }
+      // Handle relative URLs
+      else if (img.startsWith('/')) {
+        img = `${baseUrlObj.protocol}//${baseUrlObj.host}${img}`;
+      }
+      // Handle relative URLs without leading slash
+      else if (!img.startsWith('http')) {
+        img = `${baseUrlObj.protocol}//${baseUrlObj.host}/${img}`;
+      }
+
+      normalized.push(img);
+    }
+
+    return normalized.slice(0, 10);
+  }
+
+  async learnFromSuccess(hostname, result, $) {
+    // Save successful patterns for future use
+    if (result.confidence < 0.7) return;
+
+    try {
+      const patternFile = './pattern-db.json';
+      let patterns = {};
+
+      try {
+        const data = await fs.readFile(patternFile, 'utf8');
+        patterns = JSON.parse(data);
+      } catch (e) {
+        patterns = {
+          _meta: {
+            version: '1.0',
+            updated: new Date().toISOString()
+          },
+          global_patterns: this.genericPatterns
+        };
+      }
+
+      // Update success count
+      if (!patterns._meta.successful_extractions) {
+        patterns._meta.successful_extractions = 0;
+      }
+      patterns._meta.successful_extractions++;
+      patterns._meta.updated = new Date().toISOString();
+
+      // Save the successful pattern for this site
+      if (!patterns[hostname]) {
+        patterns[hostname] = {
+          successCount: 0,
+          lastSuccess: new Date().toISOString(),
+          patterns: {}
+        };
+      }
+
+      patterns[hostname].successCount++;
+      patterns[hostname].lastSuccess = new Date().toISOString();
+
+      // Store which selectors worked
+      const workingSelectors = {
+        name: this.findWorkingSelector($, result.name, ['h1', '.product-name', '[itemprop="name"]']),
+        price: this.findWorkingSelector($, result.price, ['.price', '.product-price', '[itemprop="price"]']),
+        brand: result.brand
+      };
+
+      if (workingSelectors.name || workingSelectors.price) {
+        patterns[hostname].patterns = workingSelectors;
+      }
+
+      await fs.writeFile(patternFile, JSON.stringify(patterns, null, 2));
+
+      if (this.logLevel === 'verbose') {
+        console.log(`📝 Learned patterns for ${hostname}`);
+      }
+    } catch (e) {
+      // Silent fail - pattern learning is not critical
+    }
+  }
+
+  findWorkingSelector($, value, selectors) {
+    if (!value) return null;
+
+    for (const selector of selectors) {
+      try {
+        const found = $(selector).first().text()?.trim();
+        if (found && found.includes(value.toString().substring(0, 20))) {
+          return selector;
+        }
+      } catch (e) {
+        // Continue
+      }
+    }
+    return null;
+  }
+
+  async cleanup() {
+    if (this.browserInstance) {
+      await this.browserInstance.close();
+      this.browserInstance = null;
+    }
+  }
+
+  getMetrics() {
+    return {
+      ...this.metrics,
+      successRate: this.metrics.attempts > 0
+        ? (this.metrics.successes / this.metrics.attempts * 100).toFixed(1) + '%'
+        : '0%',
+      apiInterceptionRate: this.metrics.apiInterceptions > 0
+        ? `${this.metrics.apiInterceptions} API calls intercepted`
+        : 'No API interceptions'
+    };
+  }
+}
+
+module.exports = UniversalParserV3;

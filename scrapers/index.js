@@ -2,13 +2,20 @@
 // UNIVERSAL PARSER INTEGRATION - DO NOT DELETE
 // ============================================
 const UniversalParser = require('../universal-parser');
+const UniversalParserV2 = require('../universal-parser-v2');
 const { getMetricsCollector } = require('../monitoring/metrics-collector');
 let universalParser;
+let universalParserV2;
 let metricsCollector;
 
 try {
+  // Initialize both parsers - V1 for backward compatibility, V2 for new features
   universalParser = new UniversalParser();
   console.log('✅ Universal parser initialized');
+
+  // Initialize V2 parser with improved features
+  universalParserV2 = new UniversalParserV2();
+  console.log('✅ Universal parser V2 initialized');
 
   // Initialize metrics collector if monitoring is enabled
   if (process.env.ENABLE_MONITORING !== 'false') {
@@ -16,23 +23,29 @@ try {
     console.log('📊 Metrics collector initialized');
   }
 } catch (e) {
-  console.error('❌ Universal parser failed to initialize:', e.message);
+  console.error('❌ Parser initialization failed:', e.message);
   universalParser = null;
+  universalParserV2 = null;
 }
 
 // Universal parser wrapper with fallback
 async function tryUniversalParser(url) {
-  if (!universalParser) return null;
+  // Use V2 if enabled and available
+  const useV2 = process.env.USE_PARSER_V2 !== 'false' && universalParserV2;
+  const parser = useV2 ? universalParserV2 : universalParser;
+
+  if (!parser) return null;
 
   try {
-    const result = await universalParser.parse(url);
-    console.log(`📊 Universal parser confidence: ${result.confidence}`);
+    const result = await parser.parse(url);
+    const parserVersion = useV2 ? 'V2' : 'V1';
+    console.log(`📊 Universal parser ${parserVersion} confidence: ${result.confidence}`);
 
     if (result.confidence > 0.7 && result.name && result.price) {
       return {
         success: true,
         product: normalizeToExistingFormat(result),
-        extraction_method: 'universal',
+        extraction_method: `universal_${parserVersion}`,
         confidence: result.confidence
       };
     }
@@ -295,10 +308,31 @@ const scrapeProduct = async (url, options = {}) => {
   let universalResult = null;
   let specificResult = null;
 
+  // Check if URL is from sites with dedicated scrapers that work better
+  const hostname = new URL(url).hostname.replace('www.', '');
+
+  // Sites to skip Universal Parser for - they have optimized dedicated scrapers
+  const skipUniversalSites = [
+    'zara.com',
+    'amazon.com',
+    'ebay.com',
+    'etsy.com',
+    'nordstrom.com',
+    'saksfifthavenue.com',
+    'saks.com'
+  ];
+
+  const shouldSkipUniversal = skipUniversalSites.some(site => hostname.includes(site));
+
+  if (shouldSkipUniversal) {
+    console.log(`⚡ ${hostname} detected - skipping Universal Parser for optimal performance`);
+  }
+
   // ============================================
   // TRY UNIVERSAL PARSER FIRST (NEW)
   // ============================================
-  if (!options.skipUniversal && process.env.UNIVERSAL_MODE !== 'off') {
+  // Skip Universal Parser for sites with optimized dedicated scrapers
+  if (!shouldSkipUniversal && !options.skipUniversal && process.env.UNIVERSAL_MODE !== 'off') {
     const mode = process.env.UNIVERSAL_MODE || 'shadow';
 
     if (mode === 'shadow') {

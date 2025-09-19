@@ -1,0 +1,60 @@
+{
+  "test_products": [
+    {
+      "site": "uniqlo",
+      "url": "https://www.uniqlo.com/us/en/products/E459565-000/00",
+      "expected": {
+        "has_name": true,
+        "has_price": true,
+        "has_images": true,
+        "min_confidence": 0.7
+      }
+    },
+    {
+      "site": "nordstrom",
+      "url": "https://www.nordstrom.com/s/nike-dunk-low-retro-sneaker-men/7467933",
+      "expected": {
+        "has_name": true,
+        "has_price": true,
+        "has_images": true,
+        "min_confidence": 0.7
+      }
+    },
+    {
+      "site": "ssense",
+      "url": "https://www.ssense.com/en-us/men/product/adidas-originals/green-samba-og-sneakers/13567281",
+      "expected": {
+        "has_name": true,
+        "has_price": true,
+        "has_images": true,
+        "min_confidence": 0.7
+      }
+    },
+    {
+      "site": "farfetch",
+      "url": "https://www.farfetch.com/shopping/men/balenciaga-triple-s-sneakers-item-18737029.aspx",
+      "expected": {
+        "has_name": true,
+        "has_price": true,
+        "has_images": true,
+        "min_confidence": 0.7
+      }
+    },
+    {
+      "site": "net-a-porter",
+      "url": "https://www.net-a-porter.com/en-us/shop/product/gucci/shoes/low-top-sneakers/ace-leather-sneakers/1647597278582484",
+      "expected": {
+        "has_name": true,
+        "has_price": true,
+        "has_images": true,
+        "min_confidence": 0.7
+      }
+    }
+  ],
+  "test_config": {
+    "timeout": 30000,
+    "retry_on_failure": true,
+    "max_retries": 2,
+    "delay_between_tests": 2000
+  }
+}
