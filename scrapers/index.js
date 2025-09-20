@@ -199,9 +199,10 @@ const detectSite = (url) => {
   if (hostname.includes('urbanoutfitters.')) {
     return 'urbanoutfitters';
   }
-  if (hostname.includes('freepeople.')) {
-    return 'freepeople';
-  }
+  // Commented out - let Universal Parser handle Free People instead
+  // if (hostname.includes('freepeople.')) {
+  //   return 'freepeople';
+  // }
   if (hostname.includes('revolve.')) {
     return 'revolve';
   }
@@ -1091,9 +1092,10 @@ const scrapeProduct = async (url, options = {}) => {
         console.log('🏙️ Using Urban Outfitters scraper');
         return await scrapeUrbanOutfitters(url);
         
-      case 'freepeople':
-        console.log('🌻 Using Free People scraper');
-        return await scrapeFreePeople(url);
+      // Commented out - let Universal Parser handle Free People instead
+      // case 'freepeople':
+      //   console.log('🌻 Using Free People scraper');
+      //   return await scrapeFreePeople(url);
         
       case 'revolve':
         console.log('🌟 Using Revolve scraper');
