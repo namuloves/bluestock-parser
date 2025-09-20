@@ -234,8 +234,12 @@ app.post('/scrape', async (req, res) => {
 
     let scrapeResult = null;
 
-    // Try Universal Parser V3 first if available
-    if (universalParser) {
+    // Check if this is a Zara URL - use dedicated scraper for better results
+    const hostname = new URL(url).hostname.toLowerCase();
+    const useDedicatedScraper = hostname.includes('zara.com');
+
+    // Try Universal Parser V3 first if available (but skip for Zara)
+    if (universalParser && !useDedicatedScraper) {
       try {
         console.log('🧠 Attempting Universal Parser V3...');
         const v3Result = await universalParser.parse(url);
@@ -269,9 +273,13 @@ app.post('/scrape', async (req, res) => {
       }
     }
 
-    // Fall back to legacy scrapers if V3 didn't succeed
+    // Fall back to legacy scrapers if V3 didn't succeed (or for Zara)
     if (!scrapeResult || !scrapeResult.success) {
-      console.log('📦 Falling back to legacy scrapers...');
+      if (useDedicatedScraper) {
+        console.log('🛍️ Using dedicated Zara scraper for enhanced image extraction...');
+      } else {
+        console.log('📦 Falling back to legacy scrapers...');
+      }
 
       // Use actual scraper with race condition against timeout
       const scrapePromise = scrapeProduct(url);
