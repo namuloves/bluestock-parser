@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-09-19T18:04:22.318Z",
+    "updated": "2025-09-20T01:45:56.687Z",
     "total_sites": 12,
-    "successful_extractions": 11
+    "successful_extractions": 12
   },
   "global_patterns": {
     "price": [
@@ -316,6 +316,15 @@
       "name": "h1",
       "price": null,
       "brand": "Uniqlo"
+    }
+  },
+  "miumiu.com": {
+    "successCount": 1,
+    "lastSuccess": "2025-09-20T01:45:56.694Z",
+    "patterns": {
+      "name": "h1",
+      "price": null,
+      "brand": "Miu Miu"
     }
   }
 }

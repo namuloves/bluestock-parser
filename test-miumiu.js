@@ -1,36 +1,41 @@
-const { scrapeProduct } = require('./scrapers/index');
+const axios = require('axios');
+const cheerio = require('cheerio');
 
-const testUrl = 'https://www.miumiu.com/it/en/p/black-denim-patchwork-blouson-jacket/GWB284_1778_F0002_S_OOO';
-
-async function testMiuMiu() {
-  console.log('\n🧪 Testing Miu Miu with current scraper...\n');
+async function quickTest() {
+  const url = 'https://www.miumiu.com/us/en/p/new-balance-x-miu-miu-530-sl-suede-and-mesh-sneakers/5E165E_3D8C_F0009_F_BD05';
+  console.log('Testing Miu Miu:', url);
 
   try {
-    const result = await scrapeProduct(testUrl);
-
-    if (result.success) {
-      console.log('✅ Product scraped successfully!');
-      console.log('\nProduct Details:');
-      console.log('Name:', result.product.product_name || 'Not found');
-      console.log('Brand:', result.product.brand || 'Not found');
-      console.log('Price:', result.product.sale_price || 'Not found');
-      console.log('SKU:', result.product.sku || 'Not found');
-      console.log('Description:', result.product.description ? result.product.description.substring(0, 100) + '...' : 'Not found');
-      console.log('Images found:', result.product.image_urls?.length || 0);
-
-      if (result.product.image_urls && result.product.image_urls.length > 0) {
-        console.log('\nFirst 3 image URLs:');
-        result.product.image_urls.slice(0, 3).forEach((url, i) => {
-          console.log(`${i + 1}. ${url}`);
-        });
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml'
       }
-    } else {
-      console.log('❌ Failed to scrape product');
-      console.log('Error:', result.error);
-    }
-  } catch (error) {
-    console.error('❌ Error:', error.message);
+    });
+
+    const $ = cheerio.load(response.data);
+    console.log('HTML received:', response.data.length, 'bytes');
+
+    // Check for price
+    const selectors = ['.price', '[itemprop="price"]', '.product-price', '[data-price]'];
+    selectors.forEach(s => {
+      const text = $(s).first().text();
+      if (text) console.log(`Found ${s}: ${text}`);
+    });
+
+    // Check JSON-LD
+    $('script[type="application/ld+json"]').each((i, elem) => {
+      try {
+        const data = JSON.parse($(elem).html());
+        if (data.offers?.price) {
+          console.log('Price in JSON-LD:', data.offers.price);
+        }
+      } catch(e) {}
+    });
+
+  } catch(error) {
+    console.log('Error:', error.message);
   }
 }
 
-testMiuMiu().catch(console.error);
+quickTest();

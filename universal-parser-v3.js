@@ -158,6 +158,12 @@ class UniversalParserV3 {
         price: ['span._0d415e', 'span[itemprop="price"]', '.product-detail-price'],
         images: ['.product-detail-image img', '.slick-slide img'],
         brand: ['a._27d965', '[itemprop="brand"]', '.product-detail-brand']
+      },
+      'miumiu.com': {
+        name: ['h1.product-name', '.product-title', '[itemprop="name"]'],
+        price: ['.price', '[itemprop="price"]', '.product-price'],
+        images: ['.product-image img', '.gallery-image img'],
+        brand: () => 'Miu Miu'
       }
     };
 
