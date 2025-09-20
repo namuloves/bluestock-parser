@@ -14,18 +14,29 @@ const scrapeZaraEnhanced = async (url) => {
     const productId = productIdMatch ? productIdMatch[1] : null;
     console.log('📦 Product ID:', productId);
 
-    browser = await puppeteer.launch({
+    const puppeteerArgs = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--disable-gpu',
+      '--window-size=1920,1080',
+      '--disable-blink-features=AutomationControlled'
+    ];
+
+    // Add executable path for Railway/production environment
+    const launchOptions = {
       headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--disable-gpu',
-        '--window-size=1920,1080',
-        '--disable-blink-features=AutomationControlled'
-      ]
+      args: puppeteerArgs,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
+    };
+
+    console.log('🚀 Launching browser with options:', {
+      headless: launchOptions.headless,
+      hasExecutablePath: !!launchOptions.executablePath
     });
+
+    browser = await puppeteer.launch(launchOptions);
 
     const page = await browser.newPage();
 
@@ -74,14 +85,17 @@ const scrapeZaraEnhanced = async (url) => {
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Extract all available image URLs from various sources
+    console.log('📸 Extracting images from page...');
     const imageData = await page.evaluate(() => {
       const images = new Set();
+      const debug = { method1: 0, method2: 0, method3: 0, method4: 0 };
 
       // Method 1: Direct image elements
       document.querySelectorAll('img').forEach(img => {
         const src = img.src || img.dataset.src || img.dataset.fullSrc || img.getAttribute('data-zoom');
         if (src && src.includes('static.zara.net') && !src.includes('placeholder')) {
           images.add(src);
+          debug.method1++;
         }
       });
 
@@ -91,6 +105,7 @@ const scrapeZaraEnhanced = async (url) => {
         const urlMatch = style.match(/url\(['"]?([^'"]+)['"]?\)/);
         if (urlMatch && urlMatch[1].includes('static.zara.net')) {
           images.add(urlMatch[1]);
+          debug.method2++;
         }
       });
 
@@ -100,7 +115,10 @@ const scrapeZaraEnhanced = async (url) => {
         if (srcset && srcset.includes('static.zara.net')) {
           // Extract URLs from srcset
           const urls = srcset.split(',').map(s => s.trim().split(' ')[0]);
-          urls.forEach(url => images.add(url));
+          urls.forEach(url => {
+            images.add(url);
+            debug.method3++;
+          });
         }
       });
 
@@ -113,16 +131,23 @@ const scrapeZaraEnhanced = async (url) => {
           const urlPattern = /https:\/\/static\.zara\.net\/[^"'\s,]+\.(?:jpg|jpeg|png|webp)/gi;
           const matches = content.match(urlPattern);
           if (matches) {
-            matches.forEach(url => images.add(url));
+            matches.forEach(url => {
+              images.add(url);
+              debug.method4++;
+            });
           }
         }
       });
 
-      return Array.from(images);
+      console.log('Debug - Images found by method:', debug);
+      return { images: Array.from(images), debug };
     });
 
+    console.log('📸 Image extraction debug:', imageData.debug);
+    const images = imageData.images || [];
+
     // Process image URLs to get high-resolution versions
-    const processedImages = imageData.map(url => {
+    const processedImages = images.map(url => {
       // Zara image URL patterns:
       // https://static.zara.net/photos//2024/V/0/1/p/5536/126/800/2/{w}x{h}/5536126800_1_1_1.jpg
 

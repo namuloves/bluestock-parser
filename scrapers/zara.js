@@ -10,11 +10,21 @@ const scrapeZara = async (url) => {
     const { scrapeZaraEnhanced } = require('./zara-enhanced');
     console.log('🚀 Using enhanced Puppeteer for Zara...');
     const enhancedResult = await scrapeZaraEnhanced(url);
-    if (enhancedResult.success && enhancedResult.product) {
+    console.log('📸 Enhanced scraper result:', {
+      success: enhancedResult.success,
+      hasProduct: !!enhancedResult.product,
+      imageCount: enhancedResult.product?.images?.length || 0,
+      error: enhancedResult.error
+    });
+    if (enhancedResult.success && enhancedResult.product && enhancedResult.product.images && enhancedResult.product.images.length > 0) {
+      console.log('✅ Returning enhanced Zara scraper results with', enhancedResult.product.images.length, 'images');
       return enhancedResult.product;
+    } else {
+      console.log('⚠️ Enhanced scraper didn\'t return sufficient data, trying fallback...');
     }
   } catch (enhancedError) {
     console.log('⚠️ Enhanced Puppeteer failed:', enhancedError.message);
+    console.log('Stack trace:', enhancedError.stack);
   }
 
   // Try standard Puppeteer as fallback
