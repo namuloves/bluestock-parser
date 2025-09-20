@@ -4,7 +4,21 @@ const { getAxiosConfig } = require('../config/proxy');
 
 const scrapeFreePeople = async (url) => {
   console.log('🌻 Starting Free People scraper for:', url);
-  
+
+  // Try enhanced Puppeteer approach first
+  try {
+    const { scrapeFreePeopleEnhanced } = require('./freepeople-enhanced');
+    console.log('🚀 Using enhanced Puppeteer for Free People...');
+    const enhancedResult = await scrapeFreePeopleEnhanced(url);
+    if (enhancedResult.success && enhancedResult.product) {
+      console.log('✅ Returning enhanced Free People scraper results');
+      return enhancedResult.product;
+    }
+  } catch (enhancedError) {
+    console.log('⚠️ Enhanced Puppeteer failed:', enhancedError.message);
+  }
+
+  // Fall back to basic scraper
   try {
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
