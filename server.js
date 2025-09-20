@@ -10,6 +10,23 @@ const ClaudeAIService = require('./services/claude-ai');
 const SizeChartParser = require('./scrapers/sizeChartParser');
 const healthRoutes = require('./routes/health');
 
+// Import Universal Parser V3 with caching
+let UniversalParserV3 = null;
+let universalParser = null;
+
+try {
+  // Try to load the cached version if Redis is available
+  if (process.env.REDIS_ENABLED !== 'false') {
+    UniversalParserV3 = require('./universal-parser-v3-cached');
+  } else {
+    UniversalParserV3 = require('./universal-parser-v3');
+  }
+  universalParser = new UniversalParserV3();
+  console.log('✅ Universal parser V3 initialized');
+} catch (error) {
+  console.log('⚠️ Universal parser V3 not available, using legacy scrapers only');
+}
+
 // Initialize AI service if API key is available
 let aiService = null;
 if (process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim()) {
@@ -214,15 +231,57 @@ app.post('/scrape', async (req, res) => {
     
     console.log('🔍 Scraping URL:', url);
     console.log('🔍 Scraping started at:', new Date().toISOString());
-    
-    // Use actual scraper with race condition against timeout
-    const scrapePromise = scrapeProduct(url);
-    // Increase timeout to 90 seconds for Apify requests
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Scraping timeout')), 90000)
-    );
-    
-    const scrapeResult = await Promise.race([scrapePromise, timeoutPromise]);
+
+    let scrapeResult = null;
+
+    // Try Universal Parser V3 first if available
+    if (universalParser) {
+      try {
+        console.log('🧠 Attempting Universal Parser V3...');
+        const v3Result = await universalParser.parse(url);
+
+        if (v3Result && v3Result.confidence > 0.5) {
+          console.log(`✅ V3 Parser succeeded with confidence: ${v3Result.confidence}`);
+
+          // Convert V3 format to expected format
+          scrapeResult = {
+            success: true,
+            product: {
+              name: v3Result.name || '',
+              product_name: v3Result.name || '',
+              brand: v3Result.brand || 'Unknown',
+              price: v3Result.price || 0,
+              original_price: v3Result.originalPrice || v3Result.price || 0,
+              sale_price: v3Result.price || 0,
+              images: v3Result.images || [],
+              image_urls: v3Result.images || [],
+              description: v3Result.description || '',
+              is_on_sale: v3Result.isOnSale || false,
+              discount_percentage: v3Result.discountPercentage || null,
+              platform: 'universal-v3',
+              confidence: v3Result.confidence,
+              source: 'universal-parser-v3'
+            }
+          };
+        }
+      } catch (error) {
+        console.log(`⚠️ V3 Parser failed: ${error.message}`);
+      }
+    }
+
+    // Fall back to legacy scrapers if V3 didn't succeed
+    if (!scrapeResult || !scrapeResult.success) {
+      console.log('📦 Falling back to legacy scrapers...');
+
+      // Use actual scraper with race condition against timeout
+      const scrapePromise = scrapeProduct(url);
+      // Increase timeout to 90 seconds for Apify requests
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Scraping timeout')), 90000)
+      );
+
+      scrapeResult = await Promise.race([scrapePromise, timeoutPromise]);
+    }
     
     console.log('🔍 Scrape result:', {
       success: scrapeResult.success,

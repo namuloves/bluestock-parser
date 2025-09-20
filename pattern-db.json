@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-09-20T01:45:56.687Z",
+    "updated": "2025-09-20T01:50:41.155Z",
     "total_sites": 12,
-    "successful_extractions": 12
+    "successful_extractions": 13
   },
   "global_patterns": {
     "price": [
@@ -319,8 +319,8 @@
     }
   },
   "miumiu.com": {
-    "successCount": 1,
-    "lastSuccess": "2025-09-20T01:45:56.694Z",
+    "successCount": 2,
+    "lastSuccess": "2025-09-20T01:50:41.155Z",
     "patterns": {
       "name": "h1",
       "price": null,
