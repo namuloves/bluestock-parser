@@ -51,48 +51,46 @@ process.on('unhandledRejection', (error) => {
   }
 });
 
-// CORS configuration - more permissive for production
-const corsOptions = {
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      'https://bluestock-bay.vercel.app',
-      'https://bluestock.vercel.app',
-      'https://bluestock-git-main.vercel.app',
-      'http://localhost:3000', // For local development
-      'http://localhost:3001',
-      process.env.FRONTEND_URL // Dynamic frontend URL from env
-    ].filter(Boolean); // Remove any undefined values
+// CORS configuration - fully open in production for now
+const corsOptions = process.env.NODE_ENV === 'production'
+  ? {
+      origin: true, // Allow ALL origins in production
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'Accept', 'Origin'],
+      exposedHeaders: ['Content-Length', 'Content-Type'],
+      maxAge: 86400,
+      optionsSuccessStatus: 200
+    }
+  : {
+      // Stricter in development
+      origin: function (origin, callback) {
+        const allowedOrigins = [
+          'http://localhost:3000',
+          'http://localhost:3001',
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:3001'
+        ];
 
-    // Allow requests with no origin (like mobile apps or Postman)
-    if (!origin) return callback(null, true);
-    
-    // Allow any Vercel deployment
-    if (origin && (origin.includes('vercel.app') || origin.includes('localhost'))) {
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('⚠️ CORS warning - unknown origin:', origin);
-      // In production, allow all origins but log them
-      if (process.env.NODE_ENV === 'production') {
-        callback(null, true);
-      } else {
+        if (!origin) return callback(null, true);
+
+        if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('vercel.app')) {
+          return callback(null, true);
+        }
+
         callback(new Error('Not allowed by CORS'));
-      }
-    }
-  },
-  credentials: true, // Allow cookies if needed
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'Accept', 'Origin'],
-  exposedHeaders: ['Content-Length', 'Content-Type'],
-  maxAge: 86400, // Cache preflight requests for 24 hours
-  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
-};
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'Accept', 'Origin'],
+      optionsSuccessStatus: 200
+    };
 
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Explicit OPTIONS handler for preflight requests
+app.options('*', cors(corsOptions));
 
 // Health check routes (before other routes)
 app.use('/', healthRoutes);
