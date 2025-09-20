@@ -4,29 +4,41 @@ const { getAxiosConfig } = require('../config/proxy');
 
 const scrapeZara = async (url) => {
   console.log('🛍️ Starting Zara scraper for:', url);
-  
-  // Zara has strong bot protection, use API approach
+
+  // Try enhanced Puppeteer approach first for better image extraction
+  try {
+    const { scrapeZaraEnhanced } = require('./zara-enhanced');
+    console.log('🚀 Using enhanced Puppeteer for Zara...');
+    const enhancedResult = await scrapeZaraEnhanced(url);
+    if (enhancedResult.success && enhancedResult.product) {
+      return enhancedResult.product;
+    }
+  } catch (enhancedError) {
+    console.log('⚠️ Enhanced Puppeteer failed:', enhancedError.message);
+  }
+
+  // Try standard Puppeteer as fallback
+  try {
+    const { scrapeZaraPuppeteer } = require('./zara-puppeteer');
+    console.log('🚀 Trying standard Puppeteer for Zara...');
+    const puppeteerResult = await scrapeZaraPuppeteer(url);
+    if (!puppeteerResult.error && puppeteerResult.name) {
+      return puppeteerResult;
+    }
+  } catch (puppeteerError) {
+    console.log('⚠️ Standard Puppeteer failed:', puppeteerError.message);
+  }
+
+  // API approach as last resort
   try {
     const { scrapeZaraAPI } = require('./zara-api');
-    console.log('🚀 Using API approach for Zara...');
+    console.log('🚀 Falling back to API approach for Zara...');
     const apiResult = await scrapeZaraAPI(url);
     if (apiResult && !apiResult.error) {
       return apiResult;
     }
   } catch (apiError) {
     console.log('⚠️ API approach failed:', apiError.message);
-  }
-  
-  // Try Puppeteer as fallback
-  try {
-    const { scrapeZaraPuppeteer } = require('./zara-puppeteer');
-    console.log('🚀 Trying Puppeteer for Zara...');
-    const puppeteerResult = await scrapeZaraPuppeteer(url);
-    if (!puppeteerResult.error && puppeteerResult.name) {
-      return puppeteerResult;
-    }
-  } catch (puppeteerError) {
-    console.log('⚠️ Puppeteer failed:', puppeteerError.message);
   }
   
   try {

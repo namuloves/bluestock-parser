@@ -5,7 +5,12 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 
 const scrapeFWRDWithPuppeteer = async (url) => {
-  console.log('🎭 Starting FWRD Puppeteer scraper for:', url);
+  // Clean the URL - remove problematic query parameters that might cause issues
+  const urlObj = new URL(url);
+  const cleanUrl = `${urlObj.origin}${urlObj.pathname}`;
+
+  console.log('🎭 Starting FWRD Puppeteer scraper for:', cleanUrl);
+  console.log('   (Original URL:', url, ')');
 
   let browser;
   try {
@@ -38,7 +43,7 @@ const scrapeFWRDWithPuppeteer = async (url) => {
     // Navigate to the page with error handling
     console.log('📄 Loading page...');
     try {
-      await page.goto(url, {
+      await page.goto(cleanUrl, {
         waitUntil: 'domcontentloaded',
         timeout: 30000
       });
@@ -254,8 +259,8 @@ const scrapeFWRDWithPuppeteer = async (url) => {
       return product;
     });
 
-    // Extract product code from URL for additional image generation
-    const urlMatch = url.match(/\/([A-Z]+-[A-Z0-9]+)\//);
+    // Extract product code from clean URL for additional image generation
+    const urlMatch = cleanUrl.match(/\/([A-Z]+-[A-Z0-9]+)\//);
     const productCode = urlMatch ? urlMatch[1] : null;
 
     if (productCode && productData.images.length < 2) {
