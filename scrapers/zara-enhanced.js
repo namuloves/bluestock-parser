@@ -277,14 +277,19 @@ const scrapeZaraEnhanced = async (url) => {
 
     // Combine all images and remove duplicates
     const allImages = [...new Set([...processedImages, ...additionalImages])];
+    console.log(`📸 Total unique images before filtering: ${allImages.length}`);
 
     // Filter out non-product images (SVGs, icons, other products)
     const filteredImages = allImages.filter(url => {
       // Keep only JPG/PNG product images
       if (!url.match(/\.(jpg|jpeg|png)/i)) return false;
 
-      // Filter out images that don't match the product ID
-      if (productId && !url.includes(productId)) return false;
+      // Filter out images that don't match the product ID (check for base product ID)
+      // Zara uses formats like 05536126800, 05536126402 for the same product 05536126
+      if (productId) {
+        const baseProductId = productId.substring(0, 8); // Get first 8 digits
+        if (!url.includes(baseProductId)) return false;
+      }
 
       // Filter out placeholder and icon images
       if (url.includes('placeholder') || url.includes('icon') || url.includes('logo')) return false;
@@ -309,6 +314,7 @@ const scrapeZaraEnhanced = async (url) => {
     });
 
     // Take top 10 images
+    console.log(`📸 Images after filtering: ${sortedImages.length}`);
     productData.images = sortedImages.slice(0, 10);
     productData.productId = productId;
     productData.url = url;
