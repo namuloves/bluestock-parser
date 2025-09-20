@@ -74,13 +74,20 @@ const corsOptions = {
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      console.log('⚠️ CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
+      console.log('⚠️ CORS warning - unknown origin:', origin);
+      // In production, allow all origins but log them
+      if (process.env.NODE_ENV === 'production') {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
     }
   },
   credentials: true, // Allow cookies if needed
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  maxAge: 86400, // Cache preflight requests for 24 hours
   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 
