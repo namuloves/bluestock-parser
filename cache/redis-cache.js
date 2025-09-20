@@ -40,24 +40,40 @@ class RedisCache {
 
   initRedis() {
     try {
-      // Redis connection options
-      const redisConfig = {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: process.env.REDIS_PORT || 6379,
-        password: process.env.REDIS_PASSWORD || undefined,
-        db: process.env.REDIS_DB || 0,
-        retryStrategy: (times) => {
-          const delay = Math.min(times * 50, 2000);
-          return delay;
-        },
-        enableOfflineQueue: true,
-        maxRetriesPerRequest: 3
-      };
-
-      // Support for Redis URL (for cloud services like Redis Cloud, Upstash, etc.)
+      // Support for Redis URL (preferred method)
       if (process.env.REDIS_URL) {
+        console.log('🔴 Connecting to Redis using REDIS_URL...');
         this.client = new Redis(process.env.REDIS_URL);
-      } else {
+      }
+      // Support for Railway's Redis variables
+      else if (process.env.REDIS_HOST && process.env.REDIS_PASSWORD) {
+        console.log('🔴 Connecting to Redis using host/password...');
+
+        // Construct URL from Railway variables
+        const host = process.env.REDIS_HOST;
+        const port = process.env.REDIS_PORT || 6379;
+        const password = process.env.REDIS_PASSWORD;
+        const db = process.env.REDIS_DB || 0;
+
+        const redisUrl = `redis://default:${password}@${host}:${port}/${db}`;
+        console.log('📍 Constructed Redis URL (host hidden)');
+
+        this.client = new Redis(redisUrl);
+      }
+      // Fallback to localhost for development
+      else {
+        console.log('🔴 Connecting to local Redis...');
+        const redisConfig = {
+          host: 'localhost',
+          port: 6379,
+          db: process.env.REDIS_DB || 0,
+          retryStrategy: (times) => {
+            const delay = Math.min(times * 50, 2000);
+            return delay;
+          },
+          enableOfflineQueue: true,
+          maxRetriesPerRequest: 3
+        };
         this.client = new Redis(redisConfig);
       }
 

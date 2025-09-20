@@ -97,6 +97,39 @@ app.get('/', (req, res) => {
 
 // Health endpoint moved to routes/health.js
 
+// Redis connection test (remove after verifying)
+app.get('/test-redis', async (req, res) => {
+  try {
+    const { getCache } = require('./cache/redis-cache');
+    const cache = getCache();
+
+    // Wait a moment for connection
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const metrics = await cache.getMetrics();
+
+    res.json({
+      status: 'Redis test endpoint',
+      environment: {
+        redis_url_set: !!process.env.REDIS_URL,
+        redis_host_set: !!process.env.REDIS_HOST,
+        redis_password_set: !!process.env.REDIS_PASSWORD,
+        redis_enabled: process.env.REDIS_ENABLED !== 'false'
+      },
+      connection: {
+        connected: metrics.connected,
+        enabled: metrics.enabled
+      },
+      metrics: metrics
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
 // Serve dashboard HTML
 app.get('/dashboard', (req, res) => {
   res.sendFile(__dirname + '/dashboard.html');
