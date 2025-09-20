@@ -116,7 +116,8 @@
   <script>
     async function fetchDashboard() {
       try {
-        const response = await fetch('http://localhost:3001/api/parser/dashboard');
+        // Use relative URL so it works on any domain (localhost or production)
+        const response = await fetch('/api/parser/dashboard');
         const data = await response.json();
 
         if (data.error) {
