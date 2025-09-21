@@ -340,9 +340,10 @@ app.post('/scrape', async (req, res) => {
       image_urls: productData.image_urls || productData.images || [],
       vendor_url: url, // Always use the requested URL
       description: productData.description || '',
-      color: productData.color || '',
+      // Handle both singular and plural forms for color and material
+      color: productData.color || (Array.isArray(productData.colors) ? productData.colors[0] : '') || '',
       category: productData.category || '',
-      material: productData.material || '',
+      material: productData.material || (Array.isArray(productData.materials) ? productData.materials.join(', ') : '') || '',
       platform: productData.platform || '',
       
       // Legacy fields for backward compatibility
