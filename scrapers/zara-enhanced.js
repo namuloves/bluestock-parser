@@ -84,6 +84,20 @@ const scrapeZaraEnhanced = async (url) => {
     });
     await new Promise(resolve => setTimeout(resolve, 1000));
 
+    // Click on COMPOSITION & CARE tab to reveal material information
+    console.log('🧵 Clicking composition tab to extract materials...');
+    await page.evaluate(() => {
+      // Find and click the composition button
+      const compositionButtons = document.querySelectorAll('.product-detail-actions__action, button');
+      for (const btn of compositionButtons) {
+        if (btn.textContent?.includes('COMPOSITION') || btn.textContent?.includes('Composition')) {
+          btn.click();
+          break;
+        }
+      }
+    });
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
     // Extract all available image URLs from various sources
     console.log('📸 Extracting images from page...');
     const imageData = await page.evaluate(() => {
@@ -243,10 +257,19 @@ const scrapeZaraEnhanced = async (url) => {
         }
       });
 
-      // Colors
+      // Colors - also check for selected color
+      const selectedColorElement = document.querySelector('.product-detail-selected-color, .product-detail-color-selector__selected-color-name, [class*="selected-color"]');
+      if (selectedColorElement) {
+        const selectedColor = selectedColorElement.textContent?.trim();
+        if (selectedColor && !product.colors.includes(selectedColor)) {
+          product.colors.push(selectedColor);
+        }
+      }
+
+      // Also get available colors
       const colorElements = document.querySelectorAll('.product-detail-color-selector__color, .color-selector a[aria-label]');
       colorElements.forEach(el => {
-        const color = el.getAttribute('aria-label') || el.getAttribute('title');
+        const color = el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent?.trim();
         if (color && !product.colors.includes(color)) {
           product.colors.push(color);
         }
@@ -258,15 +281,47 @@ const scrapeZaraEnhanced = async (url) => {
         product.description = descElement.textContent.trim();
       }
 
-      // Materials
-      const compositionElement = document.querySelector('.product-detail-extra-info') ||
-                                 Array.from(document.querySelectorAll('.structured-component__text'))
-                                   .find(el => el.textContent.includes('COMPOSITION'));
-      if (compositionElement) {
-        const text = compositionElement.textContent;
+      // Materials - check multiple possible locations including the composition panel
+      let materialsFound = false;
+
+      // First try to get from the composition panel that was opened
+      const compositionPanel = document.querySelector('.product-detail-actions__action-product-composition, .product-composition-wrapper, [class*="composition-panel"]');
+      if (compositionPanel) {
+        const text = compositionPanel.textContent;
         const materials = text.match(/\d+%\s+[\w\s]+/g);
-        if (materials) {
+        if (materials && materials.length > 0) {
           product.materials = materials;
+          materialsFound = true;
+        }
+      }
+
+      // Also check for OUTER SHELL or similar sections
+      if (!materialsFound) {
+        const shellElements = document.querySelectorAll('li, p, div');
+        for (const el of shellElements) {
+          const text = el.textContent;
+          if (text?.includes('OUTER SHELL') || text?.includes('COMPOSITION')) {
+            // Get the next element or parent's text that contains percentages
+            const parentText = el.parentElement?.textContent || '';
+            const materials = parentText.match(/\d+%\s+[\w\s]+/g);
+            if (materials && materials.length > 0) {
+              product.materials = materials;
+              materialsFound = true;
+              break;
+            }
+          }
+        }
+      }
+
+      // Fallback to any element containing percentages
+      if (!materialsFound) {
+        const allText = document.body.textContent;
+        const materials = allText.match(/\d+%\s+(polyamide|polyester|cashmere|cotton|wool|silk|elastane|viscose|linen|acrylic|nylon|spandex)/gi);
+        if (materials && materials.length > 0) {
+          // Filter out duplicates and limit to reasonable number
+          const uniqueMaterials = [...new Set(materials)];
+          // Only take first 5 materials (to avoid picking up other products)
+          product.materials = uniqueMaterials.slice(0, 5);
         }
       }
 
