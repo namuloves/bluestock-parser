@@ -257,7 +257,20 @@ const scrapeZaraEnhanced = async (url) => {
         }
       });
 
-      // Colors - also check for selected color
+      // Colors - check for color in product info section (format: "COLOR | SKU")
+      const colorInfoElement = document.querySelector('.product-detail-info__color, .product-color-extended-name, p.product-color-extended-name');
+      if (colorInfoElement) {
+        const colorText = colorInfoElement.textContent?.trim();
+        if (colorText) {
+          // Extract color name from format like "TURQUOISE | 5536/126/402"
+          const colorName = colorText.split('|')[0]?.trim();
+          if (colorName && !product.colors.includes(colorName)) {
+            product.colors.push(colorName);
+          }
+        }
+      }
+
+      // Also check for selected color
       const selectedColorElement = document.querySelector('.product-detail-selected-color, .product-detail-color-selector__selected-color-name, [class*="selected-color"]');
       if (selectedColorElement) {
         const selectedColor = selectedColorElement.textContent?.trim();
@@ -266,7 +279,7 @@ const scrapeZaraEnhanced = async (url) => {
         }
       }
 
-      // Also get available colors
+      // Also get available colors from color selector
       const colorElements = document.querySelectorAll('.product-detail-color-selector__color, .color-selector a[aria-label]');
       colorElements.forEach(el => {
         const color = el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent?.trim();
