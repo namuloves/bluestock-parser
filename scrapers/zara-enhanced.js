@@ -297,17 +297,44 @@ const scrapeZaraEnhanced = async (url) => {
       return true;
     });
 
-    // Sort images to prioritize main views
+    // Sort images to prioritize main product views
     const sortedImages = filteredImages.sort((a, b) => {
-      // Prioritize _1_1_1 images (main view)
-      if (a.includes('_1_1_1') && !b.includes('_1_1_1')) return -1;
-      if (!a.includes('_1_1_1') && b.includes('_1_1_1')) return 1;
+      // First, prioritize images with product codes ending in 402 or 800 (main product lines)
+      const aHasMain = a.includes('126402') || a.includes('126800');
+      const bHasMain = b.includes('126402') || b.includes('126800');
 
-      // Then prioritize lower numbers (_2_1_1, _3_1_1, etc.)
-      const aMatch = a.match(/_(\d)_1_1/);
-      const bMatch = b.match(/_(\d)_1_1/);
+      if (aHasMain && !bHasMain) return -1;
+      if (!aHasMain && bHasMain) return 1;
+
+      // Deprioritize URLs with /contents/ or /V/0/1/p/ or /I/0/1/p/ (alternate paths)
+      const aIsAlternate = a.includes('/contents/') || a.includes('/V/0/1/p/') || a.includes('/I/0/1/p/');
+      const bIsAlternate = b.includes('/contents/') || b.includes('/V/0/1/p/') || b.includes('/I/0/1/p/');
+
+      if (!aIsAlternate && bIsAlternate) return -1;
+      if (aIsAlternate && !bIsAlternate) return 1;
+
+      // Prioritize specific view numbers (6 and 2 are usually model shots)
+      const aMatch = a.match(/_(\d+)_1_1/);
+      const bMatch = b.match(/_(\d+)_1_1/);
+
       if (aMatch && bMatch) {
-        return parseInt(aMatch[1]) - parseInt(bMatch[1]);
+        const aNum = parseInt(aMatch[1]);
+        const bNum = parseInt(bMatch[1]);
+
+        // Priority order: 6 (full model), 2 (model front), 1 (flat lay), then others
+        const priority = [6, 2, 1, 3, 4, 5, 7, 8, 9];
+        const aIndex = priority.indexOf(aNum);
+        const bIndex = priority.indexOf(bNum);
+
+        if (aIndex !== -1 && bIndex !== -1) {
+          return aIndex - bIndex;
+        } else if (aIndex !== -1) {
+          return -1;
+        } else if (bIndex !== -1) {
+          return 1;
+        }
+
+        return aNum - bNum;
       }
 
       return 0;
