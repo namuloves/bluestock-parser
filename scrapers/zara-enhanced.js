@@ -9,10 +9,16 @@ const scrapeZaraEnhanced = async (url) => {
 
   let browser;
   try {
-    // Extract product ID from URL
+    // Extract product ID and variant from URL
     const productIdMatch = url.match(/p(\d+)\.html/);
     const productId = productIdMatch ? productIdMatch[1] : null;
+
+    // Extract v1 parameter which indicates the specific variant
+    const v1Match = url.match(/v1=(\d+)/);
+    const v1Param = v1Match ? v1Match[1] : null;
+
     console.log('📦 Product ID:', productId);
+    console.log('📦 Variant (v1):', v1Param);
 
     const puppeteerArgs = [
       '--no-sandbox',
@@ -187,23 +193,47 @@ const scrapeZaraEnhanced = async (url) => {
       return highResUrl;
     });
 
+    // Determine the likely variant code from v1 parameter
+    let preferredVariant = null;
+    if (v1Param) {
+      // v1 parameter often contains variant info - last 3 digits often match variant
+      // For example: 487007982 might correspond to variant 402
+      // We'll check for common patterns
+      if (v1Param.endsWith('982') || v1Param.includes('402')) {
+        preferredVariant = '402';
+      } else if (v1Param.endsWith('684')) {
+        preferredVariant = '684';
+      }
+      // You can add more variant mappings as needed
+    }
+
+    console.log('🎯 Preferred variant:', preferredVariant || '402 (default for gingham)');
+
     // Generate additional image URLs based on product ID pattern
     const additionalImages = [];
     if (productId) {
-      // Zara typically has multiple views (_1_1_1, _2_1_1, etc.)
-      for (let i = 1; i <= 8; i++) {
-        // Try different URL patterns Zara uses
-        const patterns = [
-          `https://static.zara.net/photos//2024/V/0/1/p/${productId.substr(0, 4)}/${productId.substr(4)}/800/2/1920x2880/${productId}800_${i}_1_1.jpg`,
-          `https://static.zara.net/photos//2024/I/0/1/p/${productId.substr(0, 4)}/${productId.substr(4)}/800/2/1920x2880/${productId}800_${i}_1_1.jpg`,
-          `https://static.zara.net/photos//contents/2024/V/0/1/p/${productId.substr(0, 4)}/${productId.substr(4)}/800/2/${productId}800_${i}_1_1.jpg?w=1920&h=2880`,
-        ];
+      // Determine variant code to use
+      const variantCode = preferredVariant || '402'; // Default to 402 for gingham
 
-        patterns.forEach(pattern => {
-          if (!processedImages.includes(pattern)) {
-            additionalImages.push(pattern);
+      // Zara typically has multiple views (_1_1_1, _2_1_1, etc.)
+      // Model photos are usually _2_, _3_, _4_, _6_, _15_
+      const imageNumbers = [6, 2, 3, 4, 15, 1, 5, 7, 8, 9];
+
+      for (const imageNum of imageNumbers) {
+        // Build the primary URL pattern for this variant
+        const primaryPattern = `https://static.zara.net/photos//2024/V/0/1/p/${productId.substr(0, 4)}/${productId.substr(4)}/${variantCode}/2/1920x2880/${productId}${variantCode}_${imageNum}_1_1.jpg`;
+
+        if (!processedImages.includes(primaryPattern)) {
+          additionalImages.push(primaryPattern);
+        }
+
+        // Only add fallback pattern if we're not getting enough images
+        if (additionalImages.length < 5) {
+          const fallbackPattern = `https://static.zara.net/photos//2024/V/0/1/p/${productId.substr(0, 4)}/${productId.substr(4)}/800/2/1920x2880/${productId}800_${imageNum}_1_1.jpg`;
+          if (!processedImages.includes(fallbackPattern)) {
+            additionalImages.push(fallbackPattern);
           }
-        });
+        }
       }
     }
 
@@ -353,7 +383,7 @@ const scrapeZaraEnhanced = async (url) => {
       if (!url.match(/\.(jpg|jpeg|png)/i)) return false;
 
       // Filter out images that don't match the product ID (check for base product ID)
-      // Zara uses formats like 05536126800, 05536126402 for the same product 05536126
+      // Zara uses formats like 09479258800, 09479258402 for the same product 09479258
       if (productId) {
         const baseProductId = productId.substring(0, 8); // Get first 8 digits
         if (!url.includes(baseProductId)) return false;
@@ -367,32 +397,30 @@ const scrapeZaraEnhanced = async (url) => {
 
     // Sort images to prioritize main product views
     const sortedImages = filteredImages.sort((a, b) => {
-      // First, prioritize images with product codes ending in 402 or 800 (main product lines)
-      const aHasMain = a.includes('126402') || a.includes('126800');
-      const bHasMain = b.includes('126402') || b.includes('126800');
+      // First priority: Check if image matches preferred variant
+      if (preferredVariant) {
+        const fullVariant = productId.substring(0, 8) + preferredVariant;
+        const aHasPreferred = a.includes(fullVariant);
+        const bHasPreferred = b.includes(fullVariant);
 
-      if (aHasMain && !bHasMain) return -1;
-      if (!aHasMain && bHasMain) return 1;
+        if (aHasPreferred && !bHasPreferred) return -1;
+        if (!aHasPreferred && bHasPreferred) return 1;
+      }
 
-      // Deprioritize URLs with /contents/ or /V/0/1/p/ or /I/0/1/p/ (alternate paths)
-      const aIsAlternate = a.includes('/contents/') || a.includes('/V/0/1/p/') || a.includes('/I/0/1/p/');
-      const bIsAlternate = b.includes('/contents/') || b.includes('/V/0/1/p/') || b.includes('/I/0/1/p/');
-
-      if (!aIsAlternate && bIsAlternate) return -1;
-      if (aIsAlternate && !bIsAlternate) return 1;
-
-      // Prioritize specific view numbers (6 and 2 are usually model shots)
-      const aMatch = a.match(/_(\d+)_1_1/);
-      const bMatch = b.match(/_(\d+)_1_1/);
+      // Second priority: Model photos (images with specific view numbers)
+      const aMatch = a.match(/_(\d+)_\d+_\d+\./);
+      const bMatch = b.match(/_(\d+)_\d+_\d+\./);
 
       if (aMatch && bMatch) {
         const aNum = parseInt(aMatch[1]);
         const bNum = parseInt(bMatch[1]);
 
-        // Priority order: 6 (full model), 2 (model front), 1 (flat lay), then others
-        const priority = [6, 2, 1, 3, 4, 5, 7, 8, 9];
-        const aIndex = priority.indexOf(aNum);
-        const bIndex = priority.indexOf(bNum);
+        // Priority order for image numbers:
+        // 6 (full body model), 2 (model front), 3 (model back), 4 (model side),
+        // 15 (model detail), 1 (flat lay), then others
+        const modelPriority = [6, 2, 3, 4, 15, 1, 5, 7, 8, 9, 10, 11, 12, 13, 14];
+        const aIndex = modelPriority.indexOf(aNum);
+        const bIndex = modelPriority.indexOf(bNum);
 
         if (aIndex !== -1 && bIndex !== -1) {
           return aIndex - bIndex;
@@ -401,16 +429,52 @@ const scrapeZaraEnhanced = async (url) => {
         } else if (bIndex !== -1) {
           return 1;
         }
-
-        return aNum - bNum;
+      } else if (aMatch && !bMatch) {
+        return -1; // Prioritize images with view numbers
+      } else if (!aMatch && bMatch) {
+        return 1;
       }
+
+      // Third priority: Deprioritize duplicate paths
+      const aIsAlternate = a.includes('/contents/') || a.includes('/I/0/1/p/');
+      const bIsAlternate = b.includes('/contents/') || b.includes('/I/0/1/p/');
+
+      if (!aIsAlternate && bIsAlternate) return -1;
+      if (aIsAlternate && !bIsAlternate) return 1;
+
+      // Fourth priority: Prefer images ending in 402 (common for gingham variant)
+      const aHas402 = a.includes('402');
+      const bHas402 = b.includes('402');
+
+      if (aHas402 && !bHas402) return -1;
+      if (!aHas402 && bHas402) return 1;
 
       return 0;
     });
 
-    // Take top 10 images
-    console.log(`📸 Images after filtering: ${sortedImages.length}`);
-    productData.images = sortedImages.slice(0, 10);
+    // Remove duplicates based on image number and variant
+    // Keep only one version of each image (prefer /V/ over /I/ path)
+    const uniqueImages = [];
+    const seenImageKeys = new Set();
+
+    sortedImages.forEach(url => {
+      // Extract image identifier (product+variant+imagenum)
+      const match = url.match(/(\d{8}\d{3})_(\d+)_\d+_\d+\./);
+      if (match) {
+        const imageKey = `${match[1]}_${match[2]}`;
+        if (!seenImageKeys.has(imageKey)) {
+          seenImageKeys.add(imageKey);
+          uniqueImages.push(url);
+        }
+      } else {
+        // Keep non-standard format images
+        uniqueImages.push(url);
+      }
+    });
+
+    // Take top 10 unique images
+    console.log(`📸 Images after filtering and deduplication: ${uniqueImages.length}`);
+    productData.images = uniqueImages.slice(0, 10);
     productData.productId = productId;
     productData.url = url;
 
