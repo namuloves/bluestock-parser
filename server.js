@@ -378,9 +378,24 @@ app.post('/scrape', async (req, res) => {
       discountPercentage: productData.discount_percentage || productData.discountPercentage || null,
       saleBadge: productData.sale_badge || productData.saleBadge || null
     };
-    
+
+    // Special logging for Foot Industry debugging
+    if (url.includes('footindustry.com')) {
+      console.log('🔍 FOOT INDUSTRY DEBUG:');
+      console.log('  Original price from scraper:', productData.price);
+      console.log('  Normalized sale_price:', normalizedProduct.sale_price);
+      console.log('  Normalized original_price:', normalizedProduct.original_price);
+      console.log('  Type of sale_price:', typeof normalizedProduct.sale_price);
+
+      // Check if somehow the price got multiplied
+      if (normalizedProduct.sale_price > 1000) {
+        console.log('  ⚠️ WARNING: Price is over 1000! Possible currency conversion issue');
+        console.log('  Calculated: 183 / 0.0069 =', 183 / 0.0069099186);
+      }
+    }
+
     console.log('✅ Returning normalized product data');
-    
+
     // Clear the timeout since we're done
     clearTimeout(timeout);
     
