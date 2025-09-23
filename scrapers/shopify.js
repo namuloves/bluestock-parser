@@ -158,14 +158,35 @@ const scrapeShopify = async (url) => {
         // Get price from first available variant
         const availableVariant = productJson.variants.find(v => v.available) || productJson.variants[0];
         if (availableVariant) {
-          product.price = typeof availableVariant.price === 'string' ? 
-            availableVariant.price : `${availableVariant.price / 100}`;
-          
-          if (availableVariant.compare_at_price) {
-            product.originalPrice = typeof availableVariant.compare_at_price === 'string' ?
-              availableVariant.compare_at_price : `${availableVariant.compare_at_price / 100}`;
+          // Handle different price formats from Shopify stores
+          if (typeof availableVariant.price === 'string') {
+            // Price is already a string (like "183.00")
+            product.price = availableVariant.price;
+          } else if (typeof availableVariant.price === 'number') {
+            // Check if price looks like cents (typically > 100 for most products)
+            // But also check if it has decimals already
+            if (Number.isInteger(availableVariant.price) && availableVariant.price > 100) {
+              // Likely in cents, convert to dollars
+              product.price = `${availableVariant.price / 100}`;
+            } else {
+              // Already in dollars
+              product.price = `${availableVariant.price}`;
+            }
           }
-          
+
+          if (availableVariant.compare_at_price) {
+            if (typeof availableVariant.compare_at_price === 'string') {
+              product.originalPrice = availableVariant.compare_at_price;
+            } else if (typeof availableVariant.compare_at_price === 'number') {
+              // Same logic for compare price
+              if (Number.isInteger(availableVariant.compare_at_price) && availableVariant.compare_at_price > 100) {
+                product.originalPrice = `${availableVariant.compare_at_price / 100}`;
+              } else {
+                product.originalPrice = `${availableVariant.compare_at_price}`;
+              }
+            }
+          }
+
           product.inStock = availableVariant.available !== false;
         }
       }

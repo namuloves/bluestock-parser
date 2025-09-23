@@ -288,7 +288,8 @@ const detectSite = (url) => {
     'tibi.com',
     'fm669.us',
     'jamesstreetco.com',
-    'gimaguas.com'
+    'gimaguas.com',
+    'footindustry.com'
   ];
   
   for (const domain of shopifyDomains) {
