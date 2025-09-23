@@ -196,6 +196,29 @@ app.get('/test', (req, res) => {
   });
 });
 
+// Debug endpoint for Foot Industry price issue
+app.get('/debug-foot', async (req, res) => {
+  const url = 'https://footindustry.com/en-en/collections/all/products/new-ballet-brown-antique-white';
+
+  try {
+    const result = await scrapeProduct(url);
+
+    res.json({
+      debug: true,
+      timestamp: new Date().toISOString(),
+      raw_price: result.product?.price,
+      raw_sale_price: result.product?.sale_price,
+      raw_original_price: result.product?.original_price,
+      type_price: typeof result.product?.price,
+      type_sale_price: typeof result.product?.sale_price,
+      expected: 183,
+      matches: result.product?.sale_price === 183
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Main scraping endpoint
 app.post('/scrape', async (req, res) => {
   console.log('📥 /scrape endpoint hit');
