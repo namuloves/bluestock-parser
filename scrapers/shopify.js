@@ -161,28 +161,32 @@ const scrapeShopify = async (url) => {
           // Handle different price formats from Shopify stores
           if (typeof availableVariant.price === 'string') {
             // Price is already a string (like "183.00")
-            product.price = availableVariant.price;
+            // Remove any currency symbols and convert to number
+            const cleanPrice = availableVariant.price.replace(/[^0-9.]/g, '');
+            product.price = parseFloat(cleanPrice) || 0;
           } else if (typeof availableVariant.price === 'number') {
             // Check if price looks like cents (typically > 100 for most products)
             // But also check if it has decimals already
             if (Number.isInteger(availableVariant.price) && availableVariant.price > 100) {
               // Likely in cents, convert to dollars
-              product.price = `${availableVariant.price / 100}`;
+              product.price = availableVariant.price / 100;
             } else {
               // Already in dollars
-              product.price = `${availableVariant.price}`;
+              product.price = availableVariant.price;
             }
           }
 
           if (availableVariant.compare_at_price) {
             if (typeof availableVariant.compare_at_price === 'string') {
-              product.originalPrice = availableVariant.compare_at_price;
+              // Remove any currency symbols and convert to number
+              const cleanPrice = availableVariant.compare_at_price.replace(/[^0-9.]/g, '');
+              product.originalPrice = parseFloat(cleanPrice) || 0;
             } else if (typeof availableVariant.compare_at_price === 'number') {
               // Same logic for compare price
               if (Number.isInteger(availableVariant.compare_at_price) && availableVariant.compare_at_price > 100) {
-                product.originalPrice = `${availableVariant.compare_at_price / 100}`;
+                product.originalPrice = availableVariant.compare_at_price / 100;
               } else {
-                product.originalPrice = `${availableVariant.compare_at_price}`;
+                product.originalPrice = availableVariant.compare_at_price;
               }
             }
           }
@@ -204,11 +208,12 @@ const scrapeShopify = async (url) => {
       const priceText = $('.product__price').text().trim() ||
                         $('[itemprop="price"]').attr('content') ||
                         $('.price').first().text().trim();
-      
+
       if (priceText) {
         const priceMatch = priceText.match(/[\d,]+\.?\d*/);
         if (priceMatch) {
-          product.price = priceMatch[0];
+          // Convert to number, removing commas
+          product.price = parseFloat(priceMatch[0].replace(/,/g, '')) || 0;
         }
       }
     }
@@ -321,13 +326,8 @@ const scrapeShopify = async (url) => {
                             $('.product-single__description').text().trim();
     }
     
-    // Format prices with currency
-    if (product.price && !product.price.includes('$')) {
-      product.price = '$' + product.price;
-    }
-    if (product.originalPrice && !product.originalPrice.includes('$')) {
-      product.originalPrice = '$' + product.originalPrice;
-    }
+    // Ensure prices are numbers (not strings with currency symbols)
+    // This helps maintain consistency across all scrapers
     
     // Clean up empty fields
     Object.keys(product).forEach(key => {

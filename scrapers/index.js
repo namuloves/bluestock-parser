@@ -1033,17 +1033,25 @@ const scrapeProduct = async (url, options = {}) => {
         console.log('🛍️ Using Shopify universal scraper');
         const shopifyProduct = await scrapeShopify(url);
         
-        // Extract price number from string
+        // Extract price number (handle both string and number formats)
         let shopifyPriceNumeric = 0;
         if (shopifyProduct.price) {
-          const priceMatch = shopifyProduct.price.match(/[\d,]+\.?\d*/);
-          shopifyPriceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+          if (typeof shopifyProduct.price === 'number') {
+            shopifyPriceNumeric = shopifyProduct.price;
+          } else if (typeof shopifyProduct.price === 'string') {
+            const priceMatch = shopifyProduct.price.match(/[\d,]+\.?\d*/);
+            shopifyPriceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+          }
         }
-        
+
         let shopifyOriginalPriceNumeric = shopifyPriceNumeric;
         if (shopifyProduct.originalPrice) {
-          const originalMatch = shopifyProduct.originalPrice.match(/[\d,]+\.?\d*/);
-          shopifyOriginalPriceNumeric = originalMatch ? parseFloat(originalMatch[0].replace(',', '')) : shopifyPriceNumeric;
+          if (typeof shopifyProduct.originalPrice === 'number') {
+            shopifyOriginalPriceNumeric = shopifyProduct.originalPrice;
+          } else if (typeof shopifyProduct.originalPrice === 'string') {
+            const originalMatch = shopifyProduct.originalPrice.match(/[\d,]+\.?\d*/);
+            shopifyOriginalPriceNumeric = originalMatch ? parseFloat(originalMatch[0].replace(',', '')) : shopifyPriceNumeric;
+          }
         }
         
         const shopifyIsOnSale = shopifyProduct.originalPrice && shopifyOriginalPriceNumeric > shopifyPriceNumeric;
