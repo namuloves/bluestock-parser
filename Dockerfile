@@ -1,4 +1,4 @@
-FROM node:18-slim
+FROM public.ecr.aws/docker/library/node:18-slim
 
 # Install Chrome dependencies
 RUN apt-get update && apt-get install -y \
