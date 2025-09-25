@@ -79,7 +79,7 @@ async function scrapeNordstromWithPuppeteer(url) {
     
     // Wait for the page to stabilize
     await new Promise(resolve => setTimeout(resolve, 5000));
-    
+
     // Try to wait for common product elements
     try {
       await Promise.race([
@@ -91,7 +91,19 @@ async function scrapeNordstromWithPuppeteer(url) {
     } catch (e) {
       console.log('⚠️ Could not find product title elements, continuing...');
     }
-    
+
+    // Wait for images to load - CRITICAL FOR NORDSTROM RACK
+    try {
+      // Wait for product image container
+      await page.waitForSelector('img[src*="nordstrommedia.com"], img[src*="nordstromimage.com"]', { timeout: 10000 });
+      console.log('✅ Found Nordstrom images');
+
+      // Extra wait for lazy-loaded images
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    } catch (e) {
+      console.log('⚠️ Could not find Nordstrom images, continuing...');
+    }
+
     // Additional wait for dynamic content
     await new Promise(resolve => setTimeout(resolve, 3000));
     
@@ -204,63 +216,99 @@ async function scrapeNordstromWithPuppeteer(url) {
                                 getText('[class*="original-price"]') ||
                                 '';
       
-      // Extract images
+      // Extract images - Enhanced for Nordstrom Rack
       const images = [];
-      
-      // Try to get main product images - check all img elements
+      const imageUrls = new Set(); // Use Set to avoid duplicates
+
+      // Method 1: Check all img elements (including lazy-loaded)
       document.querySelectorAll('img').forEach(img => {
-        const src = img.src || img.dataset.src || img.getAttribute('data-src');
-        if (src && (src.includes('nordstromimage.com') || src.includes('n.nordstrommedia.com')) && 
-            !src.includes('icon') && !src.includes('logo') && !src.includes('pixel')) {
-          // Convert to high resolution
-          const highResSrc = src.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
-          if (!images.includes(highResSrc)) {
-            images.push(highResSrc);
+        // Check multiple possible attributes
+        const possibleSrcs = [
+          img.src,
+          img.dataset.src,
+          img.getAttribute('data-src'),
+          img.getAttribute('data-lazy'),
+          img.getAttribute('data-original')
+        ];
+
+        possibleSrcs.forEach(src => {
+          if (src && (src.includes('nordstromimage.com') || src.includes('n.nordstrommedia.com') || src.includes('nordstromrack.com')) &&
+              !src.includes('icon') && !src.includes('logo') && !src.includes('pixel') && !src.includes('tracking')) {
+            // Convert to high resolution
+            const highResSrc = src.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
+            imageUrls.add(highResSrc);
           }
-        }
+        });
       });
       
-      // Check srcset attributes
+      // Method 2: Check srcset attributes (for responsive images)
       document.querySelectorAll('[srcset]').forEach(el => {
         const srcset = el.getAttribute('srcset');
-        if (srcset && (srcset.includes('nordstromimage.com') || srcset.includes('n.nordstrommedia.com'))) {
+        if (srcset && (srcset.includes('nordstromimage.com') || srcset.includes('n.nordstrommedia.com') || srcset.includes('nordstromrack.com'))) {
           const urls = srcset.split(',').map(s => s.trim().split(' ')[0]);
           urls.forEach(url => {
-            if (!url.includes('icon') && !url.includes('logo')) {
+            if (!url.includes('icon') && !url.includes('logo') && !url.includes('tracking')) {
               const highResSrc = url.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
-              if (!images.includes(highResSrc)) {
-                images.push(highResSrc);
-              }
+              imageUrls.add(highResSrc);
             }
           });
         }
       });
       
-      // Also check div backgrounds
+      // Method 3: Check div backgrounds
       document.querySelectorAll('[style*="background-image"]').forEach(div => {
         const style = div.getAttribute('style');
         const match = style.match(/url\(["']?([^"'\)]+)["']?\)/);
-        if (match && (match[1].includes('nordstromimage.com') || match[1].includes('n.nordstrommedia.com'))) {
+        if (match && (match[1].includes('nordstromimage.com') || match[1].includes('n.nordstrommedia.com') || match[1].includes('nordstromrack.com'))) {
           const highResSrc = match[1].replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
-          if (!images.includes(highResSrc)) {
-            images.push(highResSrc);
-          }
+          imageUrls.add(highResSrc);
         }
       });
       
-      // Try picture elements
+      // Method 4: Check picture elements
       document.querySelectorAll('picture source').forEach(source => {
-        const srcset = source.srcset;
-        if (srcset && srcset.includes('nordstromimage.com')) {
+        const srcset = source.srcset || source.getAttribute('srcset');
+        if (srcset && (srcset.includes('nordstromimage.com') || srcset.includes('n.nordstrommedia.com') || srcset.includes('nordstromrack.com'))) {
           const urls = srcset.split(',').map(s => s.trim().split(' ')[0]);
           urls.forEach(url => {
             const highResSrc = url.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
-            if (!images.includes(highResSrc)) {
-              images.push(highResSrc);
-            }
+            imageUrls.add(highResSrc);
           });
         }
       });
+
+      // Method 5: Check data attributes that might contain image URLs
+      document.querySelectorAll('[data-image], [data-images], [data-gallery]').forEach(el => {
+        const dataValue = el.getAttribute('data-image') || el.getAttribute('data-images') || el.getAttribute('data-gallery');
+        if (dataValue) {
+          // Try to parse as JSON if it looks like JSON
+          try {
+            const parsed = JSON.parse(dataValue);
+            const extractUrls = (obj) => {
+              if (typeof obj === 'string' && obj.includes('nordstrom')) {
+                const highResSrc = obj.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
+                imageUrls.add(highResSrc);
+              } else if (Array.isArray(obj)) {
+                obj.forEach(extractUrls);
+              } else if (typeof obj === 'object' && obj !== null) {
+                Object.values(obj).forEach(extractUrls);
+              }
+            };
+            extractUrls(parsed);
+          } catch (e) {
+            // If not JSON, check if it's a direct URL
+            if (dataValue.includes('nordstrom')) {
+              const highResSrc = dataValue.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
+              imageUrls.add(highResSrc);
+            }
+          }
+        }
+      });
+
+      // Convert Set to Array and limit
+      const uniqueImages = Array.from(imageUrls).slice(0, 15); // Get up to 15 images
+
+      console.log(`Found ${uniqueImages.length} unique images`);
       
       // Extract sizes
       const sizes = getAllText('[aria-label*="size"]:not([disabled])') ||
@@ -293,7 +341,7 @@ async function scrapeNordstromWithPuppeteer(url) {
         brand,
         priceText,
         originalPriceText,
-        images: images.slice(0, 10), // Limit to 10 images
+        images: uniqueImages, // Already limited to 15
         sizes,
         color,
         description,

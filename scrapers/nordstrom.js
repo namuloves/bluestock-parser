@@ -166,24 +166,74 @@ async function scrapeNordstromHTML(url) {
                                 $('[aria-label*="Original"]').text().trim() ||
                                 '';
       
-      // Extract images
-      const images = [];
-      
+      // Extract images - Enhanced for better extraction
+      const imageSet = new Set();
+
       // Try og:image
       const ogImage = $('meta[property="og:image"]').attr('content');
-      if (ogImage) images.push(ogImage);
-      
-      // Look for product images
+      if (ogImage) imageSet.add(ogImage);
+
+      // Look for product images in various attributes
       $('img').each((i, elem) => {
-        const src = $(elem).attr('src') || $(elem).attr('data-src');
-        if (src && src.includes('nordstromimage.com') && !src.includes('icon')) {
-          // Convert to high resolution
-          const highResSrc = src.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
-          if (!images.includes(highResSrc)) {
-            images.push(highResSrc);
+        const possibleSrcs = [
+          $(elem).attr('src'),
+          $(elem).attr('data-src'),
+          $(elem).attr('data-lazy'),
+          $(elem).attr('data-original')
+        ];
+
+        possibleSrcs.forEach(src => {
+          if (src && (src.includes('nordstromimage.com') || src.includes('n.nordstrommedia.com') || src.includes('nordstromrack.com')) &&
+              !src.includes('icon') && !src.includes('logo') && !src.includes('tracking')) {
+            // Convert to high resolution
+            const highResSrc = src.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
+            imageSet.add(highResSrc);
+          }
+        });
+      });
+
+      // Check srcset attributes
+      $('[srcset]').each((i, elem) => {
+        const srcset = $(elem).attr('srcset');
+        if (srcset && (srcset.includes('nordstromimage.com') || srcset.includes('n.nordstrommedia.com'))) {
+          const urls = srcset.split(',').map(s => s.trim().split(' ')[0]);
+          urls.forEach(url => {
+            if (!url.includes('icon') && !url.includes('logo')) {
+              const highResSrc = url.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
+              imageSet.add(highResSrc);
+            }
+          });
+        }
+      });
+
+      // Check data attributes that might contain JSON with images
+      $('[data-image], [data-images], [data-gallery]').each((i, elem) => {
+        const dataValue = $(elem).attr('data-image') || $(elem).attr('data-images') || $(elem).attr('data-gallery');
+        if (dataValue) {
+          try {
+            const parsed = JSON.parse(dataValue);
+            const extractUrls = (obj) => {
+              if (typeof obj === 'string' && obj.includes('nordstrom')) {
+                const highResSrc = obj.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
+                imageSet.add(highResSrc);
+              } else if (Array.isArray(obj)) {
+                obj.forEach(extractUrls);
+              } else if (typeof obj === 'object' && obj !== null) {
+                Object.values(obj).forEach(extractUrls);
+              }
+            };
+            extractUrls(parsed);
+          } catch (e) {
+            // Not JSON, check if direct URL
+            if (dataValue.includes('nordstrom')) {
+              const highResSrc = dataValue.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=1600');
+              imageSet.add(highResSrc);
+            }
           }
         }
       });
+
+      const images = Array.from(imageSet).slice(0, 15); // Convert to array and limit to 15
       
       // Extract sizes
       const sizes = [];
@@ -208,7 +258,7 @@ async function scrapeNordstromHTML(url) {
         name: name,
         price: priceText || 'Price not available',
         originalPrice: originalPriceText || null,
-        images: images.slice(0, 10),
+        images: images.slice(0, 15), // Increased limit for more images,
         description: $('meta[property="og:description"]').attr('content') || '',
         sizes: sizes,
         color: color,
