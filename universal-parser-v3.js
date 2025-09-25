@@ -197,7 +197,19 @@ class UniversalParserV3 {
         'picture img',
         '[data-testid="product-image"] img',
         '.pdp-image img',
-        '.product-images img'
+        '.product-images img',
+        '.product-img',
+        '.product-thumbnail img',
+        'div[class*="product"] img',
+        'div[class*="Product"] img',
+        'img[class*="product"]',
+        'img[class*="Product"]',
+        '[itemprop="image"]',
+        '.main-image',
+        '.zoom-image',
+        'a[href*=".jpg"] img',
+        'a[href*=".png"] img',
+        'a[href*=".webp"] img'
       ],
       brand: [
         '.brand',
@@ -647,9 +659,41 @@ class UniversalParserV3 {
           const product = data.mainEntity || data;
           result.name = product.name;
           result.price = product.offers?.price || product.price;
-          result.brand = product.brand?.name || product.brand;
+
+          // Handle brand - could be object with @id or string
+          if (product.brand) {
+            if (typeof product.brand === 'string') {
+              result.brand = product.brand;
+            } else if (product.brand.name) {
+              result.brand = product.brand.name;
+            } else if (product.brand['@id']) {
+              // Extract from URL if it's just an @id reference
+              const brandId = product.brand['@id'];
+              const brandMatch = brandId.match(/\/\/([^/]+)/);
+              if (brandMatch) {
+                // Clean up the domain name to get brand
+                const domain = brandMatch[1];
+                if (domain.includes('speedyromeo')) {
+                  result.brand = 'Speedy Romeo';
+                } else {
+                  result.brand = domain.split('.')[0];
+                }
+              }
+            }
+          }
+
           result.description = product.description;
-          result.images = Array.isArray(product.image) ? product.image : [product.image].filter(Boolean);
+
+          // Handle images - could be string, array, or object
+          if (product.image) {
+            if (typeof product.image === 'string') {
+              result.images = [product.image];
+            } else if (Array.isArray(product.image)) {
+              result.images = product.image.filter(img => typeof img === 'string');
+            } else if (product.image.url) {
+              result.images = [product.image.url];
+            }
+          }
         }
       } catch (e) {
         // Silent fail
@@ -723,8 +767,23 @@ class UniversalParserV3 {
           if (field === 'images') {
             const images = [];
             $(selector).slice(0, 10).each((i, el) => {
-              let src = $(el).attr('src') || $(el).attr('data-src');
-              if (src && !src.includes('placeholder')) {
+              let src = $(el).attr('src') ||
+                       $(el).attr('data-src') ||
+                       $(el).attr('data-srcset') ||
+                       $(el).attr('srcset') ||
+                       $(el).css('background-image');
+
+              // Extract URL from background-image
+              if (src && src.includes('url(')) {
+                src = src.match(/url\(['"]?([^'"\)]+)['"]?\)/)?.[1];
+              }
+
+              // Clean srcset to get first URL
+              if (src && src.includes(',')) {
+                src = src.split(',')[0].trim().split(' ')[0];
+              }
+
+              if (src && !src.includes('placeholder') && !src.includes('loading')) {
                 images.push(src);
               }
             });
