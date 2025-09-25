@@ -107,10 +107,17 @@ const scrapeShopify = async (url) => {
     // If we have JSON data, use it
     if (productJson) {
       console.log('✅ Found Shopify product JSON');
-      
+
       product.name = productJson.title || '';
       product.vendor = productJson.vendor || '';
-      product.brand = productJson.vendor || '';
+
+      // Override vendor for known brands that use incorrect vendor names
+      if (url.includes('stussy.com')) {
+        product.brand = 'Stussy';
+      } else {
+        product.brand = productJson.vendor || '';
+      }
+
       product.description = productJson.description || productJson.body_html || '';
       
       // Clean HTML from description
@@ -231,6 +238,8 @@ const scrapeShopify = async (url) => {
       // Special handling for known designer sites
       if (url.includes('ceciliebahnsen.com')) {
         product.brand = 'Cecilie Bahnsen';
+      } else if (url.includes('stussy.com')) {
+        product.brand = 'Stussy';
       } else if (!product.brand) {
         product.brand = domainBrand;
       }
