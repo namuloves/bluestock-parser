@@ -127,6 +127,7 @@ const { scrapeSongForTheMute, isSongForTheMute } = require('./songforthemute');
 const { scrapeGeneric } = require('./generic');
 const { scrapeMassimoDutti } = require('./massimodutti');
 const scrapeCamperlab = require('./camperlab');
+const { scrapeUnijay } = require('./unijay');
 const { scrapeFWRD } = require('./fwrd');
 const { scrapeMiuMiu } = require('./miumiu');
 const { scrapeChiclara } = require('./chiclara');
@@ -262,6 +263,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('gallerydept.')) {
     return 'gallerydept';
+  }
+  if (hostname.includes('unijay.')) {
+    return 'unijay';
   }
   if (hostname.includes('boden.')) {
     return 'boden';
@@ -1910,6 +1914,67 @@ const scrapeProduct = async (url, options = {}) => {
             discountPercentage: bodenProduct.isOnSale && bodenOriginalPriceNumeric > bodenPriceNumeric ?
               Math.round((1 - bodenPriceNumeric / bodenOriginalPriceNumeric) * 100) : null,
             saleBadge: bodenProduct.isOnSale ? 'SALE' : null
+          }
+        };
+
+      case 'unijay':
+        console.log('🛍️ Using Unijay scraper');
+        const unijayProduct = await scrapeUnijay(url);
+
+        // Extract price number (handle KRW prices)
+        let unijayPriceNumeric = 0;
+        if (unijayProduct.price) {
+          unijayPriceNumeric = typeof unijayProduct.price === 'number' ?
+            unijayProduct.price : parseFloat(unijayProduct.price) || 0;
+        }
+
+        let unijayOriginalPriceNumeric = unijayPriceNumeric;
+        if (unijayProduct.originalPrice) {
+          unijayOriginalPriceNumeric = typeof unijayProduct.originalPrice === 'number' ?
+            unijayProduct.originalPrice : parseFloat(unijayProduct.originalPrice) || unijayPriceNumeric;
+        }
+
+        const unijayIsOnSale = unijayProduct.originalPrice && unijayOriginalPriceNumeric > unijayPriceNumeric;
+
+        return {
+          success: !unijayProduct.error,
+          product: {
+            // Keep all original fields
+            ...unijayProduct,
+
+            // Database schema fields
+            product_name: unijayProduct.name,
+            brand: unijayProduct.brand || 'Unijay',
+            original_price: unijayOriginalPriceNumeric,
+            sale_price: unijayPriceNumeric,
+            is_on_sale: unijayIsOnSale,
+            discount_percentage: unijayIsOnSale ?
+              Math.round((1 - unijayPriceNumeric / unijayOriginalPriceNumeric) * 100) : null,
+            sale_badge: unijayIsOnSale ? 'SALE' : null,
+            image_urls: unijayProduct.images || [],
+            vendor_url: unijayProduct.url || url,
+            colors: unijayProduct.colors || [],
+            sizes: unijayProduct.sizes || [],
+            category: detectCategory(
+              unijayProduct.name || '',
+              unijayProduct.description || '',
+              unijayProduct.brand || '',
+              null
+            ),
+            description: unijayProduct.description || '',
+            in_stock: unijayProduct.inStock !== false,
+            variants: unijayProduct.variants || [],
+            currency: unijayProduct.currency || 'KRW',
+
+            // Legacy fields
+            name: unijayProduct.name,
+            price: unijayPriceNumeric,
+            images: unijayProduct.images || [],
+            originalPrice: unijayOriginalPriceNumeric,
+            isOnSale: unijayIsOnSale,
+            discountPercentage: unijayIsOnSale ?
+              Math.round((1 - unijayPriceNumeric / unijayOriginalPriceNumeric) * 100) : null,
+            saleBadge: unijayIsOnSale ? 'SALE' : null
           }
         };
 
