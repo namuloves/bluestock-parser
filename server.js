@@ -265,6 +265,7 @@ app.post('/scrape', async (req, res) => {
     if (universalParser && !useDedicatedScraper) {
       try {
         console.log('🧠 Attempting Universal Parser V3...');
+        console.log('📌 Parser version:', universalParser.version || 'unknown');
         const v3Result = await universalParser.parse(url);
 
         if (v3Result && v3Result.confidence > 0.5) {

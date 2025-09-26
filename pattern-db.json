@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-09-20T23:08:53.345Z",
+    "updated": "2025-09-25T20:49:15.032Z",
     "total_sites": 12,
-    "successful_extractions": 16
+    "successful_extractions": 18
   },
   "global_patterns": {
     "price": [
@@ -349,6 +349,15 @@
       "name": "h1",
       "price": null,
       "brand": "Naguisa"
+    }
+  },
+  "speedyromeo.com": {
+    "successCount": 2,
+    "lastSuccess": "2025-09-25T20:49:15.032Z",
+    "patterns": {
+      "name": "h1",
+      "price": ".product-price",
+      "brand": "Speedy Romeo"
     }
   }
 }
