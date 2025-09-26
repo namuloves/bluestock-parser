@@ -181,11 +181,32 @@ app.get('/debug-ssense', async (req, res) => {
 
 // Test endpoint
 app.get('/test', (req, res) => {
+  // Read the actual parser file to check what's deployed
+  const fs = require('fs');
+  let parserVersion = 'unknown';
+  let hasSpeedyRomeoFix = false;
+
+  try {
+    const parserCode = fs.readFileSync('./universal-parser-v3.js', 'utf8');
+    // Check for the version string
+    const versionMatch = parserCode.match(/this\.version = ['"]([^'"]+)['"]/);
+    if (versionMatch) {
+      parserVersion = versionMatch[1];
+    }
+    // Check for Speedy Romeo fix
+    hasSpeedyRomeoFix = parserCode.includes('speedyromeo');
+  } catch (e) {
+    parserVersion = 'error: ' + e.message;
+  }
+
   res.json({
     status: 'OK',
     service: 'bluestock-parser',
     timestamp: new Date().toISOString(),
     message: 'Parser service is running and accessible!',
+    parserVersion: parserVersion,
+    hasSpeedyRomeoFix: hasSpeedyRomeoFix,
+    universalParserLoaded: !!universalParser,
     proxy: {
       USE_PROXY: process.env.USE_PROXY,
       hasDecodoUsername: !!process.env.DECODO_USERNAME,
