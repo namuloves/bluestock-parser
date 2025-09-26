@@ -484,6 +484,70 @@ app.post('/parse-size-chart', async (req, res) => {
   }
 });
 
+// Cache management endpoint
+app.post('/cache/clear', async (req, res) => {
+  try {
+    const { url, pattern } = req.body;
+
+    // Check for API key in production
+    if (process.env.NODE_ENV === 'production') {
+      const apiKey = req.headers['x-api-key'];
+      if (!apiKey || apiKey !== process.env.CACHE_CLEAR_API_KEY) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+    }
+
+    const { getCache } = require('./cache/redis-cache');
+    const cache = getCache();
+
+    if (url) {
+      // Clear specific URL
+      await cache.delete(url);
+
+      // Also clear V3 parser cache if it exists
+      if (universalParser && universalParser.cache) {
+        universalParser.cache.delete(url);
+      }
+
+      return res.json({
+        success: true,
+        message: `Cache cleared for URL: ${url}`
+      });
+    } else if (pattern) {
+      // Clear by pattern (e.g., "*speedyromeo*")
+      const keys = await cache.keys(pattern);
+      for (const key of keys) {
+        await cache.delete(key);
+      }
+
+      return res.json({
+        success: true,
+        message: `Cache cleared for pattern: ${pattern}`,
+        keysCleared: keys.length
+      });
+    } else {
+      // Clear all cache
+      await cache.clear();
+
+      // Also clear V3 parser memory cache
+      if (universalParser && universalParser.cache) {
+        universalParser.cache.clear();
+      }
+
+      return res.json({
+        success: true,
+        message: 'All cache cleared'
+      });
+    }
+  } catch (error) {
+    console.error('Cache clear error:', error);
+    res.status(500).json({
+      error: 'Failed to clear cache',
+      details: error.message
+    });
+  }
+});
+
 // Handle preflight requests
 app.options('*', cors(corsOptions));
 
