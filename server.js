@@ -9,6 +9,9 @@ const { enhanceWithAI } = require('./scrapers/ebay');
 const ClaudeAIService = require('./services/claude-ai');
 const SizeChartParser = require('./scrapers/sizeChartParser');
 const healthRoutes = require('./routes/health');
+const duplicateCheckRoutes = require('./routes/duplicate-check');
+const imageProxyRoutes = require('./routes/image-proxy');
+const { getCDNService } = require('./services/bunny-cdn');
 
 // Import Universal Parser V3 with caching
 let UniversalParserV3 = null;
@@ -111,6 +114,8 @@ app.options('*', cors(corsOptions));
 
 // Health check routes (before other routes)
 app.use('/', healthRoutes);
+app.use('/api', duplicateCheckRoutes);
+app.use('/', imageProxyRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -372,6 +377,10 @@ app.post('/scrape', async (req, res) => {
       }
     }
     
+    // Transform image URLs through Bunny CDN
+    const cdnService = getCDNService();
+    productData = cdnService.transformProductImages(productData);
+
     // Ensure all database schema fields are present with correct names
     const normalizedProduct = {
       // Primary fields matching database schema

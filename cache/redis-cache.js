@@ -85,6 +85,10 @@ class RedisCache {
       this.client.on('error', (err) => {
         console.error('❌ Redis error:', err.message);
         this.metrics.errors++;
+        // Don't disable Redis on connection errors - it might recover
+        if (err.message.includes('ECONNREFUSED') || err.message.includes('ETIMEDOUT')) {
+          console.log('⚠️  Redis connection failed - will retry automatically');
+        }
       });
 
       this.client.on('close', () => {
@@ -125,7 +129,7 @@ class RedisCache {
   }
 
   async get(url, parserVersion = 'v3') {
-    if (!this.enabled || !this.client) {
+    if (!this.enabled || !this.client || this.client.status !== 'ready') {
       return null;
     }
 
@@ -163,7 +167,7 @@ class RedisCache {
   }
 
   async set(url, data, parserVersion = 'v3') {
-    if (!this.enabled || !this.client || !data) {
+    if (!this.enabled || !this.client || !data || this.client.status !== 'ready') {
       return false;
     }
 
@@ -202,7 +206,7 @@ class RedisCache {
   }
 
   async delete(url, parserVersion = 'v3') {
-    if (!this.enabled || !this.client) {
+    if (!this.enabled || !this.client || this.client.status !== 'ready') {
       return false;
     }
 
@@ -217,7 +221,7 @@ class RedisCache {
   }
 
   async flush(pattern = null) {
-    if (!this.enabled || !this.client) {
+    if (!this.enabled || !this.client || this.client.status !== 'ready') {
       return 0;
     }
 
@@ -256,16 +260,28 @@ class RedisCache {
     let redisInfo = {};
     if (this.enabled && this.client) {
       try {
-        const info = await this.client.info('memory');
-        const usedMemory = info.match(/used_memory_human:(.+)/);
-        const connectedClients = info.match(/connected_clients:(\d+)/);
+        // Check if client is actually connected
+        if (this.client.status !== 'ready') {
+          redisInfo = {
+            memory: 'not connected',
+            clients: 0
+          };
+        } else {
+          const info = await this.client.info('memory');
+          const usedMemory = info.match(/used_memory_human:(.+)/);
+          const connectedClients = info.match(/connected_clients:(\d+)/);
 
-        redisInfo = {
-          memory: usedMemory ? usedMemory[1].trim() : 'unknown',
-          clients: connectedClients ? connectedClients[1] : 'unknown'
-        };
+          redisInfo = {
+            memory: usedMemory ? usedMemory[1].trim() : 'unknown',
+            clients: connectedClients ? connectedClients[1] : 'unknown'
+          };
+        }
       } catch (e) {
-        // Silent fail
+        // Return safe defaults on error
+        redisInfo = {
+          memory: 'error',
+          clients: 0
+        };
       }
     }
 
