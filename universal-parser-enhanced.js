@@ -42,7 +42,8 @@ class UniversalParserEnhanced {
         'gucci.com',
         'louisvuitton.com',
         'balenciaga.com',
-        'bottegaveneta.com'
+        'bottegaveneta.com',
+        'rhone.com'
       ],
 
       // Sites that might need browser (try without first)
