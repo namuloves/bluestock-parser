@@ -52,14 +52,6 @@ class BunnyCDNService {
       }
 
       // For external URLs, use our proxy endpoint
-      // This avoids CORS issues and allows optimization
-      const proxyParams = new URLSearchParams({
-        url: imageUrl,
-        width: options.width || '800',
-        quality: options.quality || '85',
-        format: options.format || 'auto'
-      });
-
       // Use proxy endpoint through BunnyCDN
       const proxyParams = new URLSearchParams({
         url: imageUrl,
