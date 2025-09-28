@@ -8,7 +8,8 @@ class BunnyCDNService {
     // Bunny CDN configuration from environment or defaults
     this.pullZoneUrl = process.env.BUNNY_PULL_ZONE_URL || 'bluestock.b-cdn.net';
     this.optimizerEnabled = process.env.BUNNY_OPTIMIZER !== 'false';
-    this.enabled = process.env.ENABLE_BUNNY_CDN !== 'false';
+    // Temporarily disable BunnyCDN due to 404 issues
+    this.enabled = process.env.ENABLE_BUNNY_CDN === 'true';
 
     // Image proxy endpoint (we'll create this)
     this.proxyEndpoint = process.env.IMAGE_PROXY_URL || 'https://bluestock-parser-production.up.railway.app/api/image-proxy';
