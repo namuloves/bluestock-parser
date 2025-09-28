@@ -84,14 +84,95 @@ async function scrapeWConcept(url) {
 
     // Build images array
     const images = [];
-    if (metaImage) {
+
+    // First try to extract from JavaScript/DOM if page is rendered
+    let imageUrls = [];
+
+    // Look for image arrays in script tags
+    $('script').each((i, elem) => {
+      const scriptContent = $(elem).html();
+      if (scriptContent && scriptContent.includes('image') && imageUrls.length === 0) {
+        // Try to find image arrays in various formats
+        const patterns = [
+          /"images?"\s*:\s*\[(.*?)\]/g,
+          /images?\s*:\s*\[(.*?)\]/g,
+          /"productImages?"\s*:\s*\[(.*?)\]/g,
+          /productImages?\s*=\s*\[(.*?)\]/g,
+          /"gallery"\s*:\s*\[(.*?)\]/g,
+          /gallery\s*:\s*\[(.*?)\]/g
+        ];
+
+        for (const pattern of patterns) {
+          const matches = [...scriptContent.matchAll(pattern)];
+          if (matches.length > 0) {
+            try {
+              // Extract URLs from the matched content
+              const imageArrayContent = matches[0][1];
+              const urlMatches = imageArrayContent.match(/https?:\/\/[^"'\s,\]]+\.(jpg|jpeg|png|webp)/gi);
+              if (urlMatches && urlMatches.length > 0) {
+                imageUrls = urlMatches;
+                console.log(`📸 Found ${urlMatches.length} images in script tag`);
+                break;
+              }
+            } catch (e) {
+              // Continue to next pattern
+            }
+          }
+        }
+
+        // Also look for individual image URLs in scripts
+        if (imageUrls.length === 0) {
+          const individualUrls = scriptContent.match(/https?:\/\/cdn\.wconcept\.com\/products\/[^"'\s]+\.(jpg|jpeg|png|webp)/gi);
+          if (individualUrls && individualUrls.length > 1) {
+            // Remove duplicates and sort
+            imageUrls = [...new Set(individualUrls)].sort();
+            console.log(`📸 Found ${imageUrls.length} individual image URLs in script`);
+          }
+        }
+      }
+    });
+
+    // If we found images in JS, use those
+    if (imageUrls.length > 0) {
+      images.push(...imageUrls);
+    } else if (metaImage) {
+      // Start with meta image
       images.push(metaImage);
 
-      // Generate additional image URLs based on W Concept's pattern
-      // They typically use _1.jpg, _2.jpg, _3.jpg, etc.
-      const baseImageUrl = metaImage.replace(/_\d+\.jpg/, '');
-      for (let i = 2; i <= 8; i++) {
-        images.push(`${baseImageUrl}_${i}.jpg`);
+      // Try to verify additional images exist using wconcept's pattern
+      const productImageBase = metaImage.match(/\/products\/(\d+)\/(\d+)\/(\d+)_/);
+
+      if (productImageBase) {
+        const [fullMatch, part1, part2, productCode] = productImageBase;
+        const potentialImages = [];
+
+        // Generate potential URLs based on wconcept's pattern
+        for (let i = 2; i <= 8; i++) {
+          const imageUrl = `https://cdn.wconcept.com/products/${part1}/${part2}/${productCode}_${i}.jpg`;
+          potentialImages.push(imageUrl);
+        }
+
+        // Validate images exist (quick HEAD requests)
+        console.log(`🔍 Validating ${potentialImages.length} potential images...`);
+        const validationPromises = potentialImages.map(async (url) => {
+          try {
+            const response = await axios.head(url, { timeout: 3000 });
+            return response.status === 200 ? url : null;
+          } catch (error) {
+            return null;
+          }
+        });
+
+        try {
+          const validatedResults = await Promise.all(validationPromises);
+          const validImages = validatedResults.filter(url => url !== null);
+          images.push(...validImages);
+          console.log(`📸 Found ${validImages.length} additional valid images`);
+        } catch (error) {
+          console.log('⚠️ Image validation failed, using pattern-based approach');
+          // Fallback to adding first few without validation
+          images.push(potentialImages[0], potentialImages[1]);
+        }
       }
     }
 
