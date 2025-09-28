@@ -352,7 +352,7 @@
     }
   },
   "speedyromeo.com": {
-    "successCount": 2,
+    "successCount": 1,
     "lastSuccess": "2025-09-25T20:49:15.032Z",
     "patterns": {
       "name": "h1",

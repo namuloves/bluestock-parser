@@ -442,11 +442,32 @@ class UniversalParserEnhanced {
     });
 
     if (Object.keys(successfulSelectors).length > 0) {
+      const existingPatterns = this.patterns.learned_patterns[hostname];
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+
+      // Check if we already have a success today
+      if (existingPatterns?.lastSuccess) {
+        const lastSuccessDate = existingPatterns.lastSuccess.split('T')[0];
+        if (lastSuccessDate === today) {
+          // Already logged today, just update patterns but not count
+          this.patterns.learned_patterns[hostname] = {
+            ...existingPatterns,
+            ...successfulSelectors,
+            lastSuccess: existingPatterns.lastSuccess, // Keep original timestamp
+            successCount: existingPatterns.successCount // Keep same count
+          };
+          console.log(`📊 Updated patterns for ${hostname} (already logged today)`);
+          return; // Don't increment counters
+        }
+      }
+
+      // New success or different day
       this.patterns.learned_patterns[hostname] = {
-        ...this.patterns.learned_patterns[hostname],
+        ...existingPatterns,
         ...successfulSelectors,
-        lastSuccess: new Date().toISOString(),
-        successCount: (this.patterns.learned_patterns[hostname]?.successCount || 0) + 1
+        lastSuccess: now.toISOString(),
+        successCount: 1 // Reset to 1 for new tracking
       };
 
       // Update metadata
