@@ -2,6 +2,7 @@ const cheerio = require('cheerio');
 const axios = require('axios');
 const fs = require('fs').promises;
 const path = require('path');
+const { SmartImageExtractor } = require('./utils/smartImageExtractor');
 
 // Puppeteer imports - only load if needed
 let puppeteer = null;
@@ -14,6 +15,9 @@ class UniversalParserEnhanced {
     this.cache = new Map();
     this.browserInstance = null;
     this.learningMode = process.env.ENABLE_PATTERN_LEARNING !== 'false';
+
+    // Initialize smart image extractor
+    this.imageExtractor = new SmartImageExtractor();
 
     // Setup configuration
     this.setupConfiguration();
@@ -388,7 +392,7 @@ class UniversalParserEnhanced {
     const strategies = { jsonLd, openGraph, microdata, patterns, generic, learned };
 
     // Merge and score
-    const merged = this.mergeStrategies(strategies);
+    const merged = await this.mergeStrategies(strategies, url, $);
     merged.confidence = this.calculateConfidence(merged);
     merged.url = url;
 
@@ -668,7 +672,7 @@ class UniversalParserEnhanced {
     return results;
   }
 
-  mergeStrategies(strategies) {
+  async mergeStrategies(strategies, url, $) {
     const merged = {};
     const priority = ['jsonLd', 'learned', 'openGraph', 'patterns', 'microdata', 'generic'];
     const fields = ['name', 'price', 'brand', 'images', 'description', 'currency', 'availability', 'sku'];
@@ -685,7 +689,7 @@ class UniversalParserEnhanced {
     }
 
     if (merged.images) {
-      merged.images = this.processImages(merged.images);
+      merged.images = await this.processImages(merged.images, url, $);
     }
 
     return merged;
@@ -750,18 +754,20 @@ class UniversalParserEnhanced {
     return [];
   }
 
-  processImages(images) {
+  async processImages(images, url, $) {
     if (!images || !Array.isArray(images)) return [];
 
+    // First apply basic normalization
     const processed = [...new Set(images)]
       .filter(img => img && (img.startsWith('http') || img.startsWith('//')))
       .map(img => img.startsWith('//') ? 'https:' + img : img)
       .slice(0, this.normalization.images.maxImages);
 
-    return processed.map(img => {
+    // Apply legacy transforms for compatibility
+    const transformed = processed.map(img => {
       try {
-        const url = new URL(img);
-        const domain = url.hostname;
+        const urlObj = new URL(img);
+        const domain = urlObj.hostname;
 
         for (const [pattern, transform] of Object.entries(this.normalization.images.transforms)) {
           if (domain.includes(pattern)) {
@@ -773,6 +779,54 @@ class UniversalParserEnhanced {
       }
       return img;
     });
+
+    // If we have few images, try smart extraction
+    if (transformed.length < 3 && $ && url) {
+      try {
+        const smartResult = await this.imageExtractor.extractImages($, url, {
+          validate: transformed.length < 2 // Only validate if we really need more images
+        });
+
+        if (smartResult.images.length > transformed.length) {
+          console.log(`🧠 Smart extractor found ${smartResult.images.length} images (confidence: ${Math.round(smartResult.confidence * 100)}%)`);
+
+          // Record the improvement in patterns for learning
+          if (this.learningMode) {
+            await this.recordImageImprovement(url, transformed.length, smartResult);
+          }
+
+          return smartResult.images;
+        }
+      } catch (error) {
+        console.log('⚠️ Smart image extraction failed:', error.message);
+        // Fall back to basic processing
+      }
+    }
+
+    return transformed;
+  }
+
+  async recordImageImprovement(url, originalCount, smartResult) {
+    try {
+      const hostname = new URL(url).hostname.replace('www.', '');
+      const improvement = {
+        timestamp: Date.now(),
+        url: url,
+        originalCount: originalCount,
+        improvedCount: smartResult.images.length,
+        improvement: smartResult.images.length - originalCount,
+        confidence: smartResult.confidence,
+        strategies: smartResult.strategies
+      };
+
+      // Store improvement data for pattern learning
+      console.log(`📊 Image improvement recorded for ${hostname}: ${originalCount} → ${smartResult.images.length} images`);
+
+      // Could save to database or file for analysis
+      // For now, just log the improvement
+    } catch (error) {
+      console.log('⚠️ Could not record image improvement:', error.message);
+    }
   }
 
   getCached(url) {
