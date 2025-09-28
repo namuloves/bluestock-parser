@@ -8,7 +8,7 @@ class BunnyCDNService {
     // Bunny CDN configuration from environment or defaults
     this.pullZoneUrl = process.env.BUNNY_PULL_ZONE_URL || 'bluestock.b-cdn.net';
     this.optimizerEnabled = process.env.BUNNY_OPTIMIZER !== 'false';
-    // Temporarily disable BunnyCDN due to 404 issues
+    // Keep disabled until pull zone is properly configured
     this.enabled = process.env.ENABLE_BUNNY_CDN === 'true';
 
     // Image proxy endpoint (we'll create this)
@@ -63,17 +63,17 @@ class BunnyCDNService {
 
       // Use Bunny CDN's image optimization API
       if (this.optimizerEnabled) {
-        // Bunny CDN Pull Zone with Optimizer
-        // Format: https://[pull-zone].b-cdn.net/[options]/[encoded-url]
-        const encodedUrl = Buffer.from(imageUrl).toString('base64url');
+        // BunnyCDN Optimizer format (NOT Cloudflare format)
+        // Format: https://[pull-zone].b-cdn.net/width=800,quality=85/original-url
         const optimizerOptions = [
           options.width ? `width=${options.width}` : 'width=800',
           options.quality ? `quality=${options.quality}` : 'quality=85',
-          'format=auto', // Auto WebP/AVIF
+          'format=auto',
           'sharpen=true'
         ].join(',');
 
-        return `https://${this.pullZoneUrl}/cdn-cgi/image/${optimizerOptions}/${encodedUrl}`;
+        // BunnyCDN doesn't need base64 encoding - use direct URL
+        return `https://${this.pullZoneUrl}/${optimizerOptions}/${imageUrl}`;
       }
 
       // Fallback to proxy endpoint
