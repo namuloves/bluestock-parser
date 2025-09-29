@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-09-29T02:12:42.221Z",
+    "updated": "2025-09-29T03:13:10.659Z",
     "total_sites": 12,
-    "successful_extractions": 20
+    "successful_extractions": 21
   },
   "global_patterns": {
     "price": [
@@ -369,8 +369,8 @@
     }
   },
   "chiclara.com": {
-    "successCount": 1,
-    "lastSuccess": "2025-09-29T02:12:42.221Z",
+    "successCount": 2,
+    "lastSuccess": "2025-09-29T03:13:10.659Z",
     "patterns": {
       "name": "h1",
       "price": ".price",

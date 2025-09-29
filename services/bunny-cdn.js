@@ -51,17 +51,19 @@ class BunnyCDNService {
         return `https://${this.pullZoneUrl}${path}?${params}`;
       }
 
-      // For external URLs, use our proxy endpoint
-      // Use proxy endpoint through BunnyCDN
-      const proxyParams = new URLSearchParams({
-        url: imageUrl,
+      // DIRECT CDN MODE: For external URLs, use direct CDN pull
+      // Encode the original URL for CDN to fetch directly
+      const encodedUrl = encodeURIComponent(imageUrl);
+
+      // Use direct CDN pull with query params for optimization
+      const params = new URLSearchParams({
         width: options.width || '800',
         quality: options.quality || '85',
         format: options.format || 'auto'
       });
 
-      // Route through BunnyCDN -> Railway proxy
-      return `https://${this.pullZoneUrl}/api/image-proxy?${proxyParams}`;
+      // Route directly through BunnyCDN (bypasses broken proxy)
+      return `https://${this.pullZoneUrl}/${encodedUrl}?${params}`;
 
     } catch (error) {
       console.error('❌ Error transforming image URL:', error.message);
