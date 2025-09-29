@@ -8,6 +8,8 @@ const { scrapeProduct } = require('./scrapers');
 const { enhanceWithAI } = require('./scrapers/ebay');
 const ClaudeAIService = require('./services/claude-ai');
 const SizeChartParser = require('./scrapers/sizeChartParser');
+const SlackNotificationService = require('./services/slack-notifications');
+const ProductEnhancer = require('./utils/productEnhancer');
 const healthRoutes = require('./routes/health');
 const duplicateCheckRoutes = require('./routes/duplicate-check');
 const imageProxyRoutes = require('./routes/image-proxy');
@@ -45,6 +47,12 @@ if (process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim()) {
 
 // Initialize size chart parser
 const sizeChartParser = new SizeChartParser();
+
+// Initialize Slack notification service
+const slackNotifications = new SlackNotificationService();
+
+// Initialize Product Enhancer
+const productEnhancer = new ProductEnhancer();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -180,6 +188,42 @@ app.get('/debug-ssense', async (req, res) => {
       success: false,
       error: error.message,
       stack: error.stack
+    });
+  }
+});
+
+// Slack test endpoint
+app.get('/test-slack', async (req, res) => {
+  try {
+    const success = await slackNotifications.sendTestNotification();
+    res.json({
+      success: success,
+      message: success ? 'Slack test notification sent!' : 'Slack test failed',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to send Slack test notification'
+    });
+  }
+});
+
+// Enhancement metrics endpoint
+app.get('/enhancement-metrics', (req, res) => {
+  try {
+    const metrics = productEnhancer.getMetrics();
+    res.json({
+      success: true,
+      metrics: metrics,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to get enhancement metrics'
     });
   }
 });
@@ -377,6 +421,35 @@ app.post('/scrape', async (req, res) => {
       }
     }
     
+    // ENHANCEMENT PIPELINE: Add color, category, material detection
+    console.log('🎨 Running product enhancement pipeline...');
+    try {
+      const enhancementStartTime = Date.now();
+
+      // Run enhancement pipeline with timeout
+      const enhancedData = await Promise.race([
+        productEnhancer.enhance(productData, '', url),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Enhancement timeout')), 8000)
+        )
+      ]);
+
+      // Merge enhanced data with original product data
+      productData = { ...productData, ...enhancedData };
+
+      const enhancementTime = Date.now() - enhancementStartTime;
+      console.log(`✅ Enhancement completed in ${enhancementTime}ms`);
+
+      // Log enhancement results
+      if (enhancedData.color) console.log(`🎨 Color detected: ${enhancedData.color}`);
+      if (enhancedData.category) console.log(`📂 Category detected: ${enhancedData.category}`);
+      if (enhancedData.material) console.log(`🧶 Material detected: ${enhancedData.material}`);
+      if (enhancedData.gender) console.log(`👤 Gender detected: ${enhancedData.gender}`);
+
+    } catch (error) {
+      console.log(`⚠️ Enhancement failed (falling back to basic data): ${error.message}`);
+    }
+
     // Transform image URLs through Bunny CDN
     const cdnService = getCDNService();
     productData = cdnService.transformProductImages(productData);
@@ -436,12 +509,29 @@ app.post('/scrape', async (req, res) => {
   } catch (error) {
     console.error('❌ Scraping error:', error);
     console.error('Stack trace:', error.stack);
-    
+
+    // Send Slack notification for parsing failure
+    try {
+      await slackNotifications.notifyParsingFailure({
+        url: url,
+        error: error.message || 'Unknown error',
+        userEmail: req.body.userEmail || req.headers['user-email'] || 'Anonymous',
+        timestamp: new Date().toISOString(),
+        additionalInfo: {
+          timeout: timeoutDuration,
+          userAgent: req.headers['user-agent'],
+          stack: process.env.NODE_ENV === 'development' ? error.stack : 'Hidden in production'
+        }
+      });
+    } catch (notificationError) {
+      console.error('Failed to send Slack notification:', notificationError);
+    }
+
     // Clear the timeout
     if (timeout) {
       clearTimeout(timeout);
     }
-    
+
     // Don't send response if already sent by timeout
     if (!res.headersSent) {
       // Check if it's a timeout error
@@ -454,7 +544,7 @@ app.post('/scrape', async (req, res) => {
       } else {
         // Log the full error for debugging
         console.error('Full error object:', JSON.stringify(error, null, 2));
-        
+
         res.status(500).json({
           success: false,
           error: error.message || 'Internal server error',

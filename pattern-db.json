@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-09-25T20:49:15.032Z",
+    "updated": "2025-09-29T02:12:42.221Z",
     "total_sites": 12,
-    "successful_extractions": 18
+    "successful_extractions": 20
   },
   "global_patterns": {
     "price": [
@@ -313,6 +313,14 @@
       "images": "jsonLd",
       "lastSuccess": "2025-09-19T02:02:12.961Z",
       "successCount": 1
+    },
+    "wconcept.com": {
+      "name": "openGraph",
+      "price": "patterns",
+      "brand": "patterns",
+      "images": "openGraph",
+      "lastSuccess": "2025-09-28T04:50:09.189Z",
+      "successCount": 1
     }
   },
   "uniqlo.com": {
@@ -358,6 +366,15 @@
       "name": "h1",
       "price": ".product-price",
       "brand": "Speedy Romeo"
+    }
+  },
+  "chiclara.com": {
+    "successCount": 1,
+    "lastSuccess": "2025-09-29T02:12:42.221Z",
+    "patterns": {
+      "name": "h1",
+      "price": ".price",
+      "brand": "MADWITCH"
     }
   }
 }
