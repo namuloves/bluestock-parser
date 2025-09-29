@@ -327,11 +327,13 @@ app.post('/scrape', async (req, res) => {
 
     let scrapeResult = null;
 
-    // Check if this is a Zara URL - use dedicated scraper for better results
+    // Check if this requires a dedicated scraper - use dedicated scraper for better results
     const hostname = new URL(url).hostname.toLowerCase();
-    const useDedicatedScraper = hostname.includes('zara.com');
+    const useDedicatedScraper = hostname.includes('zara.com') ||
+                               hostname.includes('ebay.com') ||
+                               hostname.includes('ebay.');
 
-    // Try Universal Parser V3 first if available (but skip for Zara)
+    // Try Universal Parser V3 first if available (but skip for dedicated scrapers)
     if (universalParser && !useDedicatedScraper) {
       try {
         console.log('🧠 Attempting Universal Parser V3...');
@@ -367,10 +369,10 @@ app.post('/scrape', async (req, res) => {
       }
     }
 
-    // Fall back to legacy scrapers if V3 didn't succeed (or for Zara)
+    // Fall back to legacy scrapers if V3 didn't succeed (or for dedicated scrapers)
     if (!scrapeResult || !scrapeResult.success) {
       if (useDedicatedScraper) {
-        console.log('🛍️ Using dedicated Zara scraper for enhanced image extraction...');
+        console.log('🛍️ Using dedicated scraper for enhanced image extraction...');
       } else {
         console.log('📦 Falling back to legacy scrapers...');
       }
