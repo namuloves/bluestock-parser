@@ -3,10 +3,31 @@ const cheerio = require('cheerio');
 
 async function scrapeEbay(url) {
   try {
+    let finalUrl = url;
+
+    // Handle short links (ebay.us/m/xxxxx) by expanding them first
+    if (url.includes('ebay.us/m/') || url.includes('ebay.to/')) {
+      console.log('🔗 Expanding eBay short link...');
+      try {
+        const response = await axios.head(url, {
+          maxRedirects: 5,
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        });
+        finalUrl = response.request.res.responseUrl || url;
+        console.log('✅ Expanded to:', finalUrl);
+      } catch (error) {
+        console.log('⚠️ Could not expand short link, trying original URL');
+        finalUrl = url;
+      }
+    }
+
     // Extract item ID from URL
-    const itemIdMatch = url.match(/itm\/(\d+)/);
+    const itemIdMatch = finalUrl.match(/itm\/(\d+)/);
     if (!itemIdMatch) {
-      throw new Error('Invalid eBay URL - could not extract item ID');
+      throw new Error(`Invalid eBay URL - could not extract item ID from: ${finalUrl}`);
     }
     const itemId = itemIdMatch[1];
 
