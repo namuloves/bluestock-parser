@@ -51,19 +51,20 @@ class BunnyCDNService {
         return `https://${this.pullZoneUrl}${path}?${params}`;
       }
 
-      // DIRECT CDN MODE: For external URLs, use direct CDN pull
-      // Encode the original URL for CDN to fetch directly
-      const encodedUrl = encodeURIComponent(imageUrl);
+      // For external URLs (eBay, wconcept, etc.), return original URL
+      // These sites have their own optimized CDNs and don't need proxying
+      const externalDomains = ['ebay.com', 'ebayimg.com', 'wconcept.com', 'shopify.com', 'zara.com'];
+      const isExternalUrl = externalDomains.some(domain => imageUrl.includes(domain));
 
-      // Use direct CDN pull with query params for optimization
-      const params = new URLSearchParams({
-        width: options.width || '800',
-        quality: options.quality || '85',
-        format: options.format || 'auto'
-      });
+      if (isExternalUrl) {
+        console.log('🔗 Keeping external URL unchanged:', imageUrl.substring(0, 50) + '...');
+        return imageUrl;
+      }
 
-      // Route directly through BunnyCDN (bypasses broken proxy)
-      return `https://${this.pullZoneUrl}/${encodedUrl}?${params}`;
+      // For other unknown external URLs, also return unchanged
+      // BunnyCDN can't proxy arbitrary external URLs without proper configuration
+      console.log('🔗 Keeping unknown external URL unchanged:', imageUrl.substring(0, 50) + '...');
+      return imageUrl;
 
     } catch (error) {
       console.error('❌ Error transforming image URL:', error.message);
