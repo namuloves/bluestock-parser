@@ -331,7 +331,8 @@ app.post('/scrape', async (req, res) => {
     const hostname = new URL(url).hostname.toLowerCase();
     const useDedicatedScraper = hostname.includes('zara.com') ||
                                hostname.includes('ebay.com') ||
-                               hostname.includes('ebay.');
+                               hostname.includes('ebay.') ||
+                               hostname.includes('wconcept.com');
 
     // Try Universal Parser V3 first if available (but skip for dedicated scrapers)
     if (universalParser && !useDedicatedScraper) {
