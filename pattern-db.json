@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-09-30T04:26:41.627Z",
+    "updated": "2025-09-30T04:38:40.189Z",
     "total_sites": 12,
-    "successful_extractions": 25
+    "successful_extractions": 27
   },
   "global_patterns": {
     "price": [
@@ -386,8 +386,8 @@
     }
   },
   "69mcfly.com": {
-    "successCount": 3,
-    "lastSuccess": "2025-09-30T04:26:41.628Z",
+    "successCount": 5,
+    "lastSuccess": "2025-09-30T04:38:40.190Z",
     "patterns": {
       "name": "h1.product_title",
       "price": ".price",
