@@ -14,6 +14,7 @@ const healthRoutes = require('./routes/health');
 const duplicateCheckRoutes = require('./routes/duplicate-check');
 const imageProxyRoutes = require('./routes/image-proxy');
 const { getCDNService } = require('./services/bunny-cdn');
+const BunnyStorageService = require('./services/bunny-storage');
 
 // Import Universal Parser V3 with caching
 let UniversalParserV3 = null;
@@ -47,6 +48,9 @@ if (process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim()) {
 
 // Initialize size chart parser
 const sizeChartParser = new SizeChartParser();
+
+// Initialize Bunny Storage service
+const bunnyStorage = new BunnyStorageService();
 
 // Initialize Slack notification service
 const slackNotifications = new SlackNotificationService();
@@ -453,9 +457,26 @@ app.post('/scrape', async (req, res) => {
       console.log(`⚠️ Enhancement failed (falling back to basic data): ${error.message}`);
     }
 
-    // Transform image URLs through Bunny CDN
-    const cdnService = getCDNService();
-    productData = cdnService.transformProductImages(productData);
+    // Upload images to Bunny Storage and get CDN URLs
+    console.log('📤 Uploading images to Bunny Storage...');
+    try {
+      const imageUrls = productData.image_urls || productData.images || [];
+      if (imageUrls.length > 0) {
+        const uploadResults = await bunnyStorage.uploadImages(imageUrls, {
+          width: 720,
+          quality: 85,
+          format: 'auto'
+        });
+
+        // Update image URLs to use CDN
+        productData.image_urls = uploadResults.map(result => result.cdn);
+        productData.images = uploadResults.map(result => result.cdn);
+
+        console.log(`✅ Uploaded ${uploadResults.length} images to Bunny Storage`);
+      }
+    } catch (error) {
+      console.error('⚠️ Bunny Storage upload failed, using original URLs:', error.message);
+    }
 
     // Ensure all database schema fields are present with correct names
     const normalizedProduct = {
