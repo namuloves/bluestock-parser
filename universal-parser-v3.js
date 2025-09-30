@@ -10,7 +10,7 @@ puppeteerExtra.use(StealthPlugin());
 
 class UniversalParserV3 {
   constructor() {
-    this.version = '3.1.0'; // Updated with Speedy Romeo fix
+    this.version = '3.1.1'; // Fixed 69mcfly image parsing and pattern loading
     this.browserInstance = null;
     this.cache = new Map();
     this.apiDataCache = new Map(); // Cache for intercepted API data
