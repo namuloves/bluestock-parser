@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-09-29T13:31:42.640Z",
+    "updated": "2025-09-30T02:53:18.322Z",
     "total_sites": 12,
-    "successful_extractions": 22
+    "successful_extractions": 23
   },
   "global_patterns": {
     "price": [
@@ -383,6 +383,14 @@
       "name": "h1",
       "price": ".price",
       "brand": "MADWITCH"
+    }
+  },
+  "69mcfly.com": {
+    "successCount": 1,
+    "lastSuccess": "2025-09-30T02:53:18.322Z",
+    "patterns": {
+      "name": null,
+      "price": ".price"
     }
   }
 }
