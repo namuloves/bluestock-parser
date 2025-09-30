@@ -165,6 +165,18 @@ class UniversalParserV3 {
         price: ['.price', '[itemprop="price"]', '.product-price'],
         images: ['.product-image img', '.gallery-image img'],
         brand: () => 'Miu Miu'
+      },
+      '69mcfly.com': {
+        name: ['h1.product_title', 'h1'],
+        price: ['.price'],
+        images: [
+          '.woocommerce-product-gallery__wrapper img',
+          '.woocommerce-product-gallery__image img',
+          '.iconic-woothumbs-thumbnails__image-wrapper img',
+          '.product-entry-slider-wrap img',
+          '.single-product .woocommerce-product-gallery img'
+        ],
+        brand: () => '69mcfly'
       }
     };
 
