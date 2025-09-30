@@ -299,9 +299,10 @@ app.post('/scrape', async (req, res) => {
   
   // Check if this is a Massimo Dutti URL that needs more time
   const url = req.body.url || '';
-  const needsLongerTimeout = url.includes('massimodutti.com') || 
+  const needsLongerTimeout = url.includes('massimodutti.com') ||
                              url.includes('net-a-porter.com') ||
-                             url.includes('ssense.com');
+                             url.includes('ssense.com') ||
+                             url.includes('fwrd.com');
   
   // Set a timeout for the entire request (60 seconds for protected sites, 30 for others)
   const timeoutDuration = needsLongerTimeout ? 60000 : 30000;
