@@ -250,9 +250,8 @@ class UniversalParserV3 {
         }
       }
 
-      if (this.logLevel === 'verbose') {
-        console.log('✅ Loaded patterns from database for', Object.keys(patterns).filter(k => !k.startsWith('_')).length, 'sites');
-      }
+      console.log('✅ Loaded patterns from database for', Object.keys(patterns).filter(k => !k.startsWith('_')).length, 'sites');
+      console.log('🔍 69mcfly patterns loaded:', JSON.stringify(this.sitePatterns['69mcfly.com'], null, 2));
     } catch (error) {
       if (this.logLevel === 'verbose') {
         console.log('⚠️ Could not load pattern database:', error.message);
