@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-09-30T02:53:18.322Z",
+    "updated": "2025-09-30T04:26:41.627Z",
     "total_sites": 12,
-    "successful_extractions": 23
+    "successful_extractions": 25
   },
   "global_patterns": {
     "price": [
@@ -386,11 +386,18 @@
     }
   },
   "69mcfly.com": {
-    "successCount": 1,
-    "lastSuccess": "2025-09-30T02:53:18.322Z",
+    "successCount": 3,
+    "lastSuccess": "2025-09-30T04:26:41.628Z",
     "patterns": {
-      "name": null,
-      "price": ".price"
+      "name": "h1.product_title",
+      "price": ".price",
+      "images": [
+        ".woocommerce-product-gallery__wrapper img",
+        ".woocommerce-product-gallery__image img",
+        ".iconic-woothumbs-thumbnails__image-wrapper img",
+        ".product-entry-slider-wrap img",
+        ".single-product .woocommerce-product-gallery img"
+      ]
     }
   }
 }

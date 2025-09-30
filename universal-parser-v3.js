@@ -223,6 +223,41 @@ class UniversalParserV3 {
     };
 
     this.logLevel = process.env.UNIVERSAL_LOG_LEVEL || 'normal';
+
+    // Load patterns from database on initialization
+    this.loadPatternsFromDatabase();
+  }
+
+  async loadPatternsFromDatabase() {
+    try {
+      const patternFile = './pattern-db.json';
+      const data = await fs.readFile(patternFile, 'utf8');
+      const patterns = JSON.parse(data);
+
+      // Merge database patterns with hardcoded patterns
+      for (const [hostname, siteData] of Object.entries(patterns)) {
+        if (hostname.startsWith('_') || !siteData.patterns) continue; // Skip metadata
+
+        // If site already has hardcoded patterns, merge them
+        if (this.sitePatterns[hostname]) {
+          this.sitePatterns[hostname] = {
+            ...this.sitePatterns[hostname],
+            ...siteData.patterns
+          };
+        } else {
+          // Add new site patterns from database
+          this.sitePatterns[hostname] = siteData.patterns;
+        }
+      }
+
+      if (this.logLevel === 'verbose') {
+        console.log('✅ Loaded patterns from database for', Object.keys(patterns).filter(k => !k.startsWith('_')).length, 'sites');
+      }
+    } catch (error) {
+      if (this.logLevel === 'verbose') {
+        console.log('⚠️ Could not load pattern database:', error.message);
+      }
+    }
   }
 
   async getBrowser() {
@@ -631,8 +666,14 @@ class UniversalParserV3 {
       if (strategy.name && !result.name) result.name = strategy.name;
       if (strategy.price && !result.price) result.price = strategy.price;
       if (strategy.brand && !result.brand) result.brand = strategy.brand;
-      if (strategy.images?.length > 0 && (!result.images || result.images.length === 0)) {
-        result.images = strategy.images;
+      if (strategy.images?.length > 0) {
+        if (!result.images) result.images = [];
+        // Merge images from all strategies, avoiding duplicates
+        for (const img of strategy.images) {
+          if (!result.images.includes(img)) {
+            result.images.push(img);
+          }
+        }
       }
       if (strategy.description && !result.description) result.description = strategy.description;
     }
