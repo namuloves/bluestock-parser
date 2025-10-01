@@ -1,0 +1,39 @@
+{
+  "date": "2025-10-01",
+  "totalRequests": 1,
+  "universalAttempts": 1,
+  "universalSuccess": 1,
+  "universalPartial": 0,
+  "fallbackUsed": 0,
+  "completeFailure": 0,
+  "avgConfidence": 0.85,
+  "avgResponseTime": 450,
+  "sitesData": {
+    "69mcfly.com": {
+      "requests": 1,
+      "universalSuccess": 1,
+      "avgConfidence": 0.85,
+      "avgTime": 450,
+      "fieldSuccess": {
+        "name": 1,
+        "price": 1,
+        "images": 1,
+        "brand": 1
+      }
+    }
+  },
+  "fieldExtractionRates": {
+    "name": 1,
+    "price": 1,
+    "images": 1,
+    "brand": 1
+  },
+  "strategySuccess": {
+    "jsonLd": 0,
+    "openGraph": 0,
+    "microdata": 0,
+    "patterns": 0,
+    "generic": 0
+  },
+  "errorTypes": {}
+}

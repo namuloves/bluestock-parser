@@ -1,41 +1,28 @@
-const { scrapeProduct } = require('./scrapers');
+const UniversalParserV3 = require('./universal-parser-v3');
+const parser = new UniversalParserV3();
 
-async function test69McFly() {
-  const url = 'https://69mcfly.com/shop/all-clothing/nyc-tee/?pp=0&epik=dj0yJnU9MHBWbkhjc0ktN2ttTVp3RFZJcExNNXJkUDdLLW1tVzUmcD0xJm49MHU3Zm9GN0lKQ29qTVdMOVc4eUduUSZ0PUFBQUFBR2piUk5V';
-
-  console.log('🔍 Testing 69mcfly.com URL...');
-  console.log('URL:', url);
-  console.log('Time:', new Date().toISOString());
+async function test() {
+  const url = 'https://69mcfly.com/shop/all-clothing/nyc-tee/';
+  console.log('Testing Universal Parser V3 for 69mcfly...\n');
 
   try {
-    const result = await scrapeProduct(url);
-
-    console.log('\n✅ SUCCESS:');
-    console.log('Success:', result.success);
-    console.log('Platform:', result.product?.platform);
-    console.log('Product name:', result.product?.product_name || result.product?.name);
-    console.log('Price:', result.product?.price);
-    console.log('Images count:', result.product?.image_urls?.length || result.product?.images?.length || 0);
-    console.log('Brand:', result.product?.brand);
-
-    // Check if the result actually has meaningful data
-    if (!result.product?.product_name && !result.product?.name) {
-      console.log('\n⚠️ WARNING: No product name found');
+    const result = await parser.parse(url);
+    console.log('Success:', !!result);
+    console.log('Name:', result.name);
+    console.log('Price:', result.price);
+    console.log('Brand:', result.brand);
+    console.log('Images:', result.images?.length || 0);
+    console.log('Confidence:', result.confidence);
+    if (result.images?.length > 0) {
+      console.log('\nFirst 3 images:');
+      result.images.slice(0, 3).forEach((img, i) => console.log(`  ${i+1}. ${img}`));
     }
-
-    if (!result.product?.price && !result.product?.sale_price) {
-      console.log('\n⚠️ WARNING: No price found');
-    }
-
-    if (!result.product?.image_urls?.length && !result.product?.images?.length) {
-      console.log('\n⚠️ WARNING: No images found');
-    }
-
   } catch (error) {
-    console.error('\n❌ ERROR:');
-    console.error('Message:', error.message);
-    console.error('Stack:', error.stack);
+    console.error('Error:', error.message);
+    console.error(error.stack);
+  } finally {
+    await parser.close();
   }
 }
 
-test69McFly();
+test();

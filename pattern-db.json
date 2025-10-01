@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-09-30T05:06:50.621Z",
+    "updated": "2025-10-01T16:28:11.573Z",
     "total_sites": 12,
-    "successful_extractions": 29
+    "successful_extractions": 38
   },
   "global_patterns": {
     "price": [
@@ -386,18 +386,21 @@
     }
   },
   "69mcfly.com": {
-    "successCount": 7,
-    "lastSuccess": "2025-09-30T05:06:50.622Z",
+    "successCount": 14,
+    "lastSuccess": "2025-10-01T06:28:47.145Z",
     "patterns": {
-      "name": "h1.product_title",
+      "name": "h1",
       "price": ".price",
-      "images": [
-        ".woocommerce-product-gallery__wrapper img",
-        ".woocommerce-product-gallery__image img",
-        ".iconic-woothumbs-thumbnails__image-wrapper img",
-        ".product-entry-slider-wrap img",
-        ".single-product .woocommerce-product-gallery img"
-      ]
+      "brand": "69mcfly"
+    }
+  },
+  "nhuhn.com": {
+    "successCount": 2,
+    "lastSuccess": "2025-10-01T16:28:11.573Z",
+    "patterns": {
+      "name": "h1",
+      "price": null,
+      "brand": "Nhuhn"
     }
   }
 }

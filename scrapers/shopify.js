@@ -249,8 +249,8 @@ const scrapeShopify = async (url) => {
       // Extract images from HTML - including picture elements (used by Emurj)
       const imageSet = new Set();
       
-      // Standard Shopify selectors
-      $('.product__media img, .product__image img, img[itemprop="image"], picture img').each((i, img) => {
+      // Standard Shopify selectors - added .product-single__media for nhuhn.com
+      $('.product__media img, .product__image img, .product-single__media img, img[itemprop="image"], picture img').each((i, img) => {
         let imageUrl = $(img).attr('src') || $(img).attr('data-src');
         
         // Also check srcset for higher quality images

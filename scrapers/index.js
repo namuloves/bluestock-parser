@@ -302,7 +302,7 @@ const detectSite = (url) => {
     }
   }
   
-  return 'generic';
+  return null; // Let unknown sites fall through to default case for Shopify detection
 };
 
 // Main scraping function with site routing
@@ -2044,10 +2044,6 @@ const scrapeProduct = async (url, options = {}) => {
 
         return farfetchProduct;
       
-      case 'generic':
-        console.log('🌐 Using generic scraper for unknown site');
-        return await scrapeGeneric(url);
-      
       default:
         console.log('❌ No specific scraper available for this site');
         
@@ -2059,17 +2055,25 @@ const scrapeProduct = async (url, options = {}) => {
           console.log('✅ Detected as Shopify store, using Shopify scraper');
           const shopifyProduct = await scrapeShopify(url);
           
-          // Extract price number from string
+          // Extract price number from string or number
           let shopifyPriceNumeric = 0;
           if (shopifyProduct.price) {
-            const priceMatch = shopifyProduct.price.match(/[\d,]+\.?\d*/);
-            shopifyPriceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+            if (typeof shopifyProduct.price === 'number') {
+              shopifyPriceNumeric = shopifyProduct.price;
+            } else {
+              const priceMatch = String(shopifyProduct.price).match(/[\d,]+\.?\d*/);
+              shopifyPriceNumeric = priceMatch ? parseFloat(priceMatch[0].replace(',', '')) : 0;
+            }
           }
-          
+
           let shopifyOriginalPriceNumeric = shopifyPriceNumeric;
           if (shopifyProduct.originalPrice) {
-            const originalMatch = shopifyProduct.originalPrice.match(/[\d,]+\.?\d*/);
-            shopifyOriginalPriceNumeric = originalMatch ? parseFloat(originalMatch[0].replace(',', '')) : shopifyPriceNumeric;
+            if (typeof shopifyProduct.originalPrice === 'number') {
+              shopifyOriginalPriceNumeric = shopifyProduct.originalPrice;
+            } else {
+              const originalMatch = String(shopifyProduct.originalPrice).match(/[\d,]+\.?\d*/);
+              shopifyOriginalPriceNumeric = originalMatch ? parseFloat(originalMatch[0].replace(',', '')) : shopifyPriceNumeric;
+            }
           }
           
           const shopifyIsOnSale = shopifyProduct.originalPrice && shopifyOriginalPriceNumeric > shopifyPriceNumeric;
