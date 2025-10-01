@@ -168,7 +168,7 @@ class UniversalParserV3 {
       },
       '69mcfly.com': {
         name: ['h1.product_title', 'h1'],
-        price: ['.price'],
+        price: ['.woocommerce-Price-amount.amount', '.price .woocommerce-Price-amount', 'span.amount', '.price'],
         images: [
           '.woocommerce-product-gallery__wrapper img',
           '.woocommerce-product-gallery__image img',
