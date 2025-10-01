@@ -791,6 +791,12 @@ class UniversalParserV3 {
         continue;
       }
 
+      // Handle string values (static brand names from pattern database)
+      if (typeof selectors === 'string') {
+        result[field] = selectors;
+        continue;
+      }
+
       for (const selector of selectors) {
         try {
           if (field === 'images') {
