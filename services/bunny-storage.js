@@ -113,13 +113,17 @@ class BunnyStorageService {
       fit = 'cover'
     } = options;
 
-    let optimizePath = `fit:${fit}`;
-    if (width) optimizePath += `/w:${width}`;
-    if (height) optimizePath += `/h:${height}`;
-    if (quality !== 85) optimizePath += `/q:${quality}`;
-    if (format !== 'auto') optimizePath += `/f:${format}`;
+    // Build query params for Bunny Optimizer
+    const params = new URLSearchParams();
+    if (width) params.append('width', width);
+    if (height) params.append('height', height);
+    if (quality !== 85) params.append('quality', quality);
+    if (fit !== 'cover') params.append('aspect_ratio', fit);
 
-    return `https://${this.pullZoneUrl}/optimize/${optimizePath}/${fileName}`;
+    const queryString = params.toString();
+    const baseUrl = `https://${this.pullZoneUrl}/${fileName}`;
+
+    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
   }
 
   /**
