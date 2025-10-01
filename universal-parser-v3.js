@@ -707,11 +707,24 @@ class UniversalParserV3 {
     const result = {};
     $('script[type="application/ld+json"]').each((i, elem) => {
       try {
-        const data = JSON.parse($(elem).html());
+        let data = JSON.parse($(elem).html());
+
+        // Handle @graph wrapper (common in WordPress/WooCommerce)
+        if (data['@graph'] && Array.isArray(data['@graph'])) {
+          const productData = data['@graph'].find(item => item['@type'] === 'Product');
+          if (productData) data = productData;
+        }
+
         if (data['@type'] === 'Product' || data.mainEntity?.['@type'] === 'Product') {
           const product = data.mainEntity || data;
           result.name = product.name;
-          result.price = product.offers?.price || product.price;
+
+          // Handle offers array (WooCommerce format)
+          if (Array.isArray(product.offers) && product.offers.length > 0) {
+            result.price = parseFloat(product.offers[0].price);
+          } else {
+            result.price = product.offers?.price || product.price;
+          }
 
           // Handle brand - could be object with @id or string
           if (product.brand) {
