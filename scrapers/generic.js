@@ -56,13 +56,11 @@ async function scrapeGeneric(url) {
     
     // Extract images - try multiple selectors
     const images = [];
-    
-    // Try OpenGraph image first
-    const ogImage = $('meta[property="og:image"]').attr('content');
-    if (ogImage) images.push(ogImage);
-    
-    // Try other image sources
+
+    // Try WooCommerce gallery images first (most specific)
     const imageSelectors = [
+      '.woocommerce-product-gallery__image img', // WooCommerce gallery
+      '.woocommerce-product-gallery img',
       '.product-image img',
       '.product-photo img',
       '[itemprop="image"]',
@@ -70,18 +68,36 @@ async function scrapeGeneric(url) {
       '.product-gallery img',
       '[data-testid="product-image"]',
       '.main-image img',
-      '#product-image img'
+      '#product-image img',
+      '.wp-post-image' // WordPress featured image
     ];
-    
+
     for (const selector of imageSelectors) {
       $(selector).each((i, elem) => {
-        const src = $(elem).attr('src') || $(elem).attr('data-src');
+        let src = $(elem).attr('src') ||
+                  $(elem).attr('data-src') ||
+                  $(elem).attr('data-large_image') ||
+                  $(elem).attr('data-lazy-src');
+
         if (src && !images.includes(src)) {
           // Make URL absolute if needed
           const imageUrl = src.startsWith('http') ? src : new URL(src, url).href;
-          images.push(imageUrl);
+          // Skip logo images, icons, and very small images
+          if (!imageUrl.includes('logo') &&
+              !imageUrl.includes('icon') &&
+              !imageUrl.match(/\d+x\d+/) ||
+              imageUrl.match(/\d{3,4}x\d{3,4}/)) {
+            images.push(imageUrl);
+          }
         }
       });
+    }
+
+    // If we found product gallery images, don't add og:image (likely a logo)
+    // Only use og:image as fallback if no other images found
+    if (images.length === 0) {
+      const ogImage = $('meta[property="og:image"]').attr('content');
+      if (ogImage) images.push(ogImage);
     }
     
     // Extract description
