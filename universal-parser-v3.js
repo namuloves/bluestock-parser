@@ -664,6 +664,14 @@ class UniversalParserV3 {
       confidence: 0
     };
 
+    // Handle Shopify variant URLs
+    if (url.includes('variant=')) {
+      const variantData = await this.extractShopifyVariant($, url);
+      if (variantData) {
+        Object.assign(result, variantData);
+      }
+    }
+
     // Try multiple extraction strategies
     const strategies = [
       this.extractJsonLd($),
@@ -794,6 +802,11 @@ class UniversalParserV3 {
       // Handle string values (static brand names from pattern database)
       if (typeof selectors === 'string') {
         result[field] = selectors;
+        continue;
+      }
+
+      // Skip if selectors is not iterable
+      if (!Array.isArray(selectors)) {
         continue;
       }
 
@@ -1013,6 +1026,100 @@ class UniversalParserV3 {
       }
     }
     return null;
+  }
+
+  async extractShopifyVariant($, url) {
+    const variantId = new URL(url).searchParams.get('variant');
+    if (!variantId) return null;
+
+    const result = {};
+
+    // Look for Shopify product JSON in script tags
+    $('script').each((i, elem) => {
+      const content = $(elem).html() || '';
+
+      // Look for window.productJSON or similar patterns
+      if (content.includes('product') && content.includes('variants')) {
+        // Try to extract JSON from various patterns
+        const patterns = [
+          /window\.productJSON\s*=\s*({.*?});/s,
+          /var\s+product\s*=\s*({.*?});/s,
+          /Product:\s*({.*?})\s*[,}]/s,
+          /"product":\s*({.*?})\s*[,}]/s
+        ];
+
+        for (const pattern of patterns) {
+          const match = content.match(pattern);
+          if (match) {
+            try {
+              const productData = JSON.parse(match[1]);
+
+              // Find the specific variant
+              if (productData.variants) {
+                const variant = productData.variants.find(v =>
+                  v.id?.toString() === variantId ||
+                  v.id === parseInt(variantId)
+                );
+
+                if (variant) {
+                  // Extract variant-specific price
+                  if (variant.price) {
+                    // Convert cents to dollars if needed
+                    result.price = typeof variant.price === 'number' && variant.price > 1000
+                      ? variant.price / 100
+                      : variant.price;
+                  }
+
+                  if (variant.compare_at_price) {
+                    result.originalPrice = typeof variant.compare_at_price === 'number' && variant.compare_at_price > 1000
+                      ? variant.compare_at_price / 100
+                      : variant.compare_at_price;
+                  }
+
+                  result.variantTitle = variant.title || variant.name;
+                  result.available = variant.available !== false;
+
+                  console.log(`✅ Found variant ${variantId} with price: ${result.price}`);
+                  return false; // Break out of each()
+                }
+              }
+            } catch (e) {
+              // Continue searching
+            }
+          }
+        }
+      }
+    });
+
+    // Also check for variant data in application/json script tags
+    $('script[type="application/json"]').each((i, elem) => {
+      try {
+        const data = JSON.parse($(elem).html());
+
+        if (data.product?.variants) {
+          const variant = data.product.variants.find(v =>
+            v.id?.toString() === variantId ||
+            v.id === parseInt(variantId)
+          );
+
+          if (variant && !result.price) {
+            result.price = typeof variant.price === 'number' && variant.price > 1000
+              ? variant.price / 100
+              : variant.price;
+
+            if (variant.compare_at_price) {
+              result.originalPrice = typeof variant.compare_at_price === 'number' && variant.compare_at_price > 1000
+                ? variant.compare_at_price / 100
+                : variant.compare_at_price;
+            }
+          }
+        }
+      } catch (e) {
+        // Continue
+      }
+    });
+
+    return Object.keys(result).length > 0 ? result : null;
   }
 
   async cleanup() {

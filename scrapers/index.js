@@ -1,21 +1,15 @@
 // ============================================
 // UNIVERSAL PARSER INTEGRATION - DO NOT DELETE
 // ============================================
-const UniversalParser = require('../universal-parser');
-const UniversalParserV2 = require('../universal-parser-v2');
+const UniversalParserV3 = require('../universal-parser-v3');
 const { getMetricsCollector } = require('../monitoring/metrics-collector');
 let universalParser;
-let universalParserV2;
 let metricsCollector;
 
 try {
-  // Initialize both parsers - V1 for backward compatibility, V2 for new features
-  universalParser = new UniversalParser();
-  console.log('✅ Universal parser initialized');
-
-  // Initialize V2 parser with improved features
-  universalParserV2 = new UniversalParserV2();
-  console.log('✅ Universal parser V2 initialized');
+  // Initialize Universal Parser V3 with all strategies
+  universalParser = new UniversalParserV3();
+  console.log('✅ Universal parser V3 initialized');
 
   // Initialize metrics collector if monitoring is enabled
   if (process.env.ENABLE_MONITORING !== 'false') {
@@ -25,32 +19,23 @@ try {
 } catch (e) {
   console.error('❌ Parser initialization failed:', e.message);
   universalParser = null;
-  universalParserV2 = null;
 }
 
 // Universal parser wrapper with fallback
 async function tryUniversalParser(url) {
-  // Use V2 if enabled and available
-  const useV2 = process.env.USE_PARSER_V2 !== 'false' && universalParserV2;
-  const parser = useV2 ? universalParserV2 : universalParser;
-
-  if (!parser) return null;
+  if (!universalParser) return null;
 
   try {
-    const result = await parser.parse(url);
-    const parserVersion = useV2 ? 'V2' : 'V1';
-    console.log(`📊 Universal parser ${parserVersion} confidence: ${result.confidence}`);
+    const result = await universalParser.parse(url);
+    console.log(`📊 Universal parser V3 confidence: ${result.confidence}`);
 
-    if (result.confidence > 0.7 && result.name && result.price) {
-      return {
-        success: true,
-        product: normalizeToExistingFormat(result),
-        extraction_method: `universal_${parserVersion}`,
-        confidence: result.confidence
-      };
-    }
-
-    return null;
+    // Return result with proper structure
+    return {
+      success: result.confidence > 0.5,
+      product: normalizeToExistingFormat(result),
+      extraction_method: 'universal_v3',
+      confidence: result.confidence
+    };
   } catch (error) {
     console.log('Universal parser error:', error.message);
     return null;
@@ -124,7 +109,6 @@ const { scrapeMytheresa, isMytheresaStore } = require('./mytheresa');
 const { scrapeClothbase, isClothbase } = require('./clothbase');
 const { scrapeArcteryx, isArcteryx } = require('./arcteryx');
 const { scrapeSongForTheMute, isSongForTheMute } = require('./songforthemute');
-const { scrapeGeneric } = require('./generic');
 const { scrapeMassimoDutti } = require('./massimodutti');
 const scrapeCamperlab = require('./camperlab');
 const { scrapeUnijay } = require('./unijay');
@@ -335,11 +319,11 @@ const scrapeProduct = async (url, options = {}) => {
   }
 
   // ============================================
-  // TRY UNIVERSAL PARSER FIRST (NEW)
+  // TRY UNIVERSAL PARSER FIRST (AS PER PLAN)
   // ============================================
   // Skip Universal Parser for sites with optimized dedicated scrapers
   if (!shouldSkipUniversal && !options.skipUniversal && process.env.UNIVERSAL_MODE !== 'off') {
-    const mode = process.env.UNIVERSAL_MODE || 'shadow';
+    const mode = process.env.UNIVERSAL_MODE || 'full';  // Changed default to 'full'
 
     if (mode === 'shadow') {
       // Shadow mode: run but don't use results
@@ -350,7 +334,29 @@ const scrapeProduct = async (url, options = {}) => {
           hasData: !!(universalResult.product?.name && universalResult.product?.price)
         });
       }
-    } else if (mode === 'partial') {
+    } else if (mode === 'full' || mode === 'partial') {
+      // Full mode: Try Universal Parser first
+      universalResult = await tryUniversalParser(url);
+
+      if (universalResult && universalResult.confidence > 0.7) {
+        console.log('✅ Universal Parser succeeded with confidence:', universalResult.confidence);
+
+        // Collect metrics if enabled
+        if (metricsCollector) {
+          metricsCollector.recordScrape({
+            url,
+            success: true,
+            method: 'universal',
+            confidence: universalResult.confidence,
+            duration: Date.now() - startTime
+          });
+        }
+
+        return universalResult;
+      }
+
+      console.log('📊 Universal Parser confidence too low:', universalResult?.confidence || 0);
+    } else if (mode === 'partial-old') {
       // Partial mode: only use for specific sites
       const allowedSites = (process.env.UNIVERSAL_SITES || 'zara.com,hm.com').split(',');
       const hostname = new URL(url).hostname.replace('www.', '');
