@@ -119,7 +119,7 @@ class BunnyStorageService {
     if (quality !== 85) optimizePath += `/q:${quality}`;
     if (format !== 'auto') optimizePath += `/f:${format}`;
 
-    return `https://${this.pullZoneUrl}/optimize/${optimizePath}/storage/${this.storageZone}/${fileName}`;
+    return `https://${this.pullZoneUrl}/optimize/${optimizePath}/${fileName}`;
   }
 
   /**
