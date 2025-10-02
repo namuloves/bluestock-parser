@@ -119,11 +119,88 @@ const { scrapeGalleryDept } = require('./gallerydept');
 const { scrapeBoden } = require('./boden');
 const { scrapeWConcept } = require('./wconcept');
 const { detectCategory } = require('../utils/categoryDetection');
+const FirecrawlParser = require('./firecrawl-parser');
+const FirecrawlParserV2 = require('./firecrawl-parser-v2');
+
+// Initialize Firecrawl parsers
+let firecrawlParser = null;
+let firecrawlParserV2 = null;
+
+// Initialize V1 parser (legacy)
+try {
+  firecrawlParser = new FirecrawlParser();
+  if (firecrawlParser.apiKey) {
+    console.log('🔥 Firecrawl parser V1 initialized (legacy)');
+  }
+} catch (e) {
+  console.log('⚠️ Firecrawl V1 not available:', e.message);
+}
+
+// Initialize V2 parser (optimized)
+try {
+  firecrawlParserV2 = new FirecrawlParserV2();
+  if (firecrawlParserV2.apiKey) {
+    console.log('✨ Firecrawl parser V2 initialized (optimized)');
+  }
+} catch (e) {
+  console.log('⚠️ Firecrawl V2 not available:', e.message);
+}
+
+// A/B testing configuration
+const FIRECRAWL_V2_ENABLED = process.env.FIRECRAWL_V2 !== 'false'; // Default to true
+const FIRECRAWL_V2_PERCENTAGE = parseInt(process.env.FIRECRAWL_V2_PERCENTAGE || '100'); // Default 100%
+
+// Determine which parser to use
+function getFirecrawlParser() {
+  // If V2 is disabled, use V1
+  if (!FIRECRAWL_V2_ENABLED || !firecrawlParserV2) {
+    return firecrawlParser;
+  }
+
+  // If V1 doesn't exist, use V2
+  if (!firecrawlParser) {
+    return firecrawlParserV2;
+  }
+
+  // A/B testing based on percentage
+  const useV2 = Math.random() * 100 < FIRECRAWL_V2_PERCENTAGE;
+
+  if (useV2) {
+    console.log('📊 A/B Test: Using Firecrawl V2');
+    return firecrawlParserV2;
+  } else {
+    console.log('📊 A/B Test: Using Firecrawl V1');
+    return firecrawlParser;
+  }
+}
+
+// List of sites that require Firecrawl due to enterprise bot detection
+// These sites will ALWAYS use Firecrawl as primary method
+const FIRECRAWL_REQUIRED_SITES = [
+  'rei.com'  // REI has strong bot detection, always use Firecrawl
+];
+
+// Sites that can use Firecrawl as fallback if primary scraper fails
+const FIRECRAWL_FALLBACK_SITES = [
+  'ssense.com'  // Has proxy scraper, use Firecrawl as backup
+];
 
 // Site detection function
 const detectSite = (url) => {
   const hostname = new URL(url).hostname.toLowerCase();
-  
+
+  // Check if site requires Firecrawl
+  const requiresFirecrawl = FIRECRAWL_REQUIRED_SITES.some(site =>
+    hostname.includes(site)
+  );
+
+  // Check if any Firecrawl parser is available
+  const hasFirecrawlParser = (firecrawlParser?.apiKey) || (firecrawlParserV2?.apiKey);
+
+  if (requiresFirecrawl && hasFirecrawlParser) {
+    return 'firecrawl';
+  }
+
   if (hostname.includes('amazon.')) {
     return 'amazon';
   }
@@ -405,6 +482,46 @@ const scrapeProduct = async (url, options = {}) => {
 
   try {
     switch (site) {
+      case 'firecrawl':
+        console.log('🔥 Using Firecrawl for enterprise bot detection bypass');
+        const selectedParser = getFirecrawlParser();
+
+        if (!selectedParser) {
+          console.log('❌ No Firecrawl parser available');
+          return {
+            success: false,
+            error: 'Firecrawl parser not configured'
+          };
+        }
+
+        const firecrawlResult = await selectedParser.scrape(url);
+
+        if (firecrawlResult.success) {
+          const product = firecrawlResult.product;
+
+          // Detect category
+          product.category = detectCategory(
+            product.product_name || '',
+            product.description || '',
+            product.brand || '',
+            null
+          );
+
+          return {
+            success: true,
+            product: product
+          };
+        } else {
+          // Firecrawl failed, try fallback based on site
+          const hostname = new URL(url).hostname.toLowerCase();
+          if (hostname.includes('ssense.')) {
+            console.log('⚠️ Firecrawl failed for SSENSE, trying proxy method');
+            return scrapeProduct(url); // Will use ssense case
+          }
+
+          return firecrawlResult;
+        }
+
       case 'amazon':
         console.log('🛒 Using Amazon scraper');
         return await scrapeAmazonProduct(url);
@@ -660,7 +777,7 @@ const scrapeProduct = async (url, options = {}) => {
       case 'ssense':
         console.log('🎨 Using SSENSE scraper');
         let ssenseProduct;
-        
+
         // Try simple scraper with proxy
         try {
           ssenseProduct = await scrapeSsenseSimple(url);
@@ -668,7 +785,34 @@ const scrapeProduct = async (url, options = {}) => {
           console.log('Product extracted:', ssenseProduct.name, 'Price:', ssenseProduct.price);
         } catch (error) {
           console.log('⚠️ SSENSE scraper failed:', error.message);
-          console.log('Using fallback data');
+
+          // Try Firecrawl as fallback if available
+          const fallbackParser = getFirecrawlParser();
+          if (fallbackParser?.apiKey) {
+            console.log('🔥 Trying Firecrawl fallback for SSENSE...');
+            try {
+              const firecrawlResult = await fallbackParser.scrape(url);
+              if (firecrawlResult.success) {
+                console.log('✅ Firecrawl fallback succeeded');
+                return {
+                  success: true,
+                  product: {
+                    ...firecrawlResult.product,
+                    category: detectCategory(
+                      firecrawlResult.product.product_name || '',
+                      firecrawlResult.product.description || '',
+                      firecrawlResult.product.brand || '',
+                      null
+                    )
+                  }
+                };
+              }
+            } catch (firecrawlError) {
+              console.log('⚠️ Firecrawl fallback also failed:', firecrawlError.message);
+            }
+          }
+
+          console.log('Using basic fallback data');
           ssenseProduct = scrapeSsenseFallback(url);
         }
         

@@ -232,6 +232,65 @@ app.get('/enhancement-metrics', (req, res) => {
   }
 });
 
+// Firecrawl V2 metrics endpoint
+app.get('/api/firecrawl/metrics', (req, res) => {
+  try {
+    const { getFirecrawlMetrics } = require('./services/firecrawl-metrics');
+    const firecrawlMetrics = getFirecrawlMetrics();
+
+    const metrics = firecrawlMetrics.getMetrics();
+    const recommendations = firecrawlMetrics.getRecommendations();
+
+    res.json({
+      success: true,
+      metrics,
+      recommendations,
+      config: {
+        v2_enabled: process.env.FIRECRAWL_V2 !== 'false',
+        v2_percentage: process.env.FIRECRAWL_V2_PERCENTAGE || '100',
+        firecrawl_api_configured: !!process.env.FIRECRAWL_API_KEY
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to get Firecrawl metrics'
+    });
+  }
+});
+
+// Reset Firecrawl metrics (admin only)
+app.post('/api/firecrawl/metrics/reset', (req, res) => {
+  try {
+    // Check for admin key
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== process.env.ADMIN_KEY && process.env.NODE_ENV === 'production') {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized'
+      });
+    }
+
+    const { getFirecrawlMetrics } = require('./services/firecrawl-metrics');
+    const firecrawlMetrics = getFirecrawlMetrics();
+    firecrawlMetrics.reset();
+
+    res.json({
+      success: true,
+      message: 'Firecrawl metrics reset successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to reset Firecrawl metrics'
+    });
+  }
+});
+
 // Test endpoint
 app.get('/test', (req, res) => {
   // Read the actual parser file to check what's deployed
@@ -302,7 +361,8 @@ app.post('/scrape', async (req, res) => {
   const needsLongerTimeout = url.includes('massimodutti.com') ||
                              url.includes('net-a-porter.com') ||
                              url.includes('ssense.com') ||
-                             url.includes('fwrd.com');
+                             url.includes('fwrd.com') ||
+                             url.includes('rei.com');
   
   // Set a timeout for the entire request (60 seconds for protected sites, 30 for others)
   const timeoutDuration = needsLongerTimeout ? 60000 : 30000;

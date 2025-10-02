@@ -1,3 +1,4 @@
+require('dotenv').config();
 const axios = require('axios');
 
 async function testBunnyUpload() {
@@ -7,7 +8,7 @@ async function testBunnyUpload() {
   const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
   const imageBuffer = Buffer.from(testImageBase64, 'base64');
 
-  const storageZone = 'bluestock-assets';
+  const storageZone = process.env.BUNNY_STORAGE_ZONE || 'bluestock-assets';
   const apiKey = process.env.BUNNY_STORAGE_API_KEY;
 
   console.log('Storage zone:', storageZone);
