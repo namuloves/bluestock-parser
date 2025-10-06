@@ -1,0 +1,174 @@
+# Domain-specific policies for the parser
+# Controls rate limiting, timeouts, rendering, and circuit breakers
+
+defaults:
+  user_agent: "Mozilla/5.0 (compatible; Bluestock/2.0; +https://bluestock.com/bot)"
+  timeout: 5000
+  rate_limit: 10  # requests per second
+  render_budget: 100  # renders per hour
+  circuit_breaker:
+    failure_threshold: 5
+    reset_timeout: 60000  # 1 minute
+  retry:
+    max_attempts: 2
+    delay: 1000
+  headers:
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    Accept-Language: "en-US,en;q=0.5"
+    Cache-Control: "no-cache"
+
+# High-traffic, reliable sites
+reliable:
+  - domain: zara.com
+    timeout: 3000
+    rate_limit: 5
+    render_required: false
+    circuit_breaker:
+      failure_threshold: 10  # More tolerant
+
+  - domain: hm.com
+    timeout: 3000
+    rate_limit: 5
+    render_required: false
+    circuit_breaker:
+      failure_threshold: 10
+
+  - domain: uniqlo.com
+    timeout: 4000
+    rate_limit: 5
+    render_required: false
+
+  - domain: nordstrom.com
+    timeout: 5000
+    rate_limit: 3
+    render_required: false
+
+  - domain: asos.com
+    timeout: 4000
+    rate_limit: 5
+    render_required: false
+
+# Sites requiring special handling
+special:
+  - domain: cos.com
+    timeout: 8000
+    rate_limit: 2
+    render_required: true  # Often needs rendering
+    render_budget: 50
+    circuit_breaker:
+      failure_threshold: 3
+
+  - domain: farfetch.com
+    timeout: 10000
+    rate_limit: 2
+    render_required: true
+    render_budget: 30
+    headers:
+      Accept-Encoding: "gzip, deflate"
+
+  - domain: ssense.com
+    timeout: 10000
+    rate_limit: 1
+    render_required: true
+    render_budget: 20
+    circuit_breaker:
+      failure_threshold: 2
+      reset_timeout: 120000  # 2 minutes
+
+  - domain: net-a-porter.com
+    timeout: 8000
+    rate_limit: 2
+    render_required: true
+    render_budget: 30
+
+  - domain: mytheresa.com
+    timeout: 8000
+    rate_limit: 2
+    render_required: true
+    render_budget: 30
+
+  - domain: fredhome.com.au
+    timeout: 15000  # Nuxt.js SSR needs longer timeout
+    rate_limit: 2
+    render_required: true
+    render_budget: 30
+    wait_for: 3000  # Wait for hydration
+    wait_for_selector: ".product-title"
+
+# Problematic sites
+problematic:
+  - domain: shein.com
+    timeout: 15000
+    rate_limit: 1
+    render_required: true
+    render_budget: 10
+    circuit_breaker:
+      failure_threshold: 2
+      reset_timeout: 300000  # 5 minutes
+    retry:
+      max_attempts: 1
+
+  - domain: aliexpress.com
+    timeout: 15000
+    rate_limit: 1
+    render_required: true
+    render_budget: 10
+    circuit_breaker:
+      failure_threshold: 2
+      reset_timeout: 300000
+
+# Sites with rate limiting
+rate_limited:
+  - domain: amazon.com
+    timeout: 5000
+    rate_limit: 0.5  # 1 request per 2 seconds
+    render_required: false
+    circuit_breaker:
+      failure_threshold: 2
+    headers:
+      User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+  - domain: ebay.com
+    timeout: 5000
+    rate_limit: 1
+    render_required: false
+    circuit_breaker:
+      failure_threshold: 3
+
+  - domain: walmart.com
+    timeout: 5000
+    rate_limit: 1
+    render_required: false
+    circuit_breaker:
+      failure_threshold: 3
+
+# Shopify sites (generally well-behaved)
+shopify:
+  - pattern: "*.myshopify.com"
+    timeout: 4000
+    rate_limit: 5
+    render_required: false
+    circuit_breaker:
+      failure_threshold: 5
+
+  - pattern: "shop.*"
+    timeout: 4000
+    rate_limit: 5
+    render_required: false
+
+# Block list - never scrape these
+blocked:
+  - domain: facebook.com
+    reason: "Social media - not e-commerce"
+
+  - domain: instagram.com
+    reason: "Social media - not e-commerce"
+
+  - domain: google.com
+    reason: "Search engine - not e-commerce"
+
+  - domain: youtube.com
+    reason: "Video platform - not e-commerce"
+
+# Dynamic additions (populated at runtime)
+dynamic: []

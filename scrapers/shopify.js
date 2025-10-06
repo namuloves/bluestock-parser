@@ -363,6 +363,13 @@ const scrapeShopify = async (url) => {
 // Check if a URL is a Shopify store
 const isShopifyStore = async (url) => {
   try {
+    // Exclude known non-Shopify sites that use Shopify CDN
+    const hostname = new URL(url).hostname.toLowerCase();
+    if (hostname.includes('fredhome.com.au')) {
+      console.log('❌ fredhome.com.au is not a real Shopify store (Nuxt.js app)');
+      return false;
+    }
+
     const response = await axios.get(url, {
       timeout: 10000,
       maxRedirects: 5,
@@ -370,13 +377,23 @@ const isShopifyStore = async (url) => {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
       }
     });
-    
+
     const html = response.data.toLowerCase();
-    
-    return html.includes('shopify') ||
-           html.includes('cdn.shopify') ||
-           html.includes('/cdn/shop/') ||
-           html.includes('myshopify.com');
+
+    // More specific Shopify detection - look for actual Shopify markers, not just CDN usage
+    const hasShopifyMarkers = (
+      html.includes('shopify.com/s/files') ||  // Actual Shopify file structure
+      html.includes('myshopify.com') ||        // Shopify subdomain
+      html.includes('/cdn/shop/') ||            // Shopify shop CDN
+      html.includes('shopify_checkout') ||      // Shopify checkout
+      html.includes('shopify.analytics') ||     // Shopify analytics
+      html.includes('var shopify =') ||         // Shopify JS object
+      html.includes('"shopify":') ||            // Shopify in JSON
+      html.includes('shopify-section')          // Shopify theme sections
+    );
+
+    // Just having cdn.shopify in images is not enough - many sites use Shopify CDN
+    return hasShopifyMarkers;
   } catch (error) {
     return false;
   }

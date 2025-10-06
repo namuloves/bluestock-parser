@@ -1,0 +1,80 @@
+domain: fredhome.com.au
+last_validated: 2025-01-04
+version: 1.0.0
+confidence_level: medium
+
+selectors:
+  name:
+    selector: .product-title
+    type: text
+    required: true
+    fallback:
+      - h1.title
+      - .product-heading h1
+      - h1
+      - meta[property="og:title"]
+
+  price:
+    selector: .button-add-to-cart
+    type: price
+    required: true
+    transform: extractNumber
+    pattern: '\$?([\d,]+(?:\.\d{2})?)'
+    fallback:
+      - .shopify-add-to-cart button
+      - button[class*="add-to-cart"]
+      - .product-details__cta button
+
+  sale_price:
+    selector: .product-price.sale
+    type: price
+    transform: extractNumber
+
+  images:
+    selector: .product__container img:first
+    type: images
+    attribute: src
+    min: 1
+    transform: high_quality
+    fallback:
+      - .product-details img:first
+      - .site-page img[src*="shopify"]:not([alt*="Fred"])
+      - img[src*="files/1/"]:first
+
+  brand:
+    value: Fred Home
+    type: static
+
+  description:
+    selector: .product-single__description
+    type: text
+    fallback:
+      - .product__description
+      - .rte
+
+  availability:
+    selector: button[name="add"]
+    type: availability
+    mapping:
+      "Add to cart": in_stock
+      "Sold out": out_of_stock
+      "Add to Cart": in_stock
+      "Sold Out": out_of_stock
+
+assertions:
+  - price > 0
+  - price < 10000
+  - name.length > 3
+  - images.length >= 1
+
+extraction_settings:
+  render_required: true  # Nuxt.js SSR app, needs JavaScript rendering
+  timeout: 15000  # Increased timeout for Nuxt.js hydration
+  wait_for: 3000  # Wait longer for dynamic content to fully load
+  wait_for_selector: .product-title  # Wait for specific product element
+
+notes:
+  - Fred Home uses Nuxt.js SSR (not traditional Shopify)
+  - Product data is dynamically loaded via JavaScript
+  - Multiple product variants with different prices may appear on page
+  - Needs rendering to get correct product images and price

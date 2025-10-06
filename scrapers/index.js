@@ -219,7 +219,7 @@ const detectSite = (url) => {
   if (hostname.includes('ralphlauren.')) {
     return 'ralphlauren';
   }
-  if (hostname.includes('cos.')) {
+  if (hostname === 'cos.com' || hostname === 'www.cos.com' || hostname.startsWith('cos.')) {
     return 'cos';
   }
   if (hostname.includes('sezane.')) {
@@ -1302,8 +1302,13 @@ const scrapeProduct = async (url, options = {}) => {
         
         // Check if we need to fallback to generic scraper
         if (storiesProduct.needsPuppeteer && !storiesProduct.name) {
-          console.log('⚠️ Stories requires Puppeteer, falling back to generic scraper');
-          return await scrapeGeneric(url);
+          console.log('⚠️ Stories requires Puppeteer, but generic scraper not available');
+          // return await scrapeGeneric(url); // TODO: Implement generic scraper
+          return {
+            success: false,
+            error: 'Generic scraper not implemented',
+            product: null
+          };
         }
         
         // Extract price number from string
@@ -2188,8 +2193,13 @@ const scrapeProduct = async (url, options = {}) => {
 
         // Handle potential Puppeteer fallback requirement
         if (farfetchProduct.needsPuppeteer) {
-          console.log('⚠️ Farfetch requires Puppeteer, falling back to generic scraper');
-          return await scrapeGeneric(url);
+          console.log('⚠️ Farfetch requires Puppeteer, but generic scraper not available');
+          // return await scrapeGeneric(url); // TODO: Implement generic scraper
+          return {
+            success: false,
+            error: 'Generic scraper not implemented',
+            product: null
+          };
         }
 
         return farfetchProduct;
@@ -2260,9 +2270,13 @@ const scrapeProduct = async (url, options = {}) => {
           };
         }
         
-        // If not Shopify, use generic scraper as last resort
-        console.log('🌐 Falling back to generic scraper');
-        return await scrapeGeneric(url);
+        // If not Shopify, return error (generic scraper not implemented)
+        console.log('❌ No specific scraper available and generic scraper not implemented');
+        return {
+          success: false,
+          error: 'No scraper available for this site',
+          product: null
+        };
     }
   } catch (error) {
     console.error('❌ Scraping error:', error.message);
