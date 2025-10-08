@@ -175,6 +175,137 @@ class SlackNotificationService {
     }
   }
 
+  async notifyInvalidProduct(details) {
+    const { url, product, validationErrors, userEmail, timestamp } = details;
+
+    // Check which core fields are missing or invalid
+    const missingFields = [];
+    const invalidFields = [];
+
+    // Check core product categories
+    if (!product.name || product.name.trim().length < 3) {
+      missingFields.push('Product Name');
+    }
+    if (!product.brand || product.brand.trim().length < 1) {
+      missingFields.push('Brand Name');
+    }
+    if (!product.price || product.price <= 0) {
+      missingFields.push('Price');
+    }
+    if (!product.images || product.images.length === 0) {
+      missingFields.push('Product Photos');
+    }
+
+    // Check for invalid values
+    if (product.name && (product.name.includes('undefined') || product.name.includes('null') || product.name.includes('test'))) {
+      invalidFields.push('Product Name (contains invalid text)');
+    }
+    if (product.brand && (product.brand.includes('undefined') || product.brand.includes('null') || product.brand.includes('brand'))) {
+      invalidFields.push('Brand Name (contains invalid text)');
+    }
+    if (product.images && product.images.some(img => img.includes('placeholder') || img.includes('no-image'))) {
+      invalidFields.push('Product Photos (contains placeholder images)');
+    }
+    
+    // Check for potentially inaccessible images (common patterns that return 403)
+    if (product.images && product.images.length > 0) {
+      const suspiciousImages = product.images.filter(img => {
+        return img.includes('static.zara.net') || // Zara images often return 403
+               img.includes('placeholder') ||
+               img.includes('no-image') ||
+               img.includes('default') ||
+               img.length < 20; // Very short URLs are suspicious
+      });
+      
+      if (suspiciousImages.length === product.images.length) {
+        invalidFields.push('Product Photos (images may be inaccessible - common with Zara URLs)');
+      }
+    }
+
+    const message = {
+      text: `⚠️ *INVALID PRODUCT DATA*`,
+      blocks: [
+        {
+          type: "header",
+          text: {
+            type: "plain_text",
+            text: "⚠️ Product Parsed but Invalid Data"
+          }
+        },
+        {
+          type: "section",
+          fields: [
+            {
+              type: "mrkdwn",
+              text: `*URL:*\n${url}`
+            },
+            {
+              type: "mrkdwn",
+              text: `*User:*\n${userEmail || 'Anonymous'}`
+            },
+            {
+              type: "mrkdwn",
+              text: `*Time:*\n${new Date(timestamp).toLocaleString()}`
+            }
+          ]
+        }
+      ]
+    };
+
+    // Add missing fields section
+    if (missingFields.length > 0) {
+      message.blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*❌ Missing Core Data:*\n${missingFields.map(field => `• ${field}`).join('\n')}`
+        }
+      });
+    }
+
+    // Add invalid fields section
+    if (invalidFields.length > 0) {
+      message.blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*⚠️ Invalid Data:*\n${invalidFields.map(field => `• ${field}`).join('\n')}`
+        }
+      });
+    }
+
+    // Add validation errors if available
+    if (validationErrors && validationErrors.length > 0) {
+      message.blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*🔍 Validation Errors:*\n${validationErrors.map(err => `• ${err.message || err}`).join('\n')}`
+        }
+      });
+    }
+
+    // Add product data preview
+    message.blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*📦 Product Data Preview:*\n\`\`\`${JSON.stringify({
+          name: product.name || 'MISSING',
+          brand: product.brand || 'MISSING',
+          price: product.price || 'MISSING',
+          imageCount: product.images ? product.images.length : 0
+        }, null, 2)}\`\`\``
+      }
+    });
+
+    try {
+      await this.sendNotification(message);
+    } catch (error) {
+      console.error('Failed to send invalid product notification:', error);
+    }
+  }
+
   // Test notification
   async sendTestNotification() {
     const message = {

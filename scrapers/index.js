@@ -354,7 +354,8 @@ const detectSite = (url) => {
     'fm669.us',
     'jamesstreetco.com',
     'gimaguas.com',
-    'footindustry.com'
+    'footindustry.com',
+    'shopcatandkate.com'
   ];
   
   for (const domain of shopifyDomains) {
@@ -1140,6 +1141,59 @@ const scrapeProduct = async (url, options = {}) => {
         }
         
         const zaraIsOnSale = zaraProduct.originalPrice && zaraOriginalPriceNumeric > zaraPriceNumeric;
+        
+        // Prepare product data for Quality Gate validation
+        const productData = {
+          name: zaraProduct.name,
+          brand: 'Zara',
+          price: zaraPriceNumeric,
+          images: zaraProduct.images || [],
+          description: zaraProduct.description || '',
+          sale_price: zaraIsOnSale ? zaraPriceNumeric : null,
+          currency: 'USD',
+          url: url
+        };
+        
+        // Validate with Quality Gate
+        const { getQualityGate } = require('../utils/qualityGate');
+        const qualityGate = getQualityGate();
+        const validation = qualityGate.validate(productData);
+        
+        // Additional check for Zara-specific image issues
+        const hasInaccessibleImages = productData.images && productData.images.length > 0 && 
+          productData.images.every(img => img.includes('static.zara.net'));
+        
+        if (!validation.valid || hasInaccessibleImages) {
+          const errorMessage = !validation.valid ? 
+            `Quality Gate: ${validation.errors.map(e => e.message).join(', ')}` :
+            'All images are from static.zara.net (likely inaccessible)';
+          
+          console.log(`❌ Zara product failed validation: ${errorMessage}`);
+          
+          // Send notification for invalid product data
+          const SlackNotificationService = require('../services/slack-notifications');
+          const slackNotifications = new SlackNotificationService();
+          
+          try {
+            await slackNotifications.notifyInvalidProduct({
+              url: url,
+              product: productData,
+              validationErrors: validation.errors || [{ message: 'Images may be inaccessible (static.zara.net URLs)' }],
+              userEmail: 'Anonymous', // Will be set by the calling function
+              timestamp: new Date().toISOString()
+            });
+          } catch (notificationError) {
+            console.error('Failed to send invalid product notification:', notificationError);
+          }
+          
+          return {
+            success: false,
+            error: 'Product failed validation',
+            validationErrors: validation.errors || [{ message: 'Images may be inaccessible' }]
+          };
+        }
+        
+        console.log(`✅ Zara product passed Quality Gate validation`);
         
         return {
           success: !zaraProduct.error,

@@ -15,22 +15,52 @@ const duplicateCheckRoutes = require('./routes/duplicate-check');
 const imageProxyRoutes = require('./routes/image-proxy');
 const { getCDNService } = require('./services/bunny-cdn');
 const BunnyStorageService = require('./services/bunny-storage');
+const { getCurrencyDetector } = require('./services/currency-detector');
+const { getCurrencyConverter } = require('./services/currency-converter');
 
-// Import Universal Parser V3 with caching
-let UniversalParserV3 = null;
+// Import Universal Parser - V3 or LEAN based on environment
+let UniversalParser = null;
 let universalParser = null;
+let leanParser = null;
+let v3Parser = null;
 
+// Import Rollout Configuration
+const { getRolloutConfig } = require('./config/rollout-config');
+const rolloutConfig = getRolloutConfig();
+
+// Check which parser version to use
+const PARSER_VERSION = process.env.PARSER_VERSION || 'v3'; // 'v3' or 'lean'
+
+// Initialize both parsers for gradual rollout
 try {
-  // Try to load the cached version if Redis is available
+  // Always try to initialize V3 parser for fallback
   if (process.env.REDIS_ENABLED !== 'false') {
-    UniversalParserV3 = require('./universal-parser-v3-cached');
+    UniversalParser = require('./universal-parser-v3-cached');
   } else {
-    UniversalParserV3 = require('./universal-parser-v3');
+    UniversalParser = require('./universal-parser-v3');
   }
-  universalParser = new UniversalParserV3();
+  v3Parser = new UniversalParser();
   console.log('✅ Universal parser V3 initialized');
+
+  // Also initialize lean parser if available
+  try {
+    const { getLeanParser } = require('./universal-parser-lean');
+    leanParser = getLeanParser();
+    console.log('✅ Universal Parser LEAN initialized (v4.0.0-lean) for rollout');
+  } catch (leanError) {
+    console.log('⚠️ Lean parser not available, using V3 only');
+  }
+
+  // Set the main parser reference based on configuration
+  if (PARSER_VERSION === 'lean' && leanParser) {
+    universalParser = leanParser;
+    console.log('📌 Primary parser: LEAN (with V3 fallback)');
+  } else {
+    universalParser = v3Parser;
+    console.log('📌 Primary parser: V3');
+  }
 } catch (error) {
-  console.log('⚠️ Universal parser V3 not available, using legacy scrapers only');
+  console.log('⚠️ Universal parser not available, using legacy scrapers only:', error.message);
 }
 
 // Initialize AI service if API key is available
@@ -399,39 +429,206 @@ app.post('/scrape', async (req, res) => {
                                hostname.includes('ebay.') ||
                                hostname.includes('wconcept.com');
 
-    // Try Universal Parser V3 first if available (but skip for dedicated scrapers)
-    if (universalParser && !useDedicatedScraper) {
-      try {
-        console.log('🧠 Attempting Universal Parser V3...');
-        console.log('📌 Parser version:', universalParser.version || 'unknown');
-        const v3Result = await universalParser.parse(url);
+    // Import Quality Gate for validation
+    const { getQualityGate } = require('./utils/qualityGate');
+    const qualityGate = getQualityGate();
 
-        if (v3Result && v3Result.confidence > 0.5) {
-          console.log(`✅ V3 Parser succeeded with confidence: ${v3Result.confidence}`);
+    // GRADUAL ROLLOUT: Determine which parser to use
+    let parseResult = null;
+    let parserUsed = 'none';
 
-          // Convert V3 format to expected format
+    if (!useDedicatedScraper) {
+      // Get parser decision from rollout config
+      const decision = rolloutConfig.getParserDecision(url);
+      console.log(`🎯 Parser decision for ${new URL(url).hostname}: ${decision.useLeanParser ? 'LEAN' : 'V3'} (${decision.reason})`);
+
+      // Use the selected parser
+      if (decision.useLeanParser && leanParser) {
+        try {
+          console.log(`🧠 Attempting Universal Parser LEAN...`);
+          console.log('📌 Parser version:', leanParser.version || 'v4.0.0-lean');
+          parseResult = await leanParser.parse(url);
+          parserUsed = 'lean';
+
+          if (parseResult.success) {
+            console.log(`✅ Lean Parser succeeded`);
+            console.log(`📌 Plugins used: ${parseResult.plugins_used?.join(', ') || 'none'}`);
+            console.log(`🌐 Rendered: ${parseResult.rendered ? 'Yes' : 'No'}`);
+            rolloutConfig.recordResult(url, 'lean', true);
+          } else {
+            console.log(`❌ Lean Parser failed: ${parseResult.errors?.[0]?.message || parseResult.error}`);
+            rolloutConfig.recordResult(url, 'lean', false);
+
+            // FALLBACK: Try V3 parser if lean failed and we're in fallback mode
+            if (rolloutConfig.mode === 'primary_with_fallback' && v3Parser) {
+              console.log(`🔄 Falling back to V3 parser...`);
+              try {
+                parseResult = await v3Parser.parse(url);
+                parserUsed = 'v3-fallback';
+                rolloutConfig.recordResult(url, 'legacy', !!parseResult, true);
+                console.log(`✅ V3 fallback ${parseResult ? 'succeeded' : 'failed'}`);
+              } catch (v3Error) {
+                console.log(`❌ V3 fallback also failed: ${v3Error.message}`);
+                rolloutConfig.recordResult(url, 'legacy', false, true);
+              }
+            }
+          }
+        } catch (leanError) {
+          console.log(`❌ Lean Parser error: ${leanError.message}`);
+          rolloutConfig.recordResult(url, 'lean', false);
+
+          // FALLBACK: Try V3 parser if lean errored
+          if (rolloutConfig.mode === 'primary_with_fallback' && v3Parser) {
+            console.log(`🔄 Falling back to V3 parser after lean error...`);
+            try {
+              parseResult = await v3Parser.parse(url);
+              parserUsed = 'v3-fallback';
+              rolloutConfig.recordResult(url, 'legacy', !!parseResult, true);
+            } catch (v3Error) {
+              console.log(`❌ V3 fallback also failed: ${v3Error.message}`);
+              rolloutConfig.recordResult(url, 'legacy', false, true);
+            }
+          }
+        }
+      } else if (v3Parser) {
+        // Use V3 parser
+        try {
+          console.log(`🧠 Attempting Universal Parser V3...`);
+          console.log('📌 Parser version:', v3Parser.version || 'v3');
+          parseResult = await v3Parser.parse(url);
+          parserUsed = 'v3';
+          rolloutConfig.recordResult(url, 'legacy', !!parseResult);
+        } catch (v3Error) {
+          console.log(`❌ V3 Parser error: ${v3Error.message}`);
+          rolloutConfig.recordResult(url, 'legacy', false);
+        }
+      }
+
+      // Process parse result if we got one
+      if (parseResult) {
+        // Handle different parser formats
+        let v3Result;
+        if (parserUsed === 'lean' || parserUsed === 'v3-fallback') {
+          // Lean parser returns { success, product, ... }
+          if (parseResult.success) {
+            v3Result = parseResult.product;
+          } else {
+            v3Result = parseResult.partial_data || {};
+          }
+        } else {
+          // V3 parser returns data directly
+          v3Result = parseResult;
+        }
+
+        // Skip Quality Gate for lean parser (already validated internally)
+        let validatedProduct;
+        if ((parserUsed === 'lean' || parserUsed === 'v3-fallback') && parseResult.success) {
+          // Lean parser already validated with Quality Gate
+          validatedProduct = v3Result;
+        } else if ((parserUsed === 'lean' || parserUsed === 'v3-fallback') && !parseResult.success && v3Result) {
+          // Lean parser failed validation but returned data - notify about invalid product
+          console.log(`⚠️ Lean parser returned invalid product data`);
+          
+          if (slackNotifications) {
+            try {
+              await slackNotifications.notifyInvalidProduct({
+                url: url,
+                product: {
+                  name: v3Result.name,
+                  brand: v3Result.brand,
+                  price: v3Result.price,
+                  images: v3Result.images || [],
+                  description: v3Result.description
+                },
+                validationErrors: parseResult.errors || [],
+                userEmail: req.body.userEmail || 'Anonymous',
+                timestamp: new Date().toISOString()
+              });
+            } catch (notificationError) {
+              console.error('Failed to send invalid product notification:', notificationError);
+            }
+          }
+          
+          validatedProduct = null;
+        } else {
+          // V3 parser needs Quality Gate validation
+          const validation = qualityGate.validate({
+            name: v3Result.name,
+            price: v3Result.price,
+            images: v3Result.images || [],
+            brand: v3Result.brand,
+            description: v3Result.description,
+            sale_price: v3Result.salePrice || v3Result.sale_price,
+            currency: v3Result.currency || 'USD',
+            url: url
+          });
+
+          // Deprecation warning for confidence scores
+          if (v3Result.confidence !== undefined) {
+            console.log(`[DEPRECATION] Confidence score (${v3Result.confidence}) is deprecated. Using Quality Gate validation.`);
+          }
+
+          if (validation.valid) {
+            console.log(`✅ Parser passed Quality Gate validation`);
+
+            if (validation.warnings.length > 0) {
+              console.log(`⚠️ Warnings: ${validation.warnings.map(w => w.message).join(', ')}`);
+            }
+
+            validatedProduct = validation.product;
+          } else {
+            console.log(`❌ Parser failed Quality Gate: ${validation.errors.map(e => e.message).join(', ')}`);
+            validatedProduct = null;
+          }
+        }
+
+        if (validatedProduct) {
+          // Convert to expected format
           scrapeResult = {
             success: true,
             product: {
-              name: v3Result.name || '',
-              product_name: v3Result.name || '',
-              brand: v3Result.brand || 'Unknown',
-              price: v3Result.price || 0,
-              original_price: v3Result.originalPrice || v3Result.price || 0,
-              sale_price: v3Result.price || 0,
-              images: v3Result.images || [],
-              image_urls: v3Result.images || [],
-              description: v3Result.description || '',
-              is_on_sale: v3Result.isOnSale || false,
-              discount_percentage: v3Result.discountPercentage || null,
+              name: validatedProduct.name,
+              product_name: validatedProduct.name,
+              brand: validatedProduct.brand || 'Unknown',
+              price: validatedProduct.price,
+              original_price: v3Result.originalPrice || validatedProduct.price,
+              sale_price: validatedProduct.sale_price || validatedProduct.price,
+              images: validatedProduct.images,
+              image_urls: validatedProduct.images,
+              description: validatedProduct.description || '',
+              is_on_sale: !!validatedProduct.sale_price,
+              discount_percentage: validatedProduct.sale_price
+                ? Math.round((1 - validatedProduct.sale_price / validatedProduct.price) * 100)
+                : null,
               platform: 'universal-v3',
-              confidence: v3Result.confidence,
+              validation: 'quality-gate',
               source: 'universal-parser-v3'
             }
           };
+        } else {
+          console.log(`❌ Parser failed Quality Gate validation`);
+          
+          // Send notification for invalid product data
+          if (slackNotifications && v3Result) {
+            try {
+              await slackNotifications.notifyInvalidProduct({
+                url: url,
+                product: {
+                  name: v3Result.name,
+                  brand: v3Result.brand,
+                  price: v3Result.price,
+                  images: v3Result.images || [],
+                  description: v3Result.description
+                },
+                validationErrors: validation.errors,
+                userEmail: req.body.userEmail || 'Anonymous',
+                timestamp: new Date().toISOString()
+              });
+            } catch (notificationError) {
+              console.error('Failed to send invalid product notification:', notificationError);
+            }
+          }
         }
-      } catch (error) {
-        console.log(`⚠️ V3 Parser failed: ${error.message}`);
       }
     }
 
@@ -518,6 +715,35 @@ app.post('/scrape', async (req, res) => {
       console.log(`⚠️ Enhancement failed (falling back to basic data): ${error.message}`);
     }
 
+    // CURRENCY DETECTION (NO CONVERSION - KEEP ORIGINAL PRICES)
+    console.log('💱 Detecting currency...');
+    try {
+      const currencyDetector = getCurrencyDetector();
+
+      // Get HTML content for detection (if available)
+      const htmlContent = scrapeResult.html || '';
+
+      // Get price text for detection
+      const priceText = productData.price_text ||
+                       productData.sale_price?.toString() ||
+                       productData.price?.toString() || '';
+
+      // Detect currency
+      const currencyInfo = currencyDetector.detect(htmlContent, url, priceText);
+      console.log(`💰 Detected currency: ${currencyInfo.currency} (confidence: ${currencyInfo.confidence})`);
+
+      // Store currency info
+      productData.currency = currencyInfo.currency;
+
+      // Keep prices as-is in their original currency
+      console.log(`💵 Storing price as: ${productData.sale_price || productData.price} ${currencyInfo.currency}`);
+
+    } catch (error) {
+      console.error('⚠️ Currency detection failed:', error.message);
+      // Default to USD if detection fails
+      productData.currency = 'USD';
+    }
+
     // Upload images to Bunny Storage and get CDN URLs
     console.log('📤 Uploading images to Bunny Storage...');
     try {
@@ -557,6 +783,9 @@ app.post('/scrape', async (req, res) => {
       category: productData.category || '',
       material: productData.material || (Array.isArray(productData.materials) ? productData.materials.join(', ') : '') || '',
       platform: productData.platform || '',
+
+      // Currency field - prices are stored in their original currency
+      currency: productData.currency || 'USD',
       
       // Legacy fields for backward compatibility
       name: productData.product_name || productData.name || '',
@@ -587,9 +816,12 @@ app.post('/scrape', async (req, res) => {
 
     // Clear the timeout since we're done
     clearTimeout(timeout);
-    
-    // Always return the product directly, not wrapped
-    res.json(normalizedProduct);
+
+    // Return in the expected format for frontend
+    res.json({
+      success: true,
+      product: normalizedProduct
+    });
     
   } catch (error) {
     console.error('❌ Scraping error:', error);
@@ -905,9 +1137,255 @@ app.get('/api/parser/abtest', async (req, res) => {
   }
 });
 
+// Quality Gate metrics endpoint
+app.get('/api/quality-gate/metrics', (req, res) => {
+  try {
+    const { getQualityGate } = require('./utils/qualityGate');
+    const qualityGate = getQualityGate();
+    const metrics = qualityGate.getMetrics();
+
+    res.json({
+      status: 'success',
+      message: 'Quality Gate validation is replacing confidence scores',
+      metrics: {
+        ...metrics,
+        migration: {
+          phase: 'Phase 1 - Quality Gate Active',
+          oldSystem: 'Confidence scores (0.5, 0.7 thresholds)',
+          newSystem: 'Hard pass/fail validation with JSON Schema',
+          benefits: [
+            'Deterministic validation instead of fuzzy scoring',
+            'Clear error messages for failures',
+            'Business rule enforcement',
+            'No more guessing with confidence thresholds'
+          ]
+        }
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
+// Quality Gate test endpoint - test validation on any URL
+app.post('/api/quality-gate/test', async (req, res) => {
+  try {
+    const { product } = req.body;
+
+    if (!product) {
+      return res.status(400).json({
+        error: 'Product data required in request body'
+      });
+    }
+
+    const { getQualityGate } = require('./utils/qualityGate');
+    const qualityGate = getQualityGate();
+    const validation = qualityGate.validate(product);
+
+    res.json({
+      input: product,
+      validation,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Validation failed',
+      message: error.message
+    });
+  }
+});
+
+// Lean Parser metrics endpoints
+app.get('/api/lean-parser/metrics', (req, res) => {
+  if (PARSER_VERSION !== 'lean') {
+    return res.status(400).json({
+      error: 'Lean parser not active',
+      current_version: PARSER_VERSION,
+      hint: 'Set PARSER_VERSION=lean to enable'
+    });
+  }
+
+  try {
+    const metrics = universalParser.getMetrics();
+    res.json({
+      status: 'success',
+      parser: 'LEAN v4.0.0',
+      metrics
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to get metrics',
+      message: error.message
+    });
+  }
+});
+
+// Render policy stats
+app.get('/api/render-policy/stats', (req, res) => {
+  try {
+    const { getRenderPolicy } = require('./utils/renderPolicy');
+    const policy = getRenderPolicy();
+    const stats = policy.getStats();
+
+    res.json({
+      status: 'success',
+      stats,
+      message: 'Smart rendering policy active'
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to get render policy stats',
+      message: error.message
+    });
+  }
+});
+
+// Circuit breaker status
+app.get('/api/circuit-breaker/status', (req, res) => {
+  try {
+    const { getCircuitBreaker } = require('./utils/circuitBreaker');
+    const breaker = getCircuitBreaker();
+    const metrics = breaker.getMetrics();
+    const statuses = breaker.getAllStatuses();
+
+    res.json({
+      status: 'success',
+      metrics,
+      circuits: statuses
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to get circuit breaker status',
+      message: error.message
+    });
+  }
+});
+
+// Parser version endpoint
+app.get('/api/parser/version', (req, res) => {
+  res.json({
+    current: PARSER_VERSION,
+    available: ['v3', 'lean'],
+    lean_status: PARSER_VERSION === 'lean' ? 'active' : 'available',
+    features: {
+      v3: ['confidence scores', 'auto-learning', 'pattern-db'],
+      lean: ['quality gate', 'plugins', 'recipes', 'circuit breakers', 'smart rendering']
+    },
+    migration: {
+      status: PARSER_VERSION === 'lean' ? 'completed' : 'ready',
+      recommendation: PARSER_VERSION !== 'lean' ? 'Set PARSER_VERSION=lean to enable lean parser' : 'Already using lean parser'
+    }
+  });
+});
+
+// Rollout status endpoint
+app.get('/api/rollout/status', (req, res) => {
+  const metrics = rolloutConfig.getMetrics();
+  res.json({
+    status: 'success',
+    rollout: metrics,
+    parsers: {
+      v3: v3Parser ? 'initialized' : 'not available',
+      lean: leanParser ? 'initialized' : 'not available'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Rollout metrics endpoint
+app.get('/api/rollout/metrics', (req, res) => {
+  const metrics = rolloutConfig.getMetrics();
+  res.json({
+    ...metrics,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Update rollout configuration endpoint
+app.post('/api/rollout/config', (req, res) => {
+  const { mode, percentage, addDomain, removeDomain } = req.body;
+
+  // Check for admin key in production
+  if (process.env.NODE_ENV === 'production') {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== process.env.ADMIN_KEY) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized'
+      });
+    }
+  }
+
+  try {
+    if (mode) {
+      rolloutConfig.mode = mode;
+      console.log(`📊 Rollout mode changed to: ${mode}`);
+    }
+
+    if (percentage !== undefined) {
+      rolloutConfig.leanParserPercentage = parseInt(percentage);
+      console.log(`📊 Lean parser percentage changed to: ${percentage}%`);
+    }
+
+    if (addDomain) {
+      rolloutConfig.addTrustedDomain(addDomain);
+    }
+
+    if (removeDomain) {
+      rolloutConfig.removeTrustedDomain(removeDomain);
+    }
+
+    res.json({
+      success: true,
+      config: {
+        mode: rolloutConfig.mode,
+        percentage: rolloutConfig.leanParserPercentage,
+        trustedDomains: Array.from(rolloutConfig.trustedDomains)
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Reset rollout metrics
+app.post('/api/rollout/reset', (req, res) => {
+  // Check for admin key in production
+  if (process.env.NODE_ENV === 'production') {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== process.env.ADMIN_KEY) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized'
+      });
+    }
+  }
+
+  rolloutConfig.resetMetrics();
+  res.json({
+    success: true,
+    message: 'Rollout metrics reset',
+    timestamp: new Date().toISOString()
+  });
+});
+
 process.on('SIGTERM', async () => {
   console.log('Shutting down gracefully...');
   await sizeChartParser.cleanup();
+
+  // Cleanup lean parser if active
+  if (PARSER_VERSION === 'lean' && universalParser && universalParser.cleanup) {
+    await universalParser.cleanup();
+  }
+
   process.exit(0);
 });
 
