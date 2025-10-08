@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Product",
+  "description": "Product data validation schema",
+  "type": "object",
+  "required": ["name", "price", "images"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 500,
+      "pattern": "^(?!.*(undefined|null|test|example|product name|PRODUCT_NAME)).*$",
+      "description": "Product name without placeholder text"
+    },
+    "price": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1000000,
+      "description": "Product price must be positive and reasonable"
+    },
+    "sale_price": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 1000000,
+      "description": "Sale price if on sale"
+    },
+    "images": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "string",
+        "format": "uri",
+        "pattern": "^https?://",
+        "minLength": 10
+      },
+      "description": "Product images with valid URLs"
+    },
+    "currency": {
+      "type": "string",
+      "enum": ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "KRW", "CNY", "INR", "MXN", "BRL"],
+      "default": "USD",
+      "description": "Currency code"
+    },
+    "brand": {
+      "type": ["string", "null"],
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^(?!.*(undefined|null|brand|BRAND)).*$"
+    },
+    "description": {
+      "type": ["string", "null"],
+      "maxLength": 5000
+    },
+    "availability": {
+      "type": "string",
+      "enum": ["in_stock", "out_of_stock", "preorder", "limited", "discontinued"],
+      "default": "in_stock"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https?://"
+    }
+  },
+  "additionalProperties": true
+}

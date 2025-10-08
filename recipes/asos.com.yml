@@ -1,0 +1,73 @@
+domain: asos.com
+last_validated: 2025-01-04
+version: 1.0.0
+confidence_level: high
+
+selectors:
+  name:
+    selector: h1
+    type: text
+    required: true
+    fallback:
+      - '[data-testid="product-name"]'
+      - .product-hero h1
+
+  price:
+    selector: '[data-testid="product-price"]'
+    type: price
+    required: true
+    transform: extractNumber
+    fallback:
+      - .product-price-current
+      - .current-price
+      - span[data-testid="current-price"]
+
+  sale_price:
+    selector: '[data-testid="sale-price"]'
+    type: price
+    transform: extractNumber
+    fallback:
+      - .product-discount-price
+
+  brand:
+    selector: '[data-testid="product-brand"]'
+    type: text
+    fallback:
+      - .product-description a
+      - strong[itemprop="brand"]
+
+  images:
+    selector: .gallery-image img
+    type: images
+    attribute: src
+    min: 1
+    fallback:
+      - .product-carousel img
+      - .thumbnails img
+
+  description:
+    selector: .product-description
+    type: text
+    fallback:
+      - '[data-testid="product-details"]'
+
+  availability:
+    selector: '[data-testid="add-button"]'
+    type: availability
+    mapping:
+      "ADD TO BAG": in_stock
+      "OUT OF STOCK": out_of_stock
+
+assertions:
+  - price > 0
+  - price < 5000
+  - name.length > 3
+  - images.length >= 1
+
+extraction_settings:
+  render_required: false
+  timeout: 5000
+
+notes:
+  - ASOS uses data-testid attributes
+  - Prices often include currency symbols

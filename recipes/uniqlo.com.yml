@@ -1,0 +1,66 @@
+domain: uniqlo.com
+last_validated: 2025-01-04
+version: 1.0.0
+confidence_level: high
+
+selectors:
+  name:
+    selector: h1.product-name
+    type: text
+    required: true
+    fallback:
+      - .pdp-title
+      - h1[data-testid="product-name"]
+
+  price:
+    selector: .price-limited
+    type: price
+    required: true
+    transform: extractNumber
+    fallback:
+      - .price-regular
+      - .product-price
+
+  sale_price:
+    selector: .price-promo
+    type: price
+    transform: extractNumber
+
+  brand:
+    value: UNIQLO
+    type: static
+
+  images:
+    selector: .product-image img
+    type: images
+    attribute: src
+    min: 1
+    transform: high_quality
+    fallback:
+      - .slick-slide img
+      - .pdp-images img
+
+  description:
+    selector: .product-description
+    type: text
+
+  availability:
+    selector: button.add-to-cart
+    type: availability
+    mapping:
+      "ADD TO CART": in_stock
+      "OUT OF STOCK": out_of_stock
+
+assertions:
+  - price > 0
+  - price < 1000
+  - name.length > 3
+  - images.length >= 1
+
+extraction_settings:
+  render_required: false
+  timeout: 5000
+
+notes:
+  - Uniqlo has clean HTML structure
+  - Images benefit from high quality transform

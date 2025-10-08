@@ -1,0 +1,67 @@
+domain: hm.com
+last_validated: 2025-01-04
+version: 1.0.0
+confidence_level: high
+
+selectors:
+  name:
+    selector: h1.primary.product-item-headline
+    type: text
+    required: true
+    fallback:
+      - h1.ProductName
+      - .product-detail-header h1
+
+  price:
+    selector: .price-value
+    type: price
+    required: true
+    transform: extractNumber
+    fallback:
+      - '[data-test="product-price"]'
+      - .product-price
+
+  sale_price:
+    selector: .price-value-sale
+    type: price
+    transform: extractNumber
+
+  images:
+    selector: .product-detail-thumbnail img
+    type: images
+    attribute: src
+    min: 1
+    transform: high_quality
+    fallback:
+      - figure img
+      - .product-images img
+
+  brand:
+    value: "H&M"
+    type: static
+
+  description:
+    selector: .product-description p
+    type: text
+
+  availability:
+    selector: button[data-test="add-to-bag"]
+    type: availability
+    mapping:
+      "Add": in_stock
+      "Sold out": out_of_stock
+
+assertions:
+  - price > 0
+  - price < 5000
+  - name.length > 3
+  - images.length >= 1
+
+extraction_settings:
+  render_required: false
+  wait_for_selector: h1.primary
+  timeout: 5000
+
+notes:
+  - H&M has good structured data
+  - Image transform: replace with call=url[file:/product/main]

@@ -1,0 +1,68 @@
+domain: nordstrom.com
+last_validated: 2025-01-04
+version: 1.0.0
+confidence_level: high
+
+selectors:
+  name:
+    selector: h1[data-element-id='product-title']
+    type: text
+    required: true
+    fallback:
+      - .product-title
+      - h1
+
+  price:
+    selector: '[data-element-id="product-price"]'
+    type: price
+    required: true
+    transform: extractNumber
+    fallback:
+      - .price-display-item
+      - .product-price
+
+  sale_price:
+    selector: .price-sale
+    type: price
+    transform: extractNumber
+
+  brand:
+    selector: '[data-element-id="product-brand"]'
+    type: text
+    fallback:
+      - .product-brand-title
+      - a[data-element-id="product-brand-link"]
+
+  images:
+    selector: .product-media-container img
+    type: images
+    attribute: src
+    min: 1
+    fallback:
+      - .product-photo img
+      - picture img
+
+  description:
+    selector: .product-details-content
+    type: text
+
+  availability:
+    selector: button[data-element-id="add-to-bag"]
+    type: availability
+    mapping:
+      "Add to Bag": in_stock
+      "Sold Out": out_of_stock
+
+assertions:
+  - price > 0
+  - price < 20000
+  - name.length > 3
+  - images.length >= 1
+
+extraction_settings:
+  render_required: false
+  timeout: 5000
+
+notes:
+  - Nordstrom uses data-element-id attributes extensively
+  - Good structured data support

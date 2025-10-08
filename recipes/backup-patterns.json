@@ -1,0 +1,437 @@
+{
+  "_meta": {
+    "version": "1.0",
+    "updated": "2025-10-04T17:21:56.927Z",
+    "total_sites": 12,
+    "successful_extractions": 42
+  },
+  "global_patterns": {
+    "price": [
+      ".price",
+      "[data-price]",
+      ".product-price",
+      "[itemprop='price']",
+      ".current-price",
+      ".sale-price",
+      ".price-now",
+      ".product-price-value",
+      ".price-sale"
+    ],
+    "name": [
+      "h1",
+      ".product-name",
+      "[data-product-name]",
+      "[itemprop='name']",
+      ".product-title",
+      ".product-detail-info__header-name",
+      ".product__title"
+    ],
+    "images": [
+      ".product-image img",
+      ".gallery img",
+      "[data-role='product-image'] img",
+      ".product-photos img",
+      ".product-gallery img",
+      ".media img"
+    ],
+    "brand": [
+      ".brand",
+      "[itemprop='brand']",
+      ".product-brand",
+      "[data-brand]",
+      ".designer",
+      ".vendor",
+      ".product-vendor"
+    ],
+    "description": [
+      ".product-description",
+      "[itemprop='description']",
+      ".product-details",
+      ".description",
+      "[data-description]"
+    ]
+  },
+  "zara.com": {
+    "price": [
+      ".product-price",
+      "[data-qa='product-price']",
+      ".money-amount__main"
+    ],
+    "name": [
+      "h1.product-detail-info__header-name",
+      ".product-name"
+    ],
+    "images": [
+      ".media-image__image",
+      ".product-detail-images__image"
+    ],
+    "lastSuccess": "2025-09-20T19:16:57.477Z",
+    "confidence": 0.5,
+    "successCount": null,
+    "patterns": {
+      "name": "h1",
+      "price": ".price",
+      "brand": "Zara"
+    }
+  },
+  "hm.com": {
+    "price": [
+      ".price-value",
+      "[data-test='product-price']",
+      ".ProductPrice-module--productItemPrice__2i2Hc"
+    ],
+    "name": [
+      "h1.primary",
+      ".product-item-headline",
+      ".ProductName-module--productItemName__3ryZ8"
+    ],
+    "images": [
+      ".product-detail-main-image-container img",
+      ".product-images img"
+    ],
+    "lastSuccess": null,
+    "confidence": 0.5
+  },
+  "cos.com": {
+    "price": [
+      ".price",
+      ".product-price",
+      ".o-product__price"
+    ],
+    "name": [
+      ".product-name",
+      "h1",
+      ".o-product__name"
+    ],
+    "images": [
+      ".o-product__image img",
+      ".product-images img"
+    ],
+    "lastSuccess": null,
+    "confidence": 0.5
+  },
+  "nordstrom.com": {
+    "price": [
+      "[data-element-id='product-price']",
+      ".price-display-item",
+      ".product-price"
+    ],
+    "name": [
+      "h1[data-element-id='product-title']",
+      ".product-title"
+    ],
+    "brand": [
+      "[data-element-id='product-brand']",
+      ".product-brand-title"
+    ],
+    "images": [
+      ".product-media-container img",
+      ".product-photo img"
+    ],
+    "lastSuccess": "2025-09-19T17:34:41.691Z",
+    "confidence": 0.6,
+    "successCount": null,
+    "patterns": {
+      "name": "h1",
+      "price": null,
+      "brand": "New Era"
+    }
+  },
+  "asos.com": {
+    "price": [
+      "[data-testid='product-price']",
+      ".product-price-current",
+      ".current-price"
+    ],
+    "name": [
+      "h1",
+      "[data-testid='product-name']"
+    ],
+    "brand": [
+      "[data-testid='product-brand']",
+      ".product-brand"
+    ],
+    "images": [
+      ".gallery-image img",
+      ".product-carousel img"
+    ],
+    "lastSuccess": null,
+    "confidence": 0.6
+  },
+  "ssense.com": {
+    "price": [
+      ".product-price",
+      "[data-test='product-price']",
+      ".price-group"
+    ],
+    "name": [
+      "h1.product-name",
+      ".product-title"
+    ],
+    "brand": [
+      ".product-brand",
+      "[data-test='product-brand']"
+    ],
+    "images": [
+      ".product-images-container img",
+      ".product-image img"
+    ],
+    "lastSuccess": "2025-09-19T18:03:36.407Z",
+    "confidence": 0.5,
+    "successCount": 3
+  },
+  "farfetch.com": {
+    "price": [
+      "[data-tstid='priceInfo-original']",
+      "[data-tstid='priceInfo-sale']",
+      ".price"
+    ],
+    "name": [
+      "h1[data-tstid='productInfo-title']",
+      ".product-title"
+    ],
+    "brand": [
+      "[data-tstid='productInfo-brand']",
+      ".product-brand"
+    ],
+    "images": [
+      "[data-tstid='product-image'] img",
+      ".product-images img"
+    ],
+    "lastSuccess": null,
+    "confidence": 0.5
+  },
+  "net-a-porter.com": {
+    "price": [
+      ".product-price",
+      "[itemprop='price']",
+      ".price-amount"
+    ],
+    "name": [
+      "h1.product-name",
+      "[itemprop='name']"
+    ],
+    "brand": [
+      ".product-designer",
+      "[itemprop='brand']"
+    ],
+    "images": [
+      ".product-image img",
+      ".gallery-image img"
+    ],
+    "lastSuccess": null,
+    "confidence": 0.6
+  },
+  "shopbop.com": {
+    "price": [
+      ".product-price",
+      "[itemprop='price']",
+      ".price-sale"
+    ],
+    "name": [
+      "h1[itemprop='name']",
+      ".product-title"
+    ],
+    "brand": [
+      "[itemprop='brand']",
+      ".brand-link"
+    ],
+    "images": [
+      ".product-image img",
+      ".main-image img"
+    ],
+    "lastSuccess": null,
+    "confidence": 0.6
+  },
+  "revolve.com": {
+    "price": [
+      ".product-price",
+      "[data-qa='product-price']",
+      ".prices__retail-price"
+    ],
+    "name": [
+      "h1.product-name",
+      "[data-qa='product-name']"
+    ],
+    "brand": [
+      ".product-brand",
+      "[data-qa='product-brand']"
+    ],
+    "images": [
+      ".product-images img",
+      ".carousel-image img"
+    ],
+    "lastSuccess": null,
+    "confidence": 0.5
+  },
+  "urbanoutfitters.com": {
+    "price": [
+      ".c-product-meta__current-price",
+      ".product-price"
+    ],
+    "name": [
+      "h1.c-product-meta__title",
+      ".product-name"
+    ],
+    "brand": [
+      ".c-product-meta__brand",
+      ".product-brand"
+    ],
+    "images": [
+      ".c-product-main-image img",
+      ".product-image img"
+    ],
+    "lastSuccess": null,
+    "confidence": 0.5
+  },
+  "anthropologie.com": {
+    "price": [
+      ".c-product-meta__current-price",
+      "[data-qa-product-price]",
+      ".product-price"
+    ],
+    "name": [
+      "h1.c-product-meta__title",
+      "[data-qa-product-name]"
+    ],
+    "brand": [
+      ".c-product-meta__brand",
+      "[data-qa-product-brand]"
+    ],
+    "images": [
+      ".c-product-main-image img",
+      "[data-qa-product-image] img"
+    ],
+    "lastSuccess": null,
+    "confidence": 0.5
+  },
+  "learned_patterns": {
+    "us.boden.com": {
+      "name": "jsonLd",
+      "price": "jsonLd",
+      "brand": "jsonLd",
+      "images": "jsonLd",
+      "lastSuccess": "2025-09-19T02:02:12.961Z",
+      "successCount": 1
+    },
+    "wconcept.com": {
+      "name": "openGraph",
+      "price": "patterns",
+      "brand": "patterns",
+      "images": "openGraph",
+      "lastSuccess": "2025-09-28T04:50:09.189Z",
+      "successCount": 1
+    },
+    "kieljamespatrick.com": {
+      "name": "jsonLd",
+      "price": "jsonLd",
+      "brand": "jsonLd",
+      "images": "openGraph",
+      "lastSuccess": "2025-09-29T13:31:42.638Z",
+      "successCount": 1
+    },
+    "af-agger.com": {
+      "name": "openGraph",
+      "price": "openGraph",
+      "images": "openGraph",
+      "lastSuccess": "2025-10-03T22:19:23.199Z",
+      "successCount": 1
+    }
+  },
+  "uniqlo.com": {
+    "successCount": 5,
+    "lastSuccess": "2025-09-19T18:04:22.318Z",
+    "patterns": {
+      "name": "h1",
+      "price": null,
+      "brand": "Uniqlo"
+    }
+  },
+  "miumiu.com": {
+    "successCount": 2,
+    "lastSuccess": "2025-09-20T01:50:41.155Z",
+    "patterns": {
+      "name": "h1",
+      "price": null,
+      "brand": "Miu Miu"
+    }
+  },
+  "fwrd.com": {
+    "successCount": 1,
+    "lastSuccess": "2025-09-20T19:03:11.613Z",
+    "patterns": {
+      "name": "h1",
+      "price": ".price",
+      "brand": "Samuel Zelig"
+    }
+  },
+  "freepeople.com": {
+    "successCount": 1,
+    "lastSuccess": "2025-09-20T23:08:53.345Z",
+    "patterns": {
+      "name": "h1",
+      "price": null,
+      "brand": "Naguisa"
+    }
+  },
+  "speedyromeo.com": {
+    "successCount": 1,
+    "lastSuccess": "2025-09-25T20:49:15.032Z",
+    "patterns": {
+      "name": "h1",
+      "price": ".product-price",
+      "brand": "Speedy Romeo"
+    }
+  },
+  "chiclara.com": {
+    "successCount": 2,
+    "lastSuccess": "2025-09-29T03:13:10.659Z",
+    "patterns": {
+      "name": "h1",
+      "price": ".price",
+      "brand": "MADWITCH"
+    }
+  },
+  "69mcfly.com": {
+    "successCount": 14,
+    "lastSuccess": "2025-10-01T06:28:47.145Z",
+    "patterns": {
+      "name": "h1",
+      "price": ".price",
+      "brand": "69mcfly"
+    }
+  },
+  "nhuhn.com": {
+    "successCount": 2,
+    "lastSuccess": "2025-10-01T16:28:11.573Z",
+    "patterns": {
+      "name": "h1",
+      "price": null,
+      "brand": "Nhuhn"
+    }
+  },
+  "stelstores.com": {
+    "successCount": 1,
+    "lastSuccess": "2025-10-02T23:14:23.129Z",
+    "patterns": {
+      "name": "h1",
+      "price": null
+    }
+  },
+  "af-agger.com": {
+    "successCount": 1,
+    "lastSuccess": "2025-10-03T21:59:45.195Z",
+    "patterns": {
+      "name": "h1",
+      "price": null
+    }
+  },
+  "fredhome.com.au": {
+    "successCount": 1,
+    "lastSuccess": "2025-10-04T17:21:56.927Z",
+    "patterns": {
+      "name": "h1",
+      "price": ".product-price"
+    }
+  }
+}

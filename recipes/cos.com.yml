@@ -1,0 +1,71 @@
+domain: cos.com
+last_validated: 2025-01-04
+version: 1.0.0
+confidence_level: medium
+
+selectors:
+  name:
+    selector: .o-product__name
+    type: text
+    required: true
+    fallback:
+      - .product-name
+      - h1
+      - '[data-testid="product-name"]'
+
+  price:
+    selector: .o-product__price
+    type: price
+    required: true
+    transform: extractNumber
+    fallback:
+      - .price
+      - .product-price
+      - .m-price__content
+
+  sale_price:
+    selector: .o-product__price--sale
+    type: price
+    transform: extractNumber
+
+  brand:
+    value: COS
+    type: static
+
+  images:
+    selector: .o-product__image img
+    type: images
+    attribute: src
+    min: 1
+    fallback:
+      - .product-images img
+      - .m-product-image img
+
+  description:
+    selector: .o-product__description
+    type: text
+    fallback:
+      - .product-description
+
+  availability:
+    selector: .a-button--add-to-bag
+    type: availability
+    mapping:
+      "Add to bag": in_stock
+      "Out of stock": out_of_stock
+
+assertions:
+  - price > 0
+  - price < 10000
+  - name.length > 3
+  - images.length >= 1
+
+extraction_settings:
+  render_required: true  # COS often needs rendering
+  wait_for_selector: .o-product__name
+  timeout: 10000
+
+notes:
+  - COS is part of H&M group
+  - Uses BEM naming convention (o-, m-, a- prefixes)
+  - May require rendering for dynamic content

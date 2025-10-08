@@ -1,0 +1,73 @@
+domain: zara.com
+last_validated: 2025-01-04
+version: 1.0.0
+confidence_level: high
+
+selectors:
+  name:
+    selector: h1.product-detail-info__header-name
+    type: text
+    required: true
+    fallback:
+      - h1.product-name
+      - .product-detail-header h1
+
+  price:
+    selector: .product-price-current .money-amount__main
+    type: price
+    required: true
+    transform: extractNumber
+    fallback:
+      - .product-price
+      - .price-current
+      - '[data-qa="product-price"]'
+
+  sale_price:
+    selector: .product-price-reduced .money-amount__main
+    type: price
+    transform: extractNumber
+
+  images:
+    selector: .media-image__image
+    type: images
+    attribute: src
+    min: 1
+    transform: high_quality
+    fallback:
+      - .product-detail-images__image
+      - picture source[type="image/webp"]
+
+  brand:
+    value: ZARA
+    type: static
+
+  description:
+    selector: .product-detail-description
+    type: text
+    fallback:
+      - .expandable-text__inner-content
+
+  availability:
+    selector: .product-availability
+    type: availability
+    mapping:
+      "Add to bag": in_stock
+      "Not available": out_of_stock
+
+assertions:
+  - price > 0
+  - price < 10000
+  - name.length > 3
+  - name != description
+  - images.length >= 1
+  - images[0].startsWith('https')
+
+extraction_settings:
+  render_required: false
+  wait_for_selector: .product-detail-info__header-name
+  timeout: 5000
+
+notes:
+  - Zara uses structured data, prefer JSON-LD extraction
+  - Images need high quality transform (append ?w=1920)
+  - Price is nested in money-amount__main
