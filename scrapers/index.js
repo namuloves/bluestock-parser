@@ -1154,32 +1154,23 @@ const scrapeProduct = async (url, options = {}) => {
           url: url
         };
         
-        // Validate with Quality Gate
-        const { getQualityGate } = require('../utils/qualityGate');
-        const qualityGate = getQualityGate();
-        const validation = qualityGate.validate(productData);
-        
-        // Additional check for Zara-specific image issues
+        // Check for Zara-specific image issues (static.zara.net URLs often return 403)
         const hasInaccessibleImages = productData.images && productData.images.length > 0 && 
           productData.images.every(img => img.includes('static.zara.net'));
         
-        if (!validation.valid || hasInaccessibleImages) {
-          const errorMessage = !validation.valid ? 
-            `Quality Gate: ${validation.errors.map(e => e.message).join(', ')}` :
-            'All images are from static.zara.net (likely inaccessible)';
-          
-          console.log(`❌ Zara product failed validation: ${errorMessage}`);
+        if (hasInaccessibleImages) {
+          console.log(`❌ Zara product has inaccessible images (static.zara.net URLs)`);
           
           // Send notification for invalid product data
-          const SlackNotificationService = require('../services/slack-notifications');
-          const slackNotifications = new SlackNotificationService();
-          
           try {
+            const SlackNotificationService = require('../services/slack-notifications');
+            const slackNotifications = new SlackNotificationService();
+            
             await slackNotifications.notifyInvalidProduct({
               url: url,
               product: productData,
-              validationErrors: validation.errors || [{ message: 'Images may be inaccessible (static.zara.net URLs)' }],
-              userEmail: 'Anonymous', // Will be set by the calling function
+              validationErrors: [{ message: 'Images may be inaccessible (static.zara.net URLs)' }],
+              userEmail: 'Anonymous',
               timestamp: new Date().toISOString()
             });
           } catch (notificationError) {
@@ -1188,8 +1179,8 @@ const scrapeProduct = async (url, options = {}) => {
           
           return {
             success: false,
-            error: 'Product failed validation',
-            validationErrors: validation.errors || [{ message: 'Images may be inaccessible' }]
+            error: 'Product has inaccessible images',
+            validationErrors: [{ message: 'Images may be inaccessible' }]
           };
         }
         
