@@ -393,7 +393,9 @@ class UniversalParserEnhanced {
 
     // Merge and score
     const merged = await this.mergeStrategies(strategies, url, $);
-    merged.confidence = this.calculateConfidence(merged);
+    // [DEPRECATED] Confidence scoring removed - using Quality Gate validation instead
+    // merged.confidence = this.calculateConfidence(merged);
+    merged.confidence = 1.0; // Temporary compatibility value
     merged.url = url;
 
     return merged;
@@ -695,23 +697,24 @@ class UniversalParserEnhanced {
     return merged;
   }
 
-  calculateConfidence(data) {
-    let score = 0;
-    const weights = this.confidenceWeights.fields;
+  // [DEPRECATED] Confidence calculation removed - using Quality Gate validation instead
+  // calculateConfidence(data) {
+  //   let score = 0;
+  //   const weights = this.confidenceWeights.fields;
 
-    for (const [field, weight] of Object.entries(weights)) {
-      if (data[field]) {
-        score += weight;
+  //   for (const [field, weight] of Object.entries(weights)) {
+  //     if (data[field]) {
+  //       score += weight;
 
-        const source = data[`${field}_source`];
-        if (source && this.confidenceWeights.sourceBonus[source]) {
-          score += weight * this.confidenceWeights.sourceBonus[source];
-        }
-      }
-    }
+  //       const source = data[`${field}_source`];
+  //       if (source && this.confidenceWeights.sourceBonus[source]) {
+  //         score += weight * this.confidenceWeights.sourceBonus[source];
+  //       }
+  //     }
+  //   }
 
-    return Math.min(score, 1);
-  }
+  //   return Math.min(score, 1);
+  // }
 
   parsePrice(value) {
     if (!value) return null;
@@ -780,15 +783,21 @@ class UniversalParserEnhanced {
       return img;
     });
 
-    // If we have few images, try smart extraction
-    if (transformed.length < 3 && $ && url) {
+    // Smart extraction logic with improved thresholds
+    const shouldRunSmartExtraction =
+      (transformed.length < 8 && $) || // Run for up to 7 images (covers most e-commerce)
+      (transformed.length < 3) ||      // Always run for very few images
+      (url && url.includes('shopify')); // Always run for Shopify sites
+
+    if (shouldRunSmartExtraction && $ && url) {
       try {
         const smartResult = await this.imageExtractor.extractImages($, url, {
-          validate: transformed.length < 2 // Only validate if we really need more images
+          validate: transformed.length < 5 // Validate for fewer images to balance performance
         });
 
+        // Only use smart results if they found more images
         if (smartResult.images.length > transformed.length) {
-          console.log(`🧠 Smart extractor found ${smartResult.images.length} images (confidence: ${Math.round(smartResult.confidence * 100)}%)`);
+          console.log(`🧠 Smart extractor found ${smartResult.images.length} images (was ${transformed.length}, confidence: ${Math.round(smartResult.confidence * 100)}%)`);
 
           // Record the improvement in patterns for learning
           if (this.learningMode) {

@@ -35,3 +35,7 @@ After setting the environment variables and redeploying:
 1. Check the Railway logs to ensure Puppeteer is enabled
 2. Test a Nordstrom URL through your API
 3. You should see "Puppeteer available: true" in the logs
+
+## Build Pipeline Notes
+
+Railway should use the provided Dockerfile and start command `bash railway-start.sh`. The script installs production dependencies with `npm ci --omit=dev` before launching `server.js`, which prevents missing-module errors like the one reported for `ajv`. If the service was previously configured with a different start command, update it and trigger a redeploy so the installation step runs inside the container.

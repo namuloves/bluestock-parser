@@ -2,6 +2,7 @@ FROM public.ecr.aws/docker/library/node:18-slim
 
 # Install Chrome dependencies
 RUN apt-get update && apt-get install -y \
+    bash \
     wget \
     gnupg \
     ca-certificates \
@@ -68,7 +69,8 @@ COPY . .
 RUN groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
     && mkdir -p /home/pptruser/Downloads \
     && chown -R pptruser:pptruser /home/pptruser \
-    && chown -R pptruser:pptruser /app
+    && chown -R pptruser:pptruser /app \
+    && chmod +x /app/railway-start.sh
 
 # Run as non-root user
 USER pptruser
@@ -77,4 +79,4 @@ USER pptruser
 ENV PORT=${PORT}
 
 # Start the application
-CMD ["node", "server.js"]
+CMD ["bash", "railway-start.sh"]

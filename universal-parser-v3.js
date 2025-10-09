@@ -4,6 +4,7 @@ const puppeteerExtra = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs').promises;
 const { getProxyConfig, getAxiosConfig } = require('./config/proxy');
+const { getHostnameFallbackUrl, isDnsResolutionError } = require('./utils/url-normalizer');
 
 // Add stealth plugin to puppeteer
 puppeteerExtra.use(StealthPlugin());
@@ -405,7 +406,8 @@ class UniversalParserV3 {
   }
 
   async fetchDirect(url) {
-    const axiosConfig = getAxiosConfig(url, {
+    let requestUrl = url;
+    const buildAxiosConfig = (targetUrl) => getAxiosConfig(targetUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -418,7 +420,27 @@ class UniversalParserV3 {
       maxRedirects: 5
     });
 
-    const response = await axios.get(url, axiosConfig);
+    let axiosConfig = buildAxiosConfig(requestUrl);
+    let response;
+
+    try {
+      response = await axios.get(requestUrl, axiosConfig);
+    } catch (error) {
+      if (isDnsResolutionError(error)) {
+        const fallbackUrl = getHostnameFallbackUrl(requestUrl);
+        if (fallbackUrl) {
+          console.log('🔁 DNS fallback: retrying direct fetch without www prefix');
+          requestUrl = fallbackUrl;
+          axiosConfig = buildAxiosConfig(requestUrl);
+          response = await axios.get(requestUrl, axiosConfig);
+        } else {
+          throw error;
+        }
+      } else {
+        throw error;
+      }
+    }
+
     return response.data;
   }
 
@@ -478,10 +500,29 @@ class UniversalParserV3 {
       });
 
       // Navigate with increased timeout
-      await page.goto(url, {
-        waitUntil: 'domcontentloaded',  // Faster than networkidle0
-        timeout: 20000
-      });
+      let navigationUrl = url;
+      try {
+        await page.goto(navigationUrl, {
+          waitUntil: 'domcontentloaded',  // Faster than networkidle0
+          timeout: 20000
+        });
+      } catch (error) {
+        if (isDnsResolutionError(error)) {
+          const fallbackUrl = getHostnameFallbackUrl(navigationUrl);
+          if (fallbackUrl) {
+            console.log('🔁 DNS fallback: retrying Puppeteer navigation without www prefix');
+            navigationUrl = fallbackUrl;
+            await page.goto(navigationUrl, {
+              waitUntil: 'domcontentloaded',
+              timeout: 20000
+            });
+          } else {
+            throw error;
+          }
+        } else {
+          throw error;
+        }
+      }
 
       // Wait for common product elements
       try {
@@ -760,12 +801,26 @@ class UniversalParserV3 {
 
           // Handle images - could be string, array, or object
           if (product.image) {
+            const normalizeImageEntry = (img) => {
+              if (!img) return null;
+              if (typeof img === 'string') return img;
+              if (typeof img === 'object') {
+                return img.url || img.contentUrl || img.src || null;
+              }
+              return null;
+            };
+
             if (typeof product.image === 'string') {
               result.images = [product.image];
             } else if (Array.isArray(product.image)) {
-              result.images = product.image.filter(img => typeof img === 'string');
-            } else if (product.image.url) {
-              result.images = [product.image.url];
+              result.images = product.image
+                .map(normalizeImageEntry)
+                .filter(Boolean);
+            } else if (typeof product.image === 'object') {
+              const normalized = normalizeImageEntry(product.image);
+              if (normalized) {
+                result.images = [normalized];
+              }
             }
           }
         }

@@ -1,11 +1,15 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { getAxiosConfig } = require('../config/proxy');
+const { getHostnameFallbackUrl, isDnsResolutionError } = require('../utils/url-normalizer');
 
 const scrapeShopify = async (url) => {
   console.log('🛍️ Starting Shopify scraper for:', url);
   
   try {
+    const originalUrl = url;
+    let requestUrl = url;
+
     // Add headers to mimic a real browser
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -15,16 +19,35 @@ const scrapeShopify = async (url) => {
       'Cache-Control': 'no-cache',
       'Pragma': 'no-cache'
     };
-    
-    const axiosConfig = getAxiosConfig(url, {
+
+    const buildAxiosConfig = (targetUrl) => getAxiosConfig(targetUrl, {
       headers,
       timeout: 30000,
       maxRedirects: 5,
       validateStatus: (status) => status < 500
     });
-    
+
+    let axiosConfig = buildAxiosConfig(requestUrl);
     console.log('📡 Fetching Shopify page...');
-    const response = await axios.get(url, axiosConfig);
+
+    let response;
+    try {
+      response = await axios.get(requestUrl, axiosConfig);
+    } catch (error) {
+      if (isDnsResolutionError(error)) {
+        const fallbackUrl = getHostnameFallbackUrl(requestUrl);
+        if (fallbackUrl) {
+          console.log('🔁 DNS fallback: retrying Shopify fetch without www prefix');
+          requestUrl = fallbackUrl;
+          axiosConfig = buildAxiosConfig(requestUrl);
+          response = await axios.get(requestUrl, axiosConfig);
+        } else {
+          throw error;
+        }
+      } else {
+        throw error;
+      }
+    }
     
     if (response.status !== 200) {
       throw new Error(`HTTP ${response.status}: Failed to fetch page`);
@@ -34,7 +57,7 @@ const scrapeShopify = async (url) => {
     
     // Extract product data
     const product = {
-      url,
+      url: originalUrl,
       name: '',
       price: '',
       originalPrice: '',
@@ -89,7 +112,7 @@ const scrapeShopify = async (url) => {
     // Method 2: Try Shopify's .json endpoint
     if (!productJson) {
       try {
-        const jsonUrl = url.includes('?') ? url.split('?')[0] + '.json' : url + '.json';
+        const jsonUrl = requestUrl.includes('?') ? requestUrl.split('?')[0] + '.json' : requestUrl + '.json';
         console.log('📡 Fetching Shopify JSON endpoint...');
         const jsonResponse = await axios.get(jsonUrl, {
           ...axiosConfig,
@@ -232,7 +255,7 @@ const scrapeShopify = async (url) => {
                       $('.product__vendor').text().trim();
       
       // If no brand found or if it's a different designer, use domain name
-      const domainName = new URL(url).hostname.replace('www.', '').split('.')[0];
+      const domainName = new URL(requestUrl).hostname.replace('www.', '').split('.')[0];
       const domainBrand = domainName.charAt(0).toUpperCase() + domainName.slice(1);
       
       // Special handling for known designer sites
@@ -293,7 +316,7 @@ const scrapeShopify = async (url) => {
         const uniqueImages = new Map();
         
         // First, identify the main product ID from URL
-        const urlMatch = url.match(/\/(\d+)(?:\?.*)?$/);
+        const urlMatch = requestUrl.match(/\/(\d+)(?:\?.*)?$/);
         const productId = urlMatch ? urlMatch[1] : null;
         
         product.images.forEach(img => {
@@ -370,13 +393,32 @@ const isShopifyStore = async (url) => {
       return false;
     }
 
-    const response = await axios.get(url, {
+    let requestUrl = url;
+    const buildConfig = (targetUrl) => ({
       timeout: 10000,
       maxRedirects: 5,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
       }
     });
+
+    let response;
+    try {
+      response = await axios.get(requestUrl, buildConfig(requestUrl));
+    } catch (error) {
+      if (isDnsResolutionError(error)) {
+        const fallbackUrl = getHostnameFallbackUrl(requestUrl);
+        if (fallbackUrl) {
+          console.log('🔁 DNS fallback: retrying Shopify detection without www prefix');
+          requestUrl = fallbackUrl;
+          response = await axios.get(requestUrl, buildConfig(requestUrl));
+        } else {
+          throw error;
+        }
+      } else {
+        throw error;
+      }
+    }
 
     const html = response.data.toLowerCase();
 

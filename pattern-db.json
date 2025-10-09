@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-10-01T16:28:11.573Z",
+    "updated": "2025-10-06T18:35:15.576Z",
     "total_sites": 12,
-    "successful_extractions": 38
+    "successful_extractions": 45
   },
   "global_patterns": {
     "price": [
@@ -329,6 +329,13 @@
       "images": "openGraph",
       "lastSuccess": "2025-09-29T13:31:42.638Z",
       "successCount": 1
+    },
+    "af-agger.com": {
+      "name": "openGraph",
+      "price": "openGraph",
+      "images": "openGraph",
+      "lastSuccess": "2025-10-03T22:19:23.199Z",
+      "successCount": 1
     }
   },
   "uniqlo.com": {
@@ -401,6 +408,39 @@
       "name": "h1",
       "price": null,
       "brand": "Nhuhn"
+    }
+  },
+  "stelstores.com": {
+    "successCount": 1,
+    "lastSuccess": "2025-10-02T23:14:23.129Z",
+    "patterns": {
+      "name": "h1",
+      "price": null
+    }
+  },
+  "af-agger.com": {
+    "successCount": 1,
+    "lastSuccess": "2025-10-03T21:59:45.195Z",
+    "patterns": {
+      "name": "h1",
+      "price": null
+    }
+  },
+  "fredhome.com.au": {
+    "successCount": 3,
+    "lastSuccess": "2025-10-06T00:19:42.776Z",
+    "patterns": {
+      "name": "h1",
+      "price": ".product-price"
+    }
+  },
+  "enzacosta.com": {
+    "successCount": 1,
+    "lastSuccess": "2025-10-06T18:35:15.576Z",
+    "patterns": {
+      "name": "h1",
+      "price": ".price",
+      "brand": "Enza Costa"
     }
   }
 }
