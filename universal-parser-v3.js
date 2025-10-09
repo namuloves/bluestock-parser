@@ -803,24 +803,73 @@ class UniversalParserV3 {
           if (product.image) {
             const normalizeImageEntry = (img) => {
               if (!img) return null;
-              if (typeof img === 'string') return img;
-              if (typeof img === 'object') {
-                return img.url || img.contentUrl || img.src || null;
+
+              if (typeof img === 'string') {
+                return img;
               }
+
+              if (Array.isArray(img)) {
+                for (const entry of img) {
+                  const normalized = normalizeImageEntry(entry);
+                  if (normalized) return normalized;
+                }
+                return null;
+              }
+
+              if (typeof img === 'object') {
+                const candidateKeys = [
+                  'url',
+                  'contentUrl',
+                  'src',
+                  'image',
+                  'thumbnail',
+                  '@id'
+                ];
+
+                for (const key of candidateKeys) {
+                  if (img[key]) {
+                    const normalized = normalizeImageEntry(img[key]);
+                    if (normalized) return normalized;
+                  }
+                }
+
+                // Fallback: scan object values for first image-like string
+                for (const value of Object.values(img)) {
+                  if (typeof value === 'string' && value.startsWith('http')) {
+                    return value;
+                  }
+                  const normalized = normalizeImageEntry(value);
+                  if (normalized) return normalized;
+                }
+              }
+
               return null;
             };
 
-            if (typeof product.image === 'string') {
-              result.images = [product.image];
-            } else if (Array.isArray(product.image)) {
-              result.images = product.image
-                .map(normalizeImageEntry)
-                .filter(Boolean);
-            } else if (typeof product.image === 'object') {
-              const normalized = normalizeImageEntry(product.image);
-              if (normalized) {
-                result.images = [normalized];
+            const collectImages = (imageField) => {
+              if (!imageField) return [];
+
+              if (typeof imageField === 'string') {
+                return [imageField];
               }
+
+              if (Array.isArray(imageField)) {
+                return imageField
+                  .map(entry => normalizeImageEntry(entry))
+                  .filter(Boolean);
+              }
+
+              if (typeof imageField === 'object') {
+                const normalized = normalizeImageEntry(imageField);
+                return normalized ? [normalized] : [];
+              }
+
+              return [];
+            };
+
+            const normalizedImages = collectImages(product.image);
+            if (normalizedImages.length > 0) {
+              result.images = normalizedImages;
             }
           }
         }
