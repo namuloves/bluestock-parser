@@ -387,7 +387,8 @@ const scrapeProduct = async (url, options = {}) => {
     'etsy.com',
     'nordstrom.com',
     'saksfifthavenue.com',
-    'saks.com'
+    'saks.com',
+    'wconcept.com'
   ];
 
   const shouldSkipUniversal = skipUniversalSites.some(site => hostname.includes(site));
