@@ -32,6 +32,25 @@ async function scrapeWConcept(url) {
     const metaDescription = $('meta[property="og:description"]').attr('content') || '';
     const metaUrl = $('meta[property="og:url"]').attr('content') || url;
 
+    // Try to parse embedded Rdata JSON for structured product details
+    let structuredData = null;
+    $('script').each((i, elem) => {
+      if (structuredData) return;
+      const scriptContent = $(elem).html();
+      if (!scriptContent || !scriptContent.includes('Rdata.init')) {
+        return;
+      }
+
+      const match = scriptContent.match(/Rdata\.init\((\{.*?\})\);?/s);
+      if (match) {
+        try {
+          structuredData = JSON.parse(match[1]);
+        } catch (parseError) {
+          console.log('⚠️ Failed to parse Rdata JSON');
+        }
+      }
+    });
+
     // Extract product ID from URL
     const productIdMatch = url.match(/\/(\d+)\.html/);
     const productId = productIdMatch ? productIdMatch[1] : '';
@@ -56,6 +75,9 @@ async function scrapeWConcept(url) {
     // Extract brand from various sources
     let brand = '';
 
+    const goodsResult = structuredData?.model?.godResult;
+    const goodsBasic = goodsResult?.goodsBasicResult;
+
     // Try to find brand in structured data
     $('script').each((i, elem) => {
       const scriptContent = $(elem).html();
@@ -79,7 +101,7 @@ async function scrapeWConcept(url) {
 
     // Default to W Concept if no brand found
     if (!brand) {
-      brand = 'W Concept';
+      brand = goodsBasic?.brndNm || 'W Concept';
     }
 
     // Build images array
@@ -87,6 +109,21 @@ async function scrapeWConcept(url) {
 
     // First try to extract from JavaScript/DOM if page is rendered
     let imageUrls = [];
+
+    if (!imageUrls.length && goodsResult?.goodsImgList?.length) {
+      const cdnHost = 'https://cdn.wconcept.com';
+      const jsonImages = goodsResult.goodsImgList
+        .map(item => item?.imgUrl)
+        .filter(Boolean)
+        .map(path => {
+          if (path.startsWith('http')) return path;
+          return `${cdnHost}${path.startsWith('/') ? '' : '/'}${path}`;
+        });
+
+      if (jsonImages.length) {
+        imageUrls = jsonImages;
+      }
+    }
 
     // Look for image arrays in script tags
     $('script').each((i, elem) => {
@@ -180,6 +217,44 @@ async function scrapeWConcept(url) {
     let price = 0;
     let originalPrice = 0;
     let currency = 'USD';
+
+    if (goodsBasic) {
+      const salePriceValue = goodsBasic.salePrcUsd ?? goodsBasic.salePrc;
+      const originalPriceValue = goodsBasic.cvrPrcUsd ?? goodsBasic.cvrPrc ?? salePriceValue;
+
+      if (salePriceValue !== undefined && salePriceValue !== null) {
+        const numericSale = Number(String(salePriceValue).replace(/,/g, ''));
+        if (!Number.isNaN(numericSale) && numericSale > 0) {
+          price = numericSale;
+        }
+      }
+
+      if (originalPriceValue !== undefined && originalPriceValue !== null) {
+        const numericOriginal = Number(String(originalPriceValue).replace(/,/g, ''));
+        if (!Number.isNaN(numericOriginal) && numericOriginal > 0) {
+          originalPrice = numericOriginal;
+        }
+      }
+
+      const countryCode = structuredData?.model?.countryCd;
+      const countryCurrencyMap = {
+        us: 'USD',
+        kr: 'KRW',
+        jp: 'JPY',
+        cn: 'CNY',
+        ca: 'CAD',
+        gb: 'GBP',
+        uk: 'GBP',
+        eu: 'EUR',
+        au: 'AUD'
+      };
+
+      if (goodsBasic.salePrcUsd !== undefined && goodsBasic.salePrcUsd !== null) {
+        currency = 'USD';
+      } else if (countryCode && countryCurrencyMap[countryCode.toLowerCase()]) {
+        currency = countryCurrencyMap[countryCode.toLowerCase()];
+      }
+    }
 
     // Look for price in various elements
     const priceSelectors = [
