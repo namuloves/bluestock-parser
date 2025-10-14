@@ -196,11 +196,30 @@ class QualityGate {
    * Normalize product data to consistent format
    */
   normalizeProduct(product) {
+    const rawImages = Array.isArray(product.images)
+      ? product.images
+      : product.images
+        ? [product.images]
+        : [];
+
+    const cleanedImages = [];
+    for (const img of rawImages) {
+      if (!img || typeof img !== 'string') continue;
+      const trimmed = img.trim();
+      if (!trimmed) continue;
+      if (!cleanedImages.includes(trimmed)) {
+        cleanedImages.push(trimmed);
+      }
+    }
+
+    const validImages = cleanedImages.filter(img => this.isLikelyImageUrl(img));
+    const finalImages = validImages.length > 0 ? validImages : cleanedImages;
+
     return {
       // Required fields
       name: product.name.trim(),
       price: Number(product.price),
-      images: product.images.map(img => img.trim()),
+      images: finalImages,
 
       // Optional fields with defaults
       currency: product.currency || 'USD',
@@ -214,6 +233,26 @@ class QualityGate {
       validated_at: new Date().toISOString(),
       validation_version: '1.0.0'
     };
+  }
+
+  /**
+   * Lightweight validation to determine whether a URL probably points to an image.
+   */
+  isLikelyImageUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    const value = url.trim();
+    if (!value) return false;
+
+    if (value.startsWith('data:image/')) {
+      return true;
+    }
+
+    // Accept common image extensions even when query params are present
+    if (value.match(/\.(jpe?g|png|webp|gif|bmp|svg|avif)(\?|#|$)/i)) {
+      return true;
+    }
+
+    return false;
   }
 
   /**

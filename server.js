@@ -891,10 +891,11 @@ app.post('/parse-size-chart', async (req, res) => {
     // Parse size chart with optional timeout
     const sizeChartData = await sizeChartParser.parseSizeChart(url, timeout);
     
+    const sizeChartImage = sizeChartData?.image_url || sizeChartData?.imageUrl;
     console.log('📏 Size chart result:', {
       found: !!sizeChartData,
       type: sizeChartData?.type || 'none',
-      hasData: !!(sizeChartData?.headers || sizeChartData?.rows || sizeChartData?.data || sizeChartData?.image_url)
+      hasData: !!(sizeChartData?.headers || sizeChartData?.rows || sizeChartData?.data || sizeChartImage)
     });
     
     if (!sizeChartData) {

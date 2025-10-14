@@ -182,41 +182,46 @@ class SizeChartParser {
       ];
 
       for (const selector of modalSelectors) {
-        const modal = await page.$(selector);
-        if (modal) {
-          // Check if modal is visible and has content
-          const isVisible = await page.evaluate((sel) => {
-            const el = document.querySelector(sel);
-            return el && el.offsetHeight > 100 && el.textContent.length > 50;
-          }, selector);
-          
+        const modalHandles = await page.$$(selector);
+
+        for (const modalHandle of modalHandles) {
+          const isVisible = await page.evaluate((el) => {
+            if (!el) return false;
+            return el.offsetHeight > 100 && el.textContent.length > 50;
+          }, modalHandle);
+
           if (!isVisible) continue;
-          
-          // Extract tables from modal
-          const tables = await page.evaluate((sel) => {
-            const modal = document.querySelector(sel);
+
+          const isSizeGuide = await page.evaluate((el) => {
+            if (!el || !el.textContent) return false;
+            const text = el.textContent.toLowerCase();
+            return (
+              text.includes('size guide') ||
+              text.includes('size chart') ||
+              text.includes('true fit') ||
+              (text.includes('size') && text.includes('guide'))
+            );
+          }, modalHandle);
+
+          if (!isSizeGuide) continue;
+
+          const tables = await page.evaluate((modal) => {
             if (!modal) return null;
-            
+
             // Look for tables or table-like structures
             let tables = modal.querySelectorAll('table');
-            
+
             // If no table tag, look for div-based tables
             if (tables.length === 0) {
-              // Check for grid/flex-based table structures
               const gridElements = modal.querySelectorAll('[class*="grid"], [class*="table"], [role="table"]');
               if (gridElements.length > 0) {
-                // Try to extract from grid structure
                 const text = modal.textContent;
-                
-                // Check if it looks like a size chart based on content
+
                 if ((text.includes('XXS') || text.includes('XS') || text.includes('Standard')) &&
                     (text.includes('Japan') || text.includes('France') || text.includes('USA'))) {
-                  
-                  // Parse the grid-based size chart
                   const rows = [];
                   const headers = ['Size', 'Standard', 'Japan', 'France', 'Italy', 'United Kingdom', 'USA', '1/2/3'];
-                  
-                  // Extract size data from text
+
                   const sizeData = {
                     'XXS': ['3', '32', '36', '4', '0', '00'],
                     'XS': ['5', '34', '38', '6', '2', '0'],
@@ -226,49 +231,43 @@ class SizeChartParser {
                     'XL': ['13', '42', '46', '14', '10', '4'],
                     'XXL': ['15', '44', '48', '16', '12', '5']
                   };
-                  
-                  // Build rows from parsed data
+
                   Object.entries(sizeData).forEach(([size, values]) => {
                     if (text.includes(size)) {
                       rows.push([size, ...values]);
                     }
                   });
-                  
+
                   if (rows.length > 0) {
                     return { headers, rows };
                   }
                 }
               }
-              
-              // Original text-based parsing fallback
+
               const text = modal.textContent;
               if (text && (text.includes('XXS') || text.includes('XS') || text.includes('Standard'))) {
-                // Parse structured text that looks like size data
                 const lines = text.split('\n').filter(line => line.trim());
                 const headers = [];
                 const rows = [];
-                
-                // Look for header row (contains country names or "Standard")
-                const headerLine = lines.find(line => 
-                  line.includes('Standard') || 
-                  line.includes('Japan') || 
+
+                const headerLine = lines.find(line =>
+                  line.includes('Standard') ||
+                  line.includes('Japan') ||
                   line.includes('USA') ||
                   line.includes('UK')
                 );
-                
+
                 if (headerLine) {
-                  // Try to parse as grid data
                   const possibleHeaders = ['Size', 'Standard', 'Japan', 'France', 'Italy', 'UK', 'USA'];
                   headers.push(...possibleHeaders.filter(h => text.includes(h)));
-                  
-                  // Extract size rows
+
                   const sizeLabels = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
                   sizeLabels.forEach(size => {
                     if (text.includes(size)) {
                       rows.push([size, '...measurements...']);
                     }
                   });
-                  
+
                   if (headers.length > 0 && rows.length > 0) {
                     return { headers, rows, isTextBased: true };
                   }
@@ -282,11 +281,9 @@ class SizeChartParser {
               const headers = [];
               const rows = [];
 
-              // Extract headers
               const headerCells = table.querySelectorAll('thead th, thead td, tr:first-child th, tr:first-child td');
               headerCells.forEach(cell => headers.push(cell.textContent.trim()));
 
-              // Extract rows
               const dataRows = table.querySelectorAll('tbody tr, tr:not(:first-child)');
               dataRows.forEach(row => {
                 const cells = row.querySelectorAll('td, th');
@@ -301,11 +298,10 @@ class SizeChartParser {
             });
 
             return results.length > 0 ? results[0] : null;
-          }, selector);
+          }, modalHandle);
 
           if (tables) {
             if (tables.isTextBased) {
-              // For text-based size charts, return as measurements
               return {
                 type: 'measurements',
                 data: {
@@ -316,6 +312,7 @@ class SizeChartParser {
                 unit: 'text-extracted'
               };
             }
+
             return {
               type: 'table',
               headers: tables.headers,
@@ -324,8 +321,7 @@ class SizeChartParser {
             };
           }
 
-          // Try to capture image in modal
-          const imageData = await this.captureModalImage(page, selector);
+          const imageData = await this.captureModalImage(page, modalHandle);
           if (imageData) return imageData;
         }
       }
@@ -591,10 +587,9 @@ class SizeChartParser {
     return null;
   }
 
-  async captureModalImage(page, modalSelector) {
+  async captureModalImage(page, modalHandle) {
     try {
-      const images = await page.evaluate((selector) => {
-        const modal = document.querySelector(selector);
+      const images = await page.evaluate((modal) => {
         if (!modal) return null;
 
         const imgs = modal.querySelectorAll('img');
@@ -626,7 +621,7 @@ class SizeChartParser {
         }
 
         return sizeImages.length > 0 ? sizeImages[0] : null;
-      }, modalSelector);
+      }, modalHandle);
 
       if (images) {
         return {
