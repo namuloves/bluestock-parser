@@ -3,6 +3,7 @@ const axios = require('axios');
 const puppeteerExtra = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs').promises;
+const vm = require('vm');
 const { getProxyConfig, getAxiosConfig } = require('./config/proxy');
 const { getHostnameFallbackUrl, isDnsResolutionError } = require('./utils/url-normalizer');
 
@@ -1062,60 +1063,201 @@ class UniversalParserV3 {
   }
 
   extractInitialImages($) {
-    const images = [];
+    const images = new Set();
 
     $('script').each((_, el) => {
       const content = $(el).html();
-      if (!content || !content.includes('initialImages')) {
+      if (!content) return;
+
+      const trimmed = content.trim();
+      if (!trimmed) return;
+
+      // Some themes embed pure JSON in script tags (type="application/json")
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        const parsed = this.safeParseInlineJson(trimmed);
+        if (parsed) {
+          this.collectImagesFromInlineData(parsed, images);
+        }
+      }
+
+      if (!content.includes('initialImages')) {
         return;
       }
 
-      const match = content.match(/initialImages\s*:\s*(\[[\s\S]*?\])/);
-      if (!match) {
-        return;
-      }
+      let searchIndex = 0;
+      const key = 'initialImages';
 
-      try {
-        const parsed = JSON.parse(match[1]);
-        if (Array.isArray(parsed)) {
-          parsed.forEach(item => {
-            if (!item) return;
+      while (true) {
+        const keyIndex = content.indexOf(key, searchIndex);
+        if (keyIndex === -1) break;
 
-            if (typeof item === 'string') {
-              if (!images.includes(item)) {
-                images.push(item);
-              }
-              return;
-            }
-
-            if (typeof item === 'object') {
-              const candidates = [
-                item.full,
-                item.img,
-                item.full_webp,
-                item.img_webp,
-                item.thumb
-              ];
-
-              for (const url of candidates) {
-                if (typeof url === 'string' && url.length > 0) {
-                  if (!images.includes(url)) {
-                    images.push(url);
-                  }
-                  break;
-                }
-              }
-            }
-          });
+        const arrayStart = content.indexOf('[', keyIndex);
+        if (arrayStart === -1) {
+          searchIndex = keyIndex + key.length;
+          continue;
         }
-      } catch (error) {
-        if (this.logLevel === 'verbose') {
-          console.log('⚠️ Failed to parse initialImages JSON:', error.message);
+
+        const rawArray = this.extractBracketedArray(content, arrayStart);
+        if (!rawArray) {
+          searchIndex = arrayStart + 1;
+          continue;
         }
+
+        const parsedArray = this.safeParseInlineJson(rawArray);
+        if (Array.isArray(parsedArray)) {
+          this.collectInlineImagesFromArray(parsedArray, images);
+        }
+
+        searchIndex = arrayStart + rawArray.length;
       }
     });
 
-    return images;
+    return Array.from(images);
+  }
+
+  collectImagesFromInlineData(data, images, depth = 0) {
+    if (!data || depth > 3) return;
+
+    if (Array.isArray(data)) {
+      this.collectInlineImagesFromArray(data, images);
+      return;
+    }
+
+    if (typeof data !== 'object') {
+      return;
+    }
+
+    if (Array.isArray(data.initialImages)) {
+      this.collectInlineImagesFromArray(data.initialImages, images);
+    }
+
+    for (const [key, value] of Object.entries(data)) {
+      if (!value) continue;
+      const lowerKey = key.toLowerCase();
+
+      if (Array.isArray(value) && lowerKey.includes('image')) {
+        this.collectInlineImagesFromArray(value, images);
+      } else if (typeof value === 'object') {
+        if (lowerKey.includes('image') || depth < 2) {
+          this.collectImagesFromInlineData(value, images, depth + 1);
+        }
+      }
+    }
+  }
+
+  collectInlineImagesFromArray(items, images) {
+    if (!Array.isArray(items)) return;
+
+    const candidateKeys = [
+      'full',
+      'img',
+      'src',
+      'url',
+      'image',
+      'full_webp',
+      'img_webp',
+      'large',
+      'medium',
+      'small',
+      'thumb',
+      'desktop',
+      'mobile'
+    ];
+
+    for (const item of items) {
+      if (!item) continue;
+
+      if (typeof item === 'string') {
+        this.addImageCandidate(item, images);
+        continue;
+      }
+
+      if (typeof item === 'object') {
+        for (const key of candidateKeys) {
+          const value = item[key];
+          if (typeof value === 'string' && value.trim().length > 0) {
+            this.addImageCandidate(value, images);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  addImageCandidate(candidate, images) {
+    if (typeof candidate !== 'string') return;
+
+    let normalized = candidate.trim();
+    if (!normalized) return;
+
+    if (normalized.startsWith('//')) {
+      normalized = `https:${normalized}`;
+    }
+
+    if (!images.has(normalized)) {
+      images.add(normalized);
+    }
+  }
+
+  extractBracketedArray(content, startIndex) {
+    let depth = 0;
+    let inString = false;
+    let stringChar = null;
+
+    for (let i = startIndex; i < content.length; i++) {
+      const char = content[i];
+
+      if (inString) {
+        if (char === '\\') {
+          i++;
+          continue;
+        }
+        if (char === stringChar) {
+          inString = false;
+          stringChar = null;
+        }
+        continue;
+      }
+
+      if (char === '"' || char === '\'') {
+        inString = true;
+        stringChar = char;
+        continue;
+      }
+
+      if (char === '[') {
+        depth++;
+      }
+
+      if (char === ']') {
+        depth--;
+        if (depth === 0) {
+          return content.slice(startIndex, i + 1);
+        }
+      }
+    }
+
+    return null;
+  }
+
+  safeParseInlineJson(raw) {
+    if (!raw) return null;
+
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+
+    try {
+      return JSON.parse(trimmed);
+    } catch (jsonError) {
+      try {
+        return vm.runInNewContext(`(${trimmed})`, {}, { timeout: 50 });
+      } catch (evalError) {
+        if (this.logLevel === 'verbose') {
+          console.log('⚠️ Failed to evaluate inline JSON:', evalError.message);
+        }
+        return null;
+      }
+    }
   }
 
   async learnFromSuccess(hostname, result, $) {
