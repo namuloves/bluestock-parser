@@ -8,13 +8,15 @@ class UniversalParserV3Cached extends UniversalParserV3 {
       prefix: 'parser:',
       ttl: 3600
     });
+    this.cacheVersion = 'v3-inline-gallery';
   }
 
   async parse(url) {
     const hostname = new URL(url).hostname.replace('www.', '');
+    const cacheVersion = this.cacheVersion || 'v3';
 
     // Check Redis cache first (before in-memory cache)
-    const redisCached = await this.redisCache.get(url, 'v3');
+    const redisCached = await this.redisCache.get(url, cacheVersion);
     if (redisCached) {
       if (this.logLevel !== 'quiet') {
         console.log(`🔴 Redis cache HIT for ${hostname}`);
@@ -27,7 +29,7 @@ class UniversalParserV3Cached extends UniversalParserV3 {
 
     // Cache successful results in Redis
     if (result && result.confidence > 0.3 && !result.error) {
-      await this.redisCache.set(url, result, 'v3');
+      await this.redisCache.set(url, result, cacheVersion);
     }
 
     return result;
