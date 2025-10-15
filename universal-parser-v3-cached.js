@@ -8,7 +8,7 @@ class UniversalParserV3Cached extends UniversalParserV3 {
       prefix: 'parser:',
       ttl: 3600
     });
-    this.cacheVersion = 'v3-inline-gallery';
+    this.cacheVersion = 'v3-inline-gallery-v2';
   }
 
   async parse(url) {
