@@ -738,6 +738,12 @@ class UniversalParserV3 {
       if (strategy.description && !result.description) result.description = strategy.description;
     }
 
+    // Extract inline gallery data used by some storefront themes (e.g., Hyvä)
+    const inlineImages = this.extractInitialImages($);
+    if (inlineImages.length > 0) {
+      result.images = inlineImages;
+    }
+
     // Calculate confidence
     result.confidence = this.calculateConfidence(result);
 
@@ -1053,6 +1059,63 @@ class UniversalParserV3 {
     }
 
     return normalized.slice(0, 10);
+  }
+
+  extractInitialImages($) {
+    const images = [];
+
+    $('script').each((_, el) => {
+      const content = $(el).html();
+      if (!content || !content.includes('initialImages')) {
+        return;
+      }
+
+      const match = content.match(/initialImages\s*:\s*(\[[\s\S]*?\])/);
+      if (!match) {
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(match[1]);
+        if (Array.isArray(parsed)) {
+          parsed.forEach(item => {
+            if (!item) return;
+
+            if (typeof item === 'string') {
+              if (!images.includes(item)) {
+                images.push(item);
+              }
+              return;
+            }
+
+            if (typeof item === 'object') {
+              const candidates = [
+                item.full,
+                item.img,
+                item.full_webp,
+                item.img_webp,
+                item.thumb
+              ];
+
+              for (const url of candidates) {
+                if (typeof url === 'string' && url.length > 0) {
+                  if (!images.includes(url)) {
+                    images.push(url);
+                  }
+                  break;
+                }
+              }
+            }
+          });
+        }
+      } catch (error) {
+        if (this.logLevel === 'verbose') {
+          console.log('⚠️ Failed to parse initialImages JSON:', error.message);
+        }
+      }
+    });
+
+    return images;
   }
 
   async learnFromSuccess(hostname, result, $) {
