@@ -512,6 +512,35 @@ app.post('/scrape', async (req, res) => {
           // Lean parser returns { success, product, ... }
           if (parseResult.success) {
             v3Result = parseResult.product;
+
+            // Mitigation: lean parser sometimes returns limited media (e.g., single image)
+            const imageCount = Array.isArray(v3Result?.images) ? v3Result.images.length : 0;
+            if (parserUsed === 'lean' && v3Parser && imageCount <= 1) {
+              try {
+                console.log(`⚠️ Lean parser returned ${imageCount} images. Fetching V3 parser for richer gallery...`);
+                const richResult = await v3Parser.parse(url);
+
+                if (richResult && Array.isArray(richResult.images) && richResult.images.length > imageCount) {
+                  console.log(`✅ V3 parser provided ${richResult.images.length} images (was ${imageCount}). Merging results.`);
+
+                  v3Result.images = richResult.images;
+                  v3Result.image_urls = richResult.images;
+
+                  // Merge any missing descriptive fields from V3 result without overriding lean-specific data
+                  if (!v3Result.description && richResult.description) v3Result.description = richResult.description;
+                  if (!v3Result.brand && richResult.brand) v3Result.brand = richResult.brand;
+                  if (!v3Result.price && richResult.price) v3Result.price = richResult.price;
+                  if (!v3Result.currency && richResult.currency) v3Result.currency = richResult.currency;
+
+                  rolloutConfig.recordResult(url, 'legacy', true, true);
+                } else {
+                  console.log('ℹ️ V3 parser did not improve image count. Keeping lean parser output.');
+                }
+              } catch (richError) {
+                console.log(`❌ V3 enrichment failed: ${richError.message}`);
+                rolloutConfig.recordResult(url, 'legacy', false, true);
+              }
+            }
           } else {
             v3Result = parseResult.partial_data || {};
           }
