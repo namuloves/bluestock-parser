@@ -846,12 +846,20 @@ app.post('/scrape', async (req, res) => {
     // Clear the timeout since we're done
     clearTimeout(timeout);
 
+    // Validate normalized product before returning
+    if (!normalizedProduct.product_name || !normalizedProduct.image_urls || normalizedProduct.image_urls.length === 0) {
+      console.warn('⚠️ Product data missing critical fields:', {
+        hasName: !!normalizedProduct.product_name,
+        hasImages: normalizedProduct.image_urls && normalizedProduct.image_urls.length > 0
+      });
+    }
+
     // Return in the expected format for frontend
     res.json({
       success: true,
       product: normalizedProduct
     });
-    
+
   } catch (error) {
     console.error('❌ Scraping error:', error);
     console.error('Stack trace:', error.stack);
@@ -891,10 +899,22 @@ app.post('/scrape', async (req, res) => {
         // Log the full error for debugging
         console.error('Full error object:', JSON.stringify(error, null, 2));
 
+        // Always return valid JSON with success: false
         res.status(500).json({
           success: false,
           error: error.message || 'Internal server error',
-          details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+          details: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+          // Provide minimal fallback product structure
+          product: {
+            product_name: '',
+            brand: 'Unknown',
+            original_price: 0,
+            sale_price: 0,
+            image_urls: [],
+            images: [],
+            description: error.message,
+            currency: 'USD'
+          }
         });
       }
     }
