@@ -1,0 +1,187 @@
+{
+  "version": "1.0.0",
+  "description": "Golden dataset for parser testing",
+  "updated": "2025-01-04",
+  "tests": [
+    {
+      "id": "zara-001",
+      "url": "https://www.zara.com/us/en/ribbed-tank-top-p04174304.html",
+      "domain": "zara.com",
+      "category": "clothing",
+      "expected": {
+        "name": {
+          "contains": "RIBBED TANK TOP",
+          "minLength": 5
+        },
+        "price": {
+          "min": 10,
+          "max": 50
+        },
+        "currency": "USD",
+        "brand": "ZARA",
+        "images": {
+          "minCount": 3
+        }
+      },
+      "required_fields": ["name", "price", "images"]
+    },
+    {
+      "id": "hm-001",
+      "url": "https://www2.hm.com/en_us/productpage.1234567.html",
+      "domain": "hm.com",
+      "category": "clothing",
+      "expected": {
+        "name": {
+          "minLength": 5
+        },
+        "price": {
+          "min": 5,
+          "max": 200
+        },
+        "currency": "USD",
+        "brand": "H&M",
+        "images": {
+          "minCount": 1
+        }
+      },
+      "required_fields": ["name", "price", "images"]
+    },
+    {
+      "id": "nordstrom-001",
+      "url": "https://www.nordstrom.com/s/nike-air-max-270/5678901",
+      "domain": "nordstrom.com",
+      "category": "shoes",
+      "expected": {
+        "name": {
+          "contains": ["Nike", "Air Max"],
+          "minLength": 10
+        },
+        "price": {
+          "min": 50,
+          "max": 300
+        },
+        "brand": {
+          "equals": "Nike"
+        },
+        "images": {
+          "minCount": 3
+        }
+      },
+      "required_fields": ["name", "price", "brand", "images"]
+    },
+    {
+      "id": "asos-001",
+      "url": "https://www.asos.com/us/asos-design/asos-design-oversized-t-shirt/prd/12345678",
+      "domain": "asos.com",
+      "category": "clothing",
+      "expected": {
+        "name": {
+          "contains": "ASOS DESIGN",
+          "minLength": 10
+        },
+        "price": {
+          "min": 10,
+          "max": 100
+        },
+        "images": {
+          "minCount": 2
+        }
+      },
+      "required_fields": ["name", "price", "images"]
+    },
+    {
+      "id": "uniqlo-001",
+      "url": "https://www.uniqlo.com/us/en/products/E12345-000",
+      "domain": "uniqlo.com",
+      "category": "clothing",
+      "expected": {
+        "name": {
+          "minLength": 5
+        },
+        "price": {
+          "min": 10,
+          "max": 150
+        },
+        "currency": "USD",
+        "brand": "UNIQLO",
+        "images": {
+          "minCount": 1
+        }
+      },
+      "required_fields": ["name", "price", "images"]
+    },
+    {
+      "id": "cos-001",
+      "url": "https://www.cos.com/en-us/women/clothing/dresses/product.midi-dress.1234567.html",
+      "domain": "cos.com",
+      "category": "clothing",
+      "expected": {
+        "name": {
+          "contains": "DRESS",
+          "minLength": 5
+        },
+        "price": {
+          "min": 30,
+          "max": 500
+        },
+        "brand": "COS",
+        "images": {
+          "minCount": 2
+        }
+      },
+      "required_fields": ["name", "price", "images"]
+    },
+    {
+      "id": "shopify-001",
+      "url": "https://shop.example.com/products/sample-product",
+      "domain": "shop.example.com",
+      "category": "generic",
+      "skip_if_unreachable": true,
+      "expected": {
+        "name": {
+          "minLength": 3
+        },
+        "price": {
+          "min": 0
+        },
+        "images": {
+          "minCount": 1
+        }
+      },
+      "required_fields": ["name", "price"]
+    },
+    {
+      "id": "farfetch-001",
+      "url": "https://www.farfetch.com/shopping/men/item-12345678.aspx",
+      "domain": "farfetch.com",
+      "category": "luxury",
+      "render_required": true,
+      "expected": {
+        "name": {
+          "minLength": 10
+        },
+        "price": {
+          "min": 100,
+          "max": 10000
+        },
+        "images": {
+          "minCount": 3
+        }
+      },
+      "required_fields": ["name", "price", "images", "brand"]
+    }
+  ],
+  "validation_rules": {
+    "pass_threshold": 0.95,
+    "critical_sites": ["zara.com", "hm.com", "nordstrom.com"],
+    "allow_partial_success": false
+  },
+  "test_configuration": {
+    "parallel": false,
+    "timeout_per_test": 30000,
+    "retry_on_failure": true,
+    "max_retries": 2,
+    "cache_responses": true,
+    "cache_ttl": 3600000
+  }
+}

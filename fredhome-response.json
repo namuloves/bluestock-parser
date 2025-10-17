@@ -1,0 +1,31 @@
+{
+  "success": true,
+  "product": {
+    "product_name": "The Baguette Bag",
+    "brand": "Unknown",
+    "original_price": 1080,
+    "sale_price": 1080,
+    "is_on_sale": false,
+    "discount_percentage": null,
+    "sale_badge": null,
+    "image_urls": [
+      "https://bluestock.b-cdn.net/originals/e7678ee2669ffa44.png?width=720"
+    ],
+    "vendor_url": "https://fredhome.com.au/products/the-baguette-bag?variant=49833831072066",
+    "description": "This isn’t merely a bag—it’s an objet d’art. Whether accompanying you to a soirée, adorning your dining table, or elevating your everyday look, The Baguette Bag seamlessly blends functionality with refined elegance, making it the ultimate symbol of tasteful indulgence.",
+    "color": "",
+    "category": "Bags",
+    "material": "",
+    "platform": "universal-v3",
+    "currency": "AUD",
+    "name": "The Baguette Bag",
+    "price": 1080,
+    "images": [
+      "https://bluestock.b-cdn.net/originals/e7678ee2669ffa44.png?width=720"
+    ],
+    "originalPrice": 1080,
+    "isOnSale": false,
+    "discountPercentage": null,
+    "saleBadge": null
+  }
+}

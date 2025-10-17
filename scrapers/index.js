@@ -118,6 +118,7 @@ const { scrapeChiclara } = require('./chiclara');
 const { scrapeGalleryDept } = require('./gallerydept');
 const { scrapeBoden } = require('./boden');
 const { scrapeWConcept } = require('./wconcept');
+const { scrapeArket } = require('./arket');
 const { detectCategory } = require('../utils/categoryDetection');
 const FirecrawlParser = require('./firecrawl-parser');
 const FirecrawlParserV2 = require('./firecrawl-parser-v2');
@@ -144,6 +145,58 @@ try {
   }
 } catch (e) {
   console.log('⚠️ Firecrawl V2 not available:', e.message);
+}
+
+// ============================================
+// AUTO-DISCOVERY SCRAPER REGISTRY
+// ============================================
+// Automatically load all scrapers using convention-based naming
+// Convention: Each scraper file exports a function named scrape[SiteName]
+// Example: arket.js exports scrapeArket, amazon.js exports scrapeAmazonProduct
+const fs = require('fs');
+const path = require('path');
+
+const SCRAPER_REGISTRY = {};
+
+// Auto-load all scrapers from the current directory
+try {
+  const scrapersDir = __dirname;
+  const scraperFiles = fs.readdirSync(scrapersDir)
+    .filter(file => file.endsWith('.js') && file !== 'index.js');
+
+  scraperFiles.forEach(file => {
+    const siteName = file.replace('.js', '');
+    try {
+      const scraperModule = require(`./${file}`);
+
+      // Try different naming conventions
+      const possibleNames = [
+        `scrape${siteName.charAt(0).toUpperCase() + siteName.slice(1)}`, // scrapeArket
+        `scrape${siteName.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('')}`, // scrapeSomeMultiWord
+        `scrape${siteName.toUpperCase()}`, // scrapeCOS
+        `scrape${siteName}` // scrapearket (fallback)
+      ];
+
+      for (const fnName of possibleNames) {
+        if (typeof scraperModule[fnName] === 'function') {
+          SCRAPER_REGISTRY[siteName] = scraperModule[fnName];
+          console.log(`📦 Registered scraper: ${siteName} -> ${fnName}()`);
+          break;
+        }
+      }
+    } catch (e) {
+      // Skip files that can't be loaded (helpers, etc.)
+    }
+  });
+
+  console.log(`✅ Auto-discovered ${Object.keys(SCRAPER_REGISTRY).length} scrapers`);
+} catch (e) {
+  console.error('⚠️ Auto-discovery failed:', e.message);
+}
+
+// Helper function to get scraper by site name
+function getScraperFunction(siteName) {
+  return SCRAPER_REGISTRY[siteName] || null;
 }
 
 // A/B testing configuration
@@ -333,6 +386,9 @@ const detectSite = (url) => {
   }
   if (hostname.includes('wconcept.')) {
     return 'wconcept';
+  }
+  if (hostname.includes('arket.')) {
+    return 'arket';
   }
 
   // Check for known Shopify domains
@@ -2118,6 +2174,51 @@ const scrapeProduct = async (url, options = {}) => {
           }
         };
 
+      case 'arket':
+        console.log('🏢 Using Arket scraper');
+        const arketProduct = await scrapeArket(url);
+
+        const arketPriceNumeric = arketProduct.price || 0;
+        const arketOriginalPriceNumeric = arketProduct.originalPrice || arketPriceNumeric;
+
+        return {
+          success: true,
+          product: {
+            ...arketProduct,
+            product_name: arketProduct.name,
+            brand: arketProduct.brand || 'Arket',
+            original_price: arketOriginalPriceNumeric,
+            sale_price: arketPriceNumeric,
+            is_on_sale: arketProduct.isOnSale || false,
+            discount_percentage: arketProduct.isOnSale && arketOriginalPriceNumeric > arketPriceNumeric ?
+              Math.round((1 - arketPriceNumeric / arketOriginalPriceNumeric) * 100) : null,
+            sale_badge: arketProduct.isOnSale ? 'SALE' : null,
+            image_urls: arketProduct.images || [],
+            vendor_url: arketProduct.url || url,
+            color: arketProduct.color || '',
+            colors: arketProduct.colors || [],
+            sizes: arketProduct.sizes || [],
+            category: detectCategory(
+              arketProduct.name || '',
+              arketProduct.description || '',
+              arketProduct.brand || 'Arket',
+              arketProduct.category
+            ),
+            material: '',
+            description: arketProduct.description || '',
+            sku: arketProduct.sku || '',
+            in_stock: arketProduct.inStock !== false,
+            name: arketProduct.name,
+            price: arketPriceNumeric,
+            images: arketProduct.images || [],
+            originalPrice: arketOriginalPriceNumeric,
+            isOnSale: arketProduct.isOnSale || false,
+            discountPercentage: arketProduct.isOnSale && arketOriginalPriceNumeric > arketPriceNumeric ?
+              Math.round((1 - arketPriceNumeric / arketOriginalPriceNumeric) * 100) : null,
+            saleBadge: arketProduct.isOnSale ? 'SALE' : null
+          }
+        };
+
       case 'unijay':
         console.log('🛍️ Using Unijay scraper');
         const unijayProduct = await scrapeUnijay(url);
@@ -2251,9 +2352,34 @@ const scrapeProduct = async (url, options = {}) => {
         return farfetchProduct;
       
       default:
-        console.log('❌ No specific scraper available for this site');
-        
-        // Try to detect if it's a Shopify store dynamically
+        console.log('❌ No specific scraper in switch statement');
+
+        // STEP 1: Try auto-discovered scraper from registry
+        const autoDiscoveredScraper = getScraperFunction(site);
+        if (autoDiscoveredScraper) {
+          console.log(`✨ Using auto-discovered scraper for: ${site}`);
+          try {
+            const autoResult = await autoDiscoveredScraper(url);
+            return {
+              success: !autoResult.error,
+              product: {
+                ...autoResult,
+                product_name: autoResult.name || autoResult.product_name,
+                brand: autoResult.brand || 'Unknown',
+                original_price: autoResult.originalPrice || autoResult.price || 0,
+                sale_price: autoResult.price || 0,
+                image_urls: autoResult.images || [],
+                vendor_url: url,
+                platform: site
+              }
+            };
+          } catch (autoError) {
+            console.log(`⚠️ Auto-discovered scraper failed: ${autoError.message}`);
+            // Continue to fallback options
+          }
+        }
+
+        // STEP 2: Try to detect if it's a Shopify store dynamically
         console.log('🔍 Checking if site is Shopify...');
         const mightBeShopify = await isShopifyStore(url);
         
@@ -2316,11 +2442,26 @@ const scrapeProduct = async (url, options = {}) => {
           };
         }
         
-        // If not Shopify, return error (generic scraper not implemented)
-        console.log('❌ No specific scraper available and generic scraper not implemented');
+        // STEP 3: Final fallback - Try Universal Parser
+        console.log('🔄 No specific scraper found, trying Universal Parser as fallback...');
+        if (universalParser) {
+          try {
+            const universalResult = await tryUniversalParser(url);
+            if (universalResult && universalResult.success) {
+              console.log('✅ Universal Parser succeeded as fallback');
+              return universalResult;
+            }
+            console.log('⚠️ Universal Parser returned low confidence or failed');
+          } catch (universalError) {
+            console.log(`⚠️ Universal Parser error: ${universalError.message}`);
+          }
+        }
+
+        // STEP 4: All fallbacks exhausted
+        console.log('❌ All scraping methods exhausted for this site');
         return {
           success: false,
-          error: 'No scraper available for this site',
+          error: 'No scraper available for this site and all fallbacks failed',
           product: null
         };
     }
