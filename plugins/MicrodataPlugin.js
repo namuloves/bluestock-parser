@@ -145,12 +145,12 @@ class MicrodataPlugin {
 
       if (element.prop('tagName') === 'IMG') {
         const src = element.attr('src');
-        if (src) images.push(src);
+        if (src && this.isValidImageUrl(src)) images.push(src);
       } else {
         const content = element.attr('content');
         const href = element.attr('href');
-        if (content) images.push(content);
-        else if (href) images.push(href);
+        if (content && this.isValidImageUrl(content)) images.push(content);
+        else if (href && this.isValidImageUrl(href)) images.push(href);
       }
     });
 
@@ -160,12 +160,51 @@ class MicrodataPlugin {
         const element = $(elem);
         if (element.prop('tagName') === 'IMG') {
           const src = element.attr('src');
-          if (src && images.length < 5) images.push(src);
+          if (src && this.isValidImageUrl(src) && images.length < 5) images.push(src);
         }
       });
     }
 
     return images;
+  }
+
+  /**
+   * Check if URL is a valid image URL
+   */
+  isValidImageUrl(url) {
+    if (!url) return false;
+
+    // Filter out payment/contact metadata URLs
+    const invalidPatterns = [
+      'supports3DS',
+      'postalAddress',
+      'email',
+      'phone',
+      'visa',
+      'masterCard',
+      'mastercard',
+      'amex',
+      'paypal',
+      'discover',
+      'javascript:',
+      'mailto:',
+      'tel:',
+      '/paymentAccepted',
+      '/ContactPoint'
+    ];
+
+    const urlLower = url.toLowerCase();
+    if (invalidPatterns.some(pattern => urlLower.includes(pattern.toLowerCase()))) {
+      return false;
+    }
+
+    // Accept URLs that look like images
+    const hasImageExtension = /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
+    const hasImagePath = /\/images?\//i.test(url) || /\/media\//i.test(url) || /\/cdn\//i.test(url);
+    const isHttpUrl = url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//');
+
+    // Accept if it has image extension or looks like an image path
+    return hasImageExtension || hasImagePath || isHttpUrl;
   }
 
   /**
