@@ -87,6 +87,20 @@ Add to this list whenever we discover a new site that blocks scrapers.
 ---
 
 **Date:** 2025-01-16
-**Impact:** High - Wasted time, broke user trust
+**Impact:** High - Wasted time, broke user trust, CRASHED PRODUCTION
 **Status:** FIXED - Removed broken Arket scraper, now uses Universal Parser fallback
-**Commit:** b82b754
+**Commits:** b82b754 (removed file), 6209df7 (fixed import)
+
+### Additional Fuckup
+When removing `scrapers/arket.js`, I forgot to remove the import statement:
+```javascript
+const { scrapeArket } = require('./arket'); // Line 121
+```
+
+This crashed Railway production with `MODULE_NOT_FOUND` error.
+
+**Lesson:** When deleting a module, ALWAYS grep for imports:
+```bash
+grep -r "require('./arket')" .
+grep -r "from './arket'" .
+```
