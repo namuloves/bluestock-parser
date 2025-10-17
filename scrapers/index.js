@@ -387,9 +387,10 @@ const detectSite = (url) => {
   if (hostname.includes('wconcept.')) {
     return 'wconcept';
   }
-  if (hostname.includes('arket.')) {
-    return 'arket';
-  }
+  // Note: arket.com requires JavaScript rendering, handled by Universal Parser
+  // if (hostname.includes('arket.')) {
+  //   return 'arket';
+  // }
 
   // Check for known Shopify domains
   const shopifyDomains = [
@@ -2174,50 +2175,7 @@ const scrapeProduct = async (url, options = {}) => {
           }
         };
 
-      case 'arket':
-        console.log('🏢 Using Arket scraper');
-        const arketProduct = await scrapeArket(url);
-
-        const arketPriceNumeric = arketProduct.price || 0;
-        const arketOriginalPriceNumeric = arketProduct.originalPrice || arketPriceNumeric;
-
-        return {
-          success: true,
-          product: {
-            ...arketProduct,
-            product_name: arketProduct.name,
-            brand: arketProduct.brand || 'Arket',
-            original_price: arketOriginalPriceNumeric,
-            sale_price: arketPriceNumeric,
-            is_on_sale: arketProduct.isOnSale || false,
-            discount_percentage: arketProduct.isOnSale && arketOriginalPriceNumeric > arketPriceNumeric ?
-              Math.round((1 - arketPriceNumeric / arketOriginalPriceNumeric) * 100) : null,
-            sale_badge: arketProduct.isOnSale ? 'SALE' : null,
-            image_urls: arketProduct.images || [],
-            vendor_url: arketProduct.url || url,
-            color: arketProduct.color || '',
-            colors: arketProduct.colors || [],
-            sizes: arketProduct.sizes || [],
-            category: detectCategory(
-              arketProduct.name || '',
-              arketProduct.description || '',
-              arketProduct.brand || 'Arket',
-              arketProduct.category
-            ),
-            material: '',
-            description: arketProduct.description || '',
-            sku: arketProduct.sku || '',
-            in_stock: arketProduct.inStock !== false,
-            name: arketProduct.name,
-            price: arketPriceNumeric,
-            images: arketProduct.images || [],
-            originalPrice: arketOriginalPriceNumeric,
-            isOnSale: arketProduct.isOnSale || false,
-            discountPercentage: arketProduct.isOnSale && arketOriginalPriceNumeric > arketPriceNumeric ?
-              Math.round((1 - arketPriceNumeric / arketOriginalPriceNumeric) * 100) : null,
-            saleBadge: arketProduct.isOnSale ? 'SALE' : null
-          }
-        };
+      // Note: Arket removed - requires JS rendering, falls through to Universal Parser
 
       case 'unijay':
         console.log('🛍️ Using Unijay scraper');
