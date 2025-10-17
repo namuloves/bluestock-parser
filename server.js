@@ -773,10 +773,29 @@ app.post('/scrape', async (req, res) => {
       productData.currency = 'USD';
     }
 
+    // Filter out invalid image URLs (payment icons, contact info, etc.)
+    const isValidImageUrl = (url) => {
+      if (!url) return false;
+      const invalidPatterns = [
+        'supports3DS', 'postalAddress', 'email', 'phone', 'visa', 'masterCard', 'mastercard',
+        'amex', 'paypal', 'discover', 'maestro', 'elo', 'javascript:', 'mailto:', 'tel:',
+        '/paymentAccepted', '/ContactPoint'
+      ];
+      return !invalidPatterns.some(pattern => url.toLowerCase().includes(pattern.toLowerCase()));
+    };
+
     // Upload images to Bunny Storage and get CDN URLs
     console.log('📤 Uploading images to Bunny Storage...');
     try {
-      const imageUrls = productData.image_urls || productData.images || [];
+      let imageUrls = productData.image_urls || productData.images || [];
+
+      // Filter out invalid URLs
+      const originalCount = imageUrls.length;
+      imageUrls = imageUrls.filter(isValidImageUrl);
+      if (imageUrls.length < originalCount) {
+        console.log(`🔧 Filtered out ${originalCount - imageUrls.length} invalid image URLs`);
+      }
+
       if (imageUrls.length > 0) {
         const uploadResults = await bunnyStorage.uploadImages(imageUrls, {
           width: 720,
