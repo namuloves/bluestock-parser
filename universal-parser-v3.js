@@ -12,7 +12,7 @@ puppeteerExtra.use(StealthPlugin());
 
 class UniversalParserV3 {
   constructor() {
-    this.version = '3.1.1'; // Fixed 69mcfly image parsing and pattern loading
+    this.version = '3.1.2'; // Fixed invalid image URL extraction from JSON-LD (validates URLs)
     this.browserInstance = null;
     this.cache = new Map();
     this.apiDataCache = new Map(); // Cache for intercepted API data
@@ -759,6 +759,41 @@ class UniversalParserV3 {
     return result;
   }
 
+  /**
+   * Validate if a URL is actually an image URL
+   */
+  isValidImageUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+
+    // Must be an HTTP(S) URL
+    if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+
+    // Check if it has image extension
+    const hasImageExtension = /\.(jpg|jpeg|png|webp|gif|avif|svg)($|\?|#)/i.test(url);
+
+    // OR check if it's from a known CDN
+    const isFromCDN = url.includes('cdn') ||
+                      url.includes('cloudfront') ||
+                      url.includes('cloudinary') ||
+                      url.includes('imgix') ||
+                      url.includes('akamai');
+
+    if (hasImageExtension || isFromCDN) {
+      // Additional validation: must not be suspiciously short
+      const path = url.split('?')[0].split('#')[0];
+      const pathSegment = path.split('/').pop();
+
+      // If the last path segment is too short (like "/jcb"), it's probably not an image
+      if (pathSegment && pathSegment.length < 8 && !hasImageExtension) {
+        return false;
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
   extractJsonLd($) {
     const result = {};
     $('script[type="application/ld+json"]').each((i, elem) => {
@@ -812,7 +847,8 @@ class UniversalParserV3 {
               if (!img) return null;
 
               if (typeof img === 'string') {
-                return img;
+                // Validate that this is actually an image URL
+                return this.isValidImageUrl(img) ? img : null;
               }
 
               if (Array.isArray(img)) {
@@ -843,7 +879,10 @@ class UniversalParserV3 {
                 // Fallback: scan object values for first image-like string
                 for (const value of Object.values(img)) {
                   if (typeof value === 'string' && value.startsWith('http')) {
-                    return value;
+                    // Validate before returning
+                    if (this.isValidImageUrl(value)) {
+                      return value;
+                    }
                   }
                   const normalized = normalizeImageEntry(value);
                   if (normalized) return normalized;
@@ -857,7 +896,7 @@ class UniversalParserV3 {
               if (!imageField) return [];
 
               if (typeof imageField === 'string') {
-                return [imageField];
+                return this.isValidImageUrl(imageField) ? [imageField] : [];
               }
 
               if (Array.isArray(imageField)) {
