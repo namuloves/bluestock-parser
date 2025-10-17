@@ -161,7 +161,7 @@ app.use('/', imageProxyRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.send('Bluestock Parser API is running!');
+  res.send('MMMMood Parser API is running!');
 });
 
 // Health endpoint moved to routes/health.js
@@ -343,7 +343,7 @@ app.get('/test', (req, res) => {
 
   res.json({
     status: 'OK',
-    service: 'bluestock-parser',
+    service: 'mmmmood-parser',
     timestamp: new Date().toISOString(),
     message: 'Parser service is running and accessible!',
     parserVersion: parserVersion,
@@ -1441,6 +1441,6 @@ process.on('SIGTERM', async () => {
 
 // Listen on all interfaces for Railway
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Bluestock Parser API running on port ${PORT}`);
-  console.log(`CORS enabled for: ${process.env.FRONTEND_URL || 'https://bluestock-bay.vercel.app'}`);
+  console.log(`MMMMood Parser API running on port ${PORT}`);
+  console.log(`CORS enabled for: ${process.env.FRONTEND_URL || 'https://www.mmmmood.com'}`);
 });
