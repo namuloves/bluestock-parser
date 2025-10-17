@@ -12,7 +12,7 @@ puppeteerExtra.use(StealthPlugin());
 
 class UniversalParserV3 {
   constructor() {
-    this.version = '3.1.3'; // Fixed invalid image URL extraction from inline JSON (validates all URLs)
+    this.version = '3.1.4'; // Fixed malformed protocol URLs (https:files -> https://domain/files)
     this.browserInstance = null;
     this.cache = new Map();
     this.apiDataCache = new Map(); // Cache for intercepted API data
@@ -1082,8 +1082,19 @@ class UniversalParserV3 {
     for (let img of images) {
       if (!img || typeof img !== 'string') continue;
 
+      // Handle malformed URLs like "https:files/..." (missing //)
+      // Treat these as relative paths since they're broken
+      if ((img.startsWith('https:') && !img.startsWith('https://')) ||
+          (img.startsWith('http:') && !img.startsWith('http://'))) {
+        // Extract the path part after the protocol
+        const path = img.replace(/^https?:/, '');
+        // Treat as relative path
+        img = path.startsWith('/')
+          ? `${baseUrlObj.protocol}//${baseUrlObj.host}${path}`
+          : `${baseUrlObj.protocol}//${baseUrlObj.host}/${path}`;
+      }
       // Handle protocol-relative URLs
-      if (img.startsWith('//')) {
+      else if (img.startsWith('//')) {
         img = 'https:' + img;
       }
       // Handle relative URLs
