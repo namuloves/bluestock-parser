@@ -8,7 +8,7 @@ class UniversalParserV3Cached extends UniversalParserV3 {
       prefix: 'parser:',
       ttl: 3600
     });
-    this.cacheVersion = 'v3-image-validation-v1'; // Updated: validates image URLs, filters out invalid ones
+    this.cacheVersion = 'v3-image-validation-v2'; // Updated: validates ALL image URLs including inline JSON
   }
 
   async parse(url) {

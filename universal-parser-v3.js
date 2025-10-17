@@ -12,7 +12,7 @@ puppeteerExtra.use(StealthPlugin());
 
 class UniversalParserV3 {
   constructor() {
-    this.version = '3.1.2'; // Fixed invalid image URL extraction from JSON-LD (validates URLs)
+    this.version = '3.1.3'; // Fixed invalid image URL extraction from inline JSON (validates all URLs)
     this.browserInstance = null;
     this.cache = new Map();
     this.apiDataCache = new Map(); // Cache for intercepted API data
@@ -1231,6 +1231,11 @@ class UniversalParserV3 {
 
     if (normalized.startsWith('//')) {
       normalized = `https:${normalized}`;
+    }
+
+    // Validate URL before adding to images set
+    if (!this.isValidImageUrl(normalized)) {
+      return; // Skip invalid image URLs
     }
 
     if (!images.has(normalized)) {
