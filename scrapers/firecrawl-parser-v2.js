@@ -322,6 +322,18 @@ class FirecrawlParserV2 {
           { type: 'scroll', direction: 'down' }
         ]
       },
+      'ralphlauren.com': {
+        waitFor: 7000,
+        requiresProxy: true,
+        timeout: 60000,
+        actions: [
+          { type: 'wait', milliseconds: 3000 },
+          { type: 'wait', selector: '.product-detail, .product-wrapper' },
+          { type: 'scroll', direction: 'down' },
+          { type: 'wait', milliseconds: 2000 },
+          { type: 'screenshot', fullPage: false }
+        ]
+      },
 
       // Medium protection sites
       'zara.com': {
@@ -479,6 +491,10 @@ class FirecrawlParserV2 {
       return "Extract fashion product from Nordstrom/Nordstrom Rack. Get brand, product name, current price, original price if on sale, available sizes, and colors.";
     }
 
+    if (hostname.includes('ralphlauren')) {
+      return "Extract Ralph Lauren product details. Include product name, price, all product images, description, available sizes, colors, and material composition if available.";
+    }
+
     // Generic prompt
     return "Extract complete e-commerce product information including name, brand, price, images, description, sizes, colors, and availability.";
   }
@@ -562,7 +578,8 @@ class FirecrawlParserV2 {
       'ssense.com': 'SSENSE',
       'nordstrom': 'Nordstrom',
       'nike.com': 'Nike',
-      'adidas.com': 'Adidas'
+      'adidas.com': 'Adidas',
+      'ralphlauren.com': 'Ralph Lauren'
     };
 
     for (const [domain, brand] of Object.entries(brandMap)) {
