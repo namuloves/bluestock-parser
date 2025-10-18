@@ -12,7 +12,7 @@ puppeteerExtra.use(StealthPlugin());
 
 class UniversalParserV3 {
   constructor() {
-    this.version = '3.1.4'; // Fixed malformed protocol URLs (https:files -> https://domain/files)
+    this.version = '3.2.0'; // Prioritize high-res product images over cropped OG previews
     this.browserInstance = null;
     this.cache = new Map();
     this.apiDataCache = new Map(); // Cache for intercepted API data
@@ -714,29 +714,36 @@ class UniversalParserV3 {
       }
     }
 
-    // Try multiple extraction strategies
-    const strategies = [
-      this.extractJsonLd($),
-      this.extractOpenGraph($),
-      this.extractSiteSpecific($, hostname),
-      this.extractGeneric($)
-    ];
+    // Try multiple extraction strategies - OG moved to LAST for images
+    const jsonLdData = this.extractJsonLd($);
+    const siteSpecificData = this.extractSiteSpecific($, hostname);
+    const genericData = this.extractGeneric($);
+    const srcsetData = this.extractFromSrcset($);
+    const ogData = this.extractOpenGraph($); // LAST - OG images are often cropped social previews
 
-    // Merge results from all strategies
+    // Merge non-image fields (first match wins)
+    const strategies = [jsonLdData, siteSpecificData, genericData, ogData];
     for (const strategy of strategies) {
       if (strategy.name && !result.name) result.name = strategy.name;
       if (strategy.price && !result.price) result.price = strategy.price;
       if (strategy.brand && !result.brand) result.brand = strategy.brand;
+      if (strategy.description && !result.description) result.description = strategy.description;
+    }
+
+    // Collect images with priority: srcset > site-specific > generic > jsonLd > OG
+    // Skip cropped OG images (1200x630, crop= parameter)
+    const imageStrategies = [srcsetData, siteSpecificData, genericData, jsonLdData, ogData];
+    for (const strategy of imageStrategies) {
       if (strategy.images?.length > 0) {
         if (!result.images) result.images = [];
-        // Merge images from all strategies, avoiding duplicates
         for (const img of strategy.images) {
+          // Filter out cropped OG images
+          if (this.isCroppedOGImage(img)) continue;
           if (!result.images.includes(img)) {
             result.images.push(img);
           }
         }
       }
-      if (strategy.description && !result.description) result.description = strategy.description;
     }
 
     // Extract inline gallery data used by some storefront themes (e.g., Hyvä)
@@ -1040,6 +1047,51 @@ class UniversalParserV3 {
     }
 
     return result;
+  }
+
+  extractFromSrcset($) {
+    const result = { images: [] };
+
+    // Find all img tags with srcset attribute
+    $('img[srcset]').each((i, el) => {
+      const srcset = $(el).attr('srcset');
+      if (!srcset) return;
+
+      // Parse srcset and get the LARGEST image
+      const urls = srcset.split(',').map(entry => {
+        const parts = entry.trim().split(/\s+/);
+        const url = parts[0];
+        const descriptor = parts[1] || '';
+
+        // Extract width from descriptor (e.g., "2000w")
+        const widthMatch = descriptor.match(/(\d+)w/);
+        const width = widthMatch ? parseInt(widthMatch[1]) : 0;
+
+        return { url, width };
+      });
+
+      // Sort by width descending and take the largest
+      urls.sort((a, b) => b.width - a.width);
+      if (urls[0] && urls[0].url) {
+        result.images.push(urls[0].url);
+      }
+    });
+
+    return result;
+  }
+
+  isCroppedOGImage(url) {
+    if (!url || typeof url !== 'string') return false;
+
+    // Check for crop parameter
+    if (url.includes('crop=')) return true;
+
+    // Check for social media preview dimensions (1200x630, 1200x1200, 1200x628)
+    if (url.match(/width=1200.*height=630|width=1200.*height=628|width=1200.*height=1200/i)) {
+      return true;
+    }
+
+    return false;
   }
 
   calculateConfidence(result) {
