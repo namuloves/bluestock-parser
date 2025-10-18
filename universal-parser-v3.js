@@ -1057,23 +1057,39 @@ class UniversalParserV3 {
       const srcset = $(el).attr('srcset');
       if (!srcset) return;
 
+      // Also try to get the src attribute as fallback
+      const imgSrc = $(el).attr('src') || '';
+
       // Parse srcset and get the LARGEST image
       const urls = srcset.split(',').map(entry => {
         const parts = entry.trim().split(/\s+/);
-        const url = parts[0];
+        let url = parts[0];
         const descriptor = parts[1] || '';
+
+        // VALIDATE: Check if this looks like a valid URL
+        // If it doesn't start with http/https//, it might be incomplete
+        if (!url.startsWith('http') && !url.startsWith('//') && !url.startsWith('/')) {
+          // This might be a malformed URL - skip it
+          if (this.logLevel === 'verbose') {
+            console.log('⚠️ Skipping invalid srcset URL:', url);
+          }
+          return null;
+        }
 
         // Extract width from descriptor (e.g., "2000w")
         const widthMatch = descriptor.match(/(\d+)w/);
         const width = widthMatch ? parseInt(widthMatch[1]) : 0;
 
         return { url, width };
-      });
+      }).filter(Boolean); // Remove null entries
 
       // Sort by width descending and take the largest
       urls.sort((a, b) => b.width - a.width);
       if (urls[0] && urls[0].url) {
         result.images.push(urls[0].url);
+      } else if (imgSrc && this.isValidImageUrl(imgSrc)) {
+        // Fallback to img src if srcset parsing failed
+        result.images.push(imgSrc);
       }
     });
 
