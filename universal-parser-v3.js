@@ -706,11 +706,25 @@ class UniversalParserV3 {
       confidence: 0
     };
 
+    // Check if this is a Shopify store
+    const isShopify = this.detectShopify($);
+
     // Handle Shopify variant URLs
     if (url.includes('variant=')) {
       const variantData = await this.extractShopifyVariant($, url);
       if (variantData) {
         Object.assign(result, variantData);
+      }
+    }
+
+    // If it's a Shopify store, extract images differently
+    if (isShopify) {
+      const shopifyImages = this.extractShopifyImages($);
+      if (shopifyImages.length > 0) {
+        result.images = shopifyImages;
+      }
+      if (this.logLevel === 'verbose') {
+        console.log('🛍️ Detected Shopify store, using Shopify-specific image extraction');
       }
     }
 
@@ -727,7 +741,9 @@ class UniversalParserV3 {
       if (strategy.name && !result.name) result.name = strategy.name;
       if (strategy.price && !result.price) result.price = strategy.price;
       if (strategy.brand && !result.brand) result.brand = strategy.brand;
-      if (strategy.images?.length > 0) {
+
+      // Only merge images if we don't already have Shopify images
+      if (!isShopify && strategy.images?.length > 0) {
         if (!result.images) result.images = [];
         // Merge images from all strategies, avoiding duplicates
         for (const img of strategy.images) {
@@ -1390,6 +1406,111 @@ class UniversalParserV3 {
       }
     }
     return null;
+  }
+
+  detectShopify($) {
+    // Check for Shopify indicators
+    // 1. Check og:image or og:image:url for cdn.shopify.com
+    const ogImage = $('meta[property="og:image"]').attr('content') || '';
+    const ogImageUrl = $('meta[property="og:image:url"]').attr('content') || '';
+
+    if (ogImage.includes('cdn.shopify.com') || ogImageUrl.includes('cdn.shopify.com')) {
+      return true;
+    }
+
+    // 2. Check for Shopify-specific elements in HTML
+    const shopifyIndicators = [
+      'script[src*="cdn.shopify.com"]',
+      'link[href*="cdn.shopify.com"]',
+      'meta[name="shopify-checkout-api-token"]',
+      'script:contains("window.Shopify")',
+      'script:contains("Shopify.theme")'
+    ];
+
+    for (const selector of shopifyIndicators) {
+      if ($(selector).length > 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  extractShopifyImages($) {
+    const images = [];
+
+    // 1. First try to get images from og:image tags (often high quality)
+    const ogImage = $('meta[property="og:image"]').attr('content');
+    const ogImageUrl = $('meta[property="og:image:url"]').attr('content');
+
+    // Process OG image - remove crop parameters for higher resolution
+    const processShopifyImage = (url) => {
+      if (!url || !url.includes('cdn.shopify.com')) return null;
+
+      // Remove crop and size parameters to get original image
+      // From: https://cdn.shopify.com/s/files/1/2193/5809/files/I036942_3YM_XX-ST-01.jpg?v=1758648612&width=1200&height=630&crop=top
+      // To: https://cdn.shopify.com/s/files/1/2193/5809/files/I036942_3YM_XX-ST-01.jpg?v=1758648612
+
+      // Parse URL
+      const urlObj = new URL(url);
+      const params = new URLSearchParams(urlObj.search);
+
+      // Remove size and crop parameters
+      params.delete('width');
+      params.delete('height');
+      params.delete('crop');
+
+      // Optionally add a higher resolution
+      // params.set('width', '2048');
+
+      urlObj.search = params.toString();
+      return urlObj.toString();
+    };
+
+    // Add processed OG image
+    if (ogImageUrl) {
+      const processed = processShopifyImage(ogImageUrl);
+      if (processed) images.push(processed);
+    } else if (ogImage) {
+      const processed = processShopifyImage(ogImage);
+      if (processed) images.push(processed);
+    }
+
+    // 2. Find other product images with cdn.shopify.com
+    $('img[src*="cdn.shopify.com"]').each((i, el) => {
+      const src = $(el).attr('src');
+      if (src && !src.includes('logo') && !src.includes('icon') && !src.includes('badge')) {
+        // Skip srcset for Shopify - it often has broken format
+        const processed = processShopifyImage(src);
+        if (processed && !images.includes(processed)) {
+          images.push(processed);
+        }
+      }
+    });
+
+    // 3. Look for Shopify product gallery images
+    $('.product__media img, .product-image img, .product-photo img').each((i, el) => {
+      const src = $(el).attr('src') || $(el).attr('data-src');
+      if (src && src.includes('cdn.shopify.com')) {
+        const processed = processShopifyImage(src);
+        if (processed && !images.includes(processed)) {
+          images.push(processed);
+        }
+      }
+    });
+
+    // 4. Check for images in data attributes
+    $('[data-src*="cdn.shopify.com"], [data-zoom*="cdn.shopify.com"]').each((i, el) => {
+      const src = $(el).attr('data-src') || $(el).attr('data-zoom');
+      if (src) {
+        const processed = processShopifyImage(src);
+        if (processed && !images.includes(processed)) {
+          images.push(processed);
+        }
+      }
+    });
+
+    return images.slice(0, 10); // Return max 10 images
   }
 
   async extractShopifyVariant($, url) {

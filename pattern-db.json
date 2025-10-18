@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-10-17T02:01:57.256Z",
+    "updated": "2025-10-18T17:57:55.234Z",
     "total_sites": 12,
-    "successful_extractions": 53
+    "successful_extractions": 54
   },
   "global_patterns": {
     "price": [
@@ -454,6 +454,14 @@
   "arket.com": {
     "successCount": 1,
     "lastSuccess": "2025-10-17T02:01:57.256Z",
+    "patterns": {
+      "name": "h1",
+      "price": null
+    }
+  },
+  "us.carhartt-wip.com": {
+    "successCount": 1,
+    "lastSuccess": "2025-10-18T17:57:55.235Z",
     "patterns": {
       "name": "h1",
       "price": null
