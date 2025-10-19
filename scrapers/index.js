@@ -231,7 +231,8 @@ function getFirecrawlParser() {
 // These sites will ALWAYS use Firecrawl as primary method
 const FIRECRAWL_REQUIRED_SITES = [
   'rei.com',  // REI has strong bot detection, always use Firecrawl
-  'ralphlauren.com'  // Ralph Lauren blocks standard scrapers, use Firecrawl
+  'ralphlauren.com',  // Ralph Lauren blocks standard scrapers, use Firecrawl
+  'net-a-porter.com'  // Net-a-Porter has enterprise bot protection, use Firecrawl
 ];
 
 // Sites that can use Firecrawl as fallback if primary scraper fails
