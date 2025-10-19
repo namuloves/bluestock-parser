@@ -296,6 +296,7 @@ class FirecrawlParserV2 {
       'net-a-porter.com': {
         waitFor: 6000,
         requiresProxy: true,
+        timeout: 45000,  // 45 seconds - allows frontend buffer
         location: {
           country: 'US',
           languages: ['en-US']
