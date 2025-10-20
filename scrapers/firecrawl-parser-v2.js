@@ -78,6 +78,7 @@ class FirecrawlParserV2 {
 
   /**
    * Main scraping method using Firecrawl's advanced features
+   * Includes automatic retry logic for timeout failures
    */
   async scrape(url, options = {}) {
     if (!this.firecrawl) {
@@ -104,7 +105,11 @@ class FirecrawlParserV2 {
       return cached;
     }
 
-    console.log('🔥 Firecrawl V2 scraping:', url);
+    // Retry configuration for high-protection sites
+    const maxRetries = options.maxRetries !== undefined ? options.maxRetries : 1; // Default: retry once
+    const currentRetry = options.currentRetry || 0;
+
+    console.log('🔥 Firecrawl V2 scraping:', url, currentRetry > 0 ? `(Retry ${currentRetry}/${maxRetries})` : '');
 
     try {
       // Determine site-specific configuration
@@ -152,9 +157,10 @@ class FirecrawlParserV2 {
       // Execute scrape
       const result = await this.firecrawl.scrapeUrl(url, scrapeParams);
 
-      if (!result.success) {
-        console.error('❌ Firecrawl failed:', result.error);
-        throw new Error(result.error || 'Scraping failed');
+      if (!result || !result.success) {
+        const errorMsg = result?.error || 'Scraping failed';
+        console.error('❌ Firecrawl failed:', errorMsg);
+        throw new Error(errorMsg);
       }
 
       console.log('✅ Firecrawl V2 scrape successful');
@@ -181,22 +187,42 @@ class FirecrawlParserV2 {
     } catch (error) {
       console.error('❌ Firecrawl V2 error:', error.message);
 
-      // Attempt fallback with simpler extraction
+      // Check if this is a timeout error and we should retry
+      const isTimeoutError = error.message.includes('timed out') || error.message.includes('408');
+      const shouldRetry = isTimeoutError && currentRetry < maxRetries;
+
+      if (shouldRetry) {
+        console.log(`🔄 Timeout detected, retrying (${currentRetry + 1}/${maxRetries})...`);
+
+        // Wait 2 seconds before retry to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Retry with incremented counter
+        return this.scrape(url, {
+          ...options,
+          currentRetry: currentRetry + 1,
+          maxRetries: maxRetries
+        });
+      }
+
+      // Attempt fallback with simpler extraction after all retries exhausted
       if (options.allowFallback !== false) {
+        console.log('⚠️ All retries exhausted, attempting fallback extraction...');
         return this.fallbackScrape(url, options);
       }
 
       const result = {
         success: false,
-        error: error.message
+        error: error.message,
+        retriesAttempted: currentRetry
       };
 
       // Track metrics
       if (metrics) {
-        metrics.recordAttempt('v2', url, startTime, finalResult);
+        metrics.recordAttempt('v2', url, startTime, result);
       }
 
-      return finalResult;
+      return result;
     }
   }
 
