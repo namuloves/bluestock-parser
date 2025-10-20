@@ -1462,4 +1462,12 @@ process.on('SIGTERM', async () => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`MMMMood Parser API running on port ${PORT}`);
   console.log(`CORS enabled for: ${process.env.FRONTEND_URL || 'https://www.mmmmood.com'}`);
+
+  // Start background worker if Supabase is configured
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
+    console.log('🔄 Starting background job worker...');
+    require('./worker');
+  } else {
+    console.log('⚠️ Background worker not started - Supabase credentials missing');
+  }
 });
