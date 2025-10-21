@@ -291,11 +291,13 @@ class FirecrawlParserV2 {
     const configs = {
       // High protection sites
       'ssense.com': {
-        waitFor: 5000,
+        waitFor: 6000,
         requiresProxy: true,
         actions: [
           { type: 'wait', milliseconds: 2000 },
-          { type: 'scroll', direction: 'down' }
+          { type: 'scroll', direction: 'down' },
+          { type: 'wait', milliseconds: 1500 },
+          { type: 'scroll', direction: 'up' } // Scroll back up to ensure main images are loaded
         ]
       },
       'rei.com': {
@@ -507,7 +509,7 @@ class FirecrawlParserV2 {
     const hostname = new URL(url).hostname.toLowerCase();
 
     if (hostname.includes('ssense.com')) {
-      return "Extract product details from SSENSE. Focus on designer/brand name, product name, current price, and all product images.";
+      return "Extract product details from SSENSE. CRITICAL: Find ALL product images from the image gallery/carousel (typically 4-8 images showing different angles). Include: designer/brand name, product name, sale price, original price, color, material composition from description, and ALL image URLs from the product gallery.";
     }
 
     if (hostname.includes('rei.com')) {
