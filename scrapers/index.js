@@ -232,12 +232,13 @@ function getFirecrawlParser() {
 const FIRECRAWL_REQUIRED_SITES = [
   'rei.com',  // REI has strong bot detection, always use Firecrawl
   'ralphlauren.com',  // Ralph Lauren blocks standard scrapers, use Firecrawl
-  'net-a-porter.com'  // Net-a-Porter has enterprise bot protection, use Firecrawl
+  'net-a-porter.com',  // Net-a-Porter has enterprise bot protection, use Firecrawl
+  'ssense.com'  // SSENSE requires Firecrawl for high-resolution image extraction
 ];
 
 // Sites that can use Firecrawl as fallback if primary scraper fails
 const FIRECRAWL_FALLBACK_SITES = [
-  'ssense.com'  // Has proxy scraper, use Firecrawl as backup
+  // SSENSE moved to FIRECRAWL_REQUIRED_SITES for better image quality
 ];
 
 // Site detection function
