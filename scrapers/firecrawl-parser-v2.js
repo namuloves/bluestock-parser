@@ -139,7 +139,7 @@ class FirecrawlParserV2 {
 
         // Advanced options
         onlyMainContent: true,
-        removeBase64Images: true,
+        removeBase64Images: siteConfig.removeBase64Images !== undefined ? siteConfig.removeBase64Images : true,
         blockAds: true,
         mobile: false,
         proxy: siteConfig.requiresProxy ? 'stealth' : 'basic',
@@ -242,7 +242,7 @@ class FirecrawlParserV2 {
       original_price: extracted.originalPrice || extracted.price || 0,
       currency: extracted.currency || 'USD',
       description: extracted.description || metadata.description || '',
-      image_urls: this.normalizeImages(extracted.images || [], result.screenshot, result.links || [], url),
+      image_urls: this.normalizeImages(extracted.images || [], result.screenshot, result.links || [], url, result.html),
 
       // Additional fields
       is_on_sale: extracted.originalPrice && extracted.originalPrice > extracted.price,
@@ -293,6 +293,7 @@ class FirecrawlParserV2 {
       'ssense.com': {
         waitFor: 6000,
         requiresProxy: true,
+        removeBase64Images: false, // Keep base64 images for SSENSE product gallery
         actions: [
           { type: 'wait', milliseconds: 2000 },
           { type: 'scroll', direction: 'down' },
@@ -639,68 +640,229 @@ class FirecrawlParserV2 {
   /**
    * Helper: Normalize image URLs
    */
-  normalizeImages(images, screenshot, links = [], url = '') {
+  normalizeImages(images, screenshot, links = [], url = '', html = '') {
     const hostname = url ? new URL(url).hostname.toLowerCase() : '';
 
-    // SSENSE-specific handling: ALWAYS use link extraction with SKU grouping
-    // This ensures we get the correct product images, not recommendations
-    if (hostname.includes('ssense.com') && links && links.length > 0) {
-      console.log(`🔍 SSENSE detected - extracting product images by SKU grouping`);
+    // SSENSE-specific handling: Parse HTML directly for product images
+    // This ensures we get the correct product images with class "product-detail"
+    if (hostname.includes('ssense.com')) {
+      console.log(`🔍 SSENSE detected - extracting product images from HTML`);
 
-      // Get all SSENSE image URLs
-      const allSsenseImages = links
-        .filter(link => {
-          // Must be from SSENSE image CDN
-          if (!link.includes('img.ssensemedia.com/images/')) return false;
-          // Must have image extension
-          if (!link.match(/\.(jpg|jpeg|png|webp)/)) return false;
-          return true;
-        })
-        .map(link => {
-          try {
-            const imgUrl = new URL(link);
-            // Remove query params for cleaner URLs
-            return imgUrl.origin + imgUrl.pathname;
-          } catch {
-            return link;
+      let ssenseImages = [];
+
+      // Try HTML parsing first (most accurate for SSENSE)
+      if (html) {
+        console.log(`🔍 Searching HTML for SSENSE product images`);
+
+        // Strategy: Split HTML at "You May Also Like" or similar recommendation sections
+        // Images before this are likely the actual product images
+        const recommendationMarkers = [
+          'You May Also Like',
+          'may-also-like',
+          'recommendations',
+          'Similar Products',
+          'Related Products'
+        ];
+
+        let productSectionHtml = html;
+        for (const marker of recommendationMarkers) {
+          const markerIndex = html.toLowerCase().indexOf(marker.toLowerCase());
+          if (markerIndex > 0) {
+            productSectionHtml = html.substring(0, markerIndex);
+            console.log(`📌 Found "${marker}" at position ${markerIndex}, splitting HTML`);
+            break;
           }
-        });
-
-      if (allSsenseImages.length > 0) {
-        // Group images by SKU prefix (e.g., "251020F016003" from the path)
-        // SSENSE images typically have format: /images/b_white,.../251020F016003_1/product-name.jpg
-        const skuGroups = {};
-
-        allSsenseImages.forEach(img => {
-          // Extract SKU from path like: /251020F016003_1/ or /251020F016003/
-          const skuMatch = img.match(/\/(\d{6}[A-Z]\d{6})(?:_\d+)?\//);
-          if (skuMatch) {
-            const sku = skuMatch[1];
-            if (!skuGroups[sku]) {
-              skuGroups[sku] = [];
-            }
-            skuGroups[sku].push(img);
-          }
-        });
-
-        // Find the largest group (likely the main product images)
-        const skus = Object.keys(skuGroups);
-        if (skus.length > 0) {
-          // Sort by group size (descending) and take the largest group
-          const mainSku = skus.sort((a, b) => skuGroups[b].length - skuGroups[a].length)[0];
-          const mainImages = [...new Set(skuGroups[mainSku])].slice(0, 8);
-
-          console.log(`📸 Found ${mainImages.length} SSENSE product images (SKU: ${mainSku}, ${skus.length} total SKUs found)`);
-          return mainImages;
         }
 
-        // Fallback: just take first 8 unique images if SKU extraction failed
-        const limitedImages = [...new Set(allSsenseImages)].slice(0, 8);
-        console.log(`📸 Found ${limitedImages.length} SSENSE images (SKU grouping failed, using first 8)`);
-        return limitedImages;
+        console.log(`📏 Product section HTML length: ${productSectionHtml.length} chars (total: ${html.length})`);
+
+        // Extract from data-srcset attributes (SSENSE uses lazy loading)
+        // Looking for: <img class="product-detail-new no-blur" data-srcset="https://img.ssensemedia.com/..." />
+        const dataSrcsetRegex = /data-srcset="([^"]*img\.ssensemedia\.com[^"]*)"/gi;
+        const srcsetRegex = /srcset="([^"]*ssensemedia[^"]*)"/gi;
+
+        // Try data-srcset first
+        let dataSrcsetMatches = [...productSectionHtml.matchAll(dataSrcsetRegex)];
+        console.log(`🔍 Found ${dataSrcsetMatches.length} data-srcset matches`);
+
+        dataSrcsetMatches.forEach(match => {
+          const url = match[1];
+          if (url && url.startsWith('http')) {
+            // Clean up URL
+            const cleanUrl = url.split(' ')[0].trim(); // Remove responsive image sizes
+            if (!ssenseImages.includes(cleanUrl)) {
+              ssenseImages.push(cleanUrl);
+            }
+          }
+        });
+
+        // If data-srcset didn't work, try regular srcset
+        if (ssenseImages.length === 0) {
+          console.log(`🔍 Trying regular srcset...`);
+          let srcsetMatches = [...productSectionHtml.matchAll(srcsetRegex)];
+          console.log(`🔍 Found ${srcsetMatches.length} srcset matches`);
+
+          srcsetMatches.forEach(match => {
+            const content = match[1];
+            if (content && content.includes('ssensemedia')) {
+              // Parse srcset which can have multiple URLs
+              const urls = content.split(',').map(s => s.trim().split(' ')[0]);
+              urls.forEach(url => {
+                if (url.startsWith('http') && !ssenseImages.includes(url)) {
+                  ssenseImages.push(url);
+                }
+              });
+            }
+          });
+        }
+
+        // Old fallback patterns if needed
+        if (ssenseImages.length === 0) {
+          console.log(`🔍 Trying fallback patterns...`);
+          const patterns = [
+            /https:\/\/img\.ssensemedia\.com\/images\/[^"'\s,]+\.jpg/gi,
+            /data-src="([^"]*ssensemedia[^"]*\.(jpg|jpeg|png|webp)[^"]*)"/gi
+          ];
+
+          for (const pattern of patterns) {
+            const matches = [...(productSectionHtml.matchAll(pattern) || [])];
+            for (const match of matches) {
+              const content = match[1] || match[0];
+
+            // Handle srcset (multiple URLs with sizes)
+            if (content.includes(',') && content.includes('ssensemedia')) {
+              const urls = content.split(',');
+              for (const url of urls) {
+                const cleanUrl = url.trim().split(' ')[0];
+                if (cleanUrl.includes('ssensemedia') && cleanUrl.match(/\.(jpg|jpeg|png|webp)/)) {
+                  const finalUrl = cleanUrl
+                    .replace(/\\/g, '')
+                    .replace(/^["']|["']$/g, '')
+                    .replace(/%2F/g, '/')
+                    .replace(/%3A/g, ':')
+                    .split('?')[0];
+                  if (finalUrl.startsWith('http') && !ssenseImages.includes(finalUrl)) {
+                    ssenseImages.push(finalUrl);
+                  }
+                }
+              }
+            } else if (content.includes('ssensemedia') && content.match(/\.(jpg|jpeg|png|webp)/)) {
+              const finalUrl = content
+                .replace(/\\/g, '')
+                .replace(/^["']|["']$/g, '')
+                .replace(/%2F/g, '/')
+                .replace(/%3A/g, ':')
+                .split('?')[0];
+              if (finalUrl.startsWith('http') && !ssenseImages.includes(finalUrl)) {
+                ssenseImages.push(finalUrl);
+              }
+            }
+            }
+          }
+        }
+
+        console.log(`📊 Found ${ssenseImages.length} SSENSE images in product section`);
+
+        if (ssenseImages.length > 0) {
+          // Clean up URLs
+          const cleanedImages = ssenseImages.map(img => {
+            try {
+              // Handle relative URLs or malformed URLs
+              if (!img.startsWith('http')) {
+                return null;
+              }
+              const imgUrl = new URL(img);
+              return imgUrl.origin + imgUrl.pathname;
+            } catch {
+              return null;
+            }
+          }).filter(img => img && img.includes('/images/'));
+
+          // Group by SKU to find the main product images
+          const skuGroups = {};
+          const skuOrder = []; // Track first occurrence order
+
+          cleanedImages.forEach(img => {
+            // Extract SKU pattern from SSENSE URLs: /251020F016003_1/ or /251020F016003/
+            // Group all variations like 251020F016003_1, 251020F016003_2, etc. together
+            const skuMatch = img.match(/\/(\d{6}[A-Z]\d{6})/);
+            if (skuMatch) {
+              const sku = skuMatch[1]; // SKU without suffix
+              if (!skuGroups[sku]) {
+                skuGroups[sku] = [];
+                skuOrder.push(sku); // Track order of first appearance
+              }
+              skuGroups[sku].push(img);
+            }
+          });
+
+          // Strategy: Take the FIRST SKU group (most likely the actual product)
+          // SSENSE shows product images first, then recommendations
+          if (skuOrder.length > 0) {
+            const firstSku = skuOrder[0];
+            const productImages = [...new Set(skuGroups[firstSku])].slice(0, 8);
+
+            console.log(`📸 Found ${productImages.length} SSENSE product images from HTML (SKU: ${firstSku}, first of ${skuOrder.length} SKUs)`);
+            return productImages;
+          }
+
+          // Fallback: just deduplicate and take first 8
+          const deduped = [...new Set(cleanedImages)].slice(0, 8);
+          console.log(`📸 Found ${deduped.length} SSENSE images from HTML (no SKU grouping)`);
+          return deduped;
+        }
       }
 
-      console.log('⚠️ No SSENSE images found in links, falling back to AI-extracted images');
+      // Fallback: Try link extraction with SKU grouping
+      if (links && links.length > 0) {
+        console.log(`🔍 No images in HTML, trying link extraction with SKU grouping`);
+
+        const allSsenseImages = links
+          .filter(link => {
+            if (!link.includes('img.ssensemedia.com/images/')) return false;
+            if (!link.match(/\.(jpg|jpeg|png|webp)/)) return false;
+            return true;
+          })
+          .map(link => {
+            try {
+              const imgUrl = new URL(link);
+              return imgUrl.origin + imgUrl.pathname;
+            } catch {
+              return link;
+            }
+          });
+
+        if (allSsenseImages.length > 0) {
+          // Group images by SKU prefix
+          const skuGroups = {};
+
+          allSsenseImages.forEach(img => {
+            const skuMatch = img.match(/\/(\d{6}[A-Z]\d{6})(?:_\d+)?\//);
+            if (skuMatch) {
+              const sku = skuMatch[1];
+              if (!skuGroups[sku]) {
+                skuGroups[sku] = [];
+              }
+              skuGroups[sku].push(img);
+            }
+          });
+
+          const skus = Object.keys(skuGroups);
+          if (skus.length > 0) {
+            const mainSku = skus.sort((a, b) => skuGroups[b].length - skuGroups[a].length)[0];
+            const mainImages = [...new Set(skuGroups[mainSku])].slice(0, 8);
+
+            console.log(`📸 Found ${mainImages.length} SSENSE product images (SKU: ${mainSku}, ${skus.length} total SKUs found)`);
+            return mainImages;
+          }
+
+          const limitedImages = [...new Set(allSsenseImages)].slice(0, 8);
+          console.log(`📸 Found ${limitedImages.length} SSENSE images (SKU grouping failed, using first 8)`);
+          return limitedImages;
+        }
+      }
+
+      console.log('⚠️ No SSENSE images found in HTML or links, falling back to AI-extracted images');
     }
 
     // Default normalization for non-SSENSE sites or fallback
