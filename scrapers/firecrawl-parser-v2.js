@@ -778,37 +778,50 @@ class FirecrawlParserV2 {
             }
           }).filter(img => img && img.includes('/images/'));
 
-          // Group by SKU to find the main product images
-          const skuGroups = {};
-          const skuOrder = []; // Track first occurrence order
+          // Group by image number (e.g., _1, _2, _3) and keep only highest resolution
+          // SSENSE has multiple resolutions for each angle, we want the highest
+          const imageGroups = {};
 
           cleanedImages.forEach(img => {
-            // Extract SKU pattern from SSENSE URLs: /251020F016003_1/ or /251020F016003/
-            // Group all variations like 251020F016003_1, 251020F016003_2, etc. together
-            const skuMatch = img.match(/\/(\d{6}[A-Z]\d{6})/);
-            if (skuMatch) {
-              const sku = skuMatch[1]; // SKU without suffix
-              if (!skuGroups[sku]) {
-                skuGroups[sku] = [];
-                skuOrder.push(sku); // Track order of first appearance
+            // Extract image number: 252020F016006_1, 252020F016006_2, etc.
+            const imageNumMatch = img.match(/\/(\d{6}[A-Z]\d{6}_\d+)\//);
+            if (imageNumMatch) {
+              const imageNum = imageNumMatch[1]; // e.g., "252020F016006_1"
+
+              if (!imageGroups[imageNum]) {
+                imageGroups[imageNum] = [];
               }
-              skuGroups[sku].push(img);
+              imageGroups[imageNum].push(img);
             }
           });
 
-          // Strategy: Take the FIRST SKU group (most likely the actual product)
-          // SSENSE shows product images first, then recommendations
-          if (skuOrder.length > 0) {
-            const firstSku = skuOrder[0];
-            const productImages = [...new Set(skuGroups[firstSku])].slice(0, 8);
+          // For each image number, pick the highest resolution version
+          // Look for "h_2800" or "c_limit" which indicates high-res
+          const bestImages = [];
+          const imageNums = Object.keys(imageGroups).sort(); // Sort to maintain order
 
-            console.log(`📸 Found ${productImages.length} SSENSE product images from HTML (SKU: ${firstSku}, first of ${skuOrder.length} SKUs)`);
-            return productImages;
+          imageNums.forEach(imageNum => {
+            const urls = imageGroups[imageNum];
+
+            // Prefer images with "h_2800" or "c_limit,h_2800" (highest resolution)
+            const highRes = urls.find(url => url.includes('h_2800') && url.includes('c_limit'));
+
+            if (highRes) {
+              bestImages.push(highRes);
+            } else {
+              // Fallback to first URL if no high-res found
+              bestImages.push(urls[0]);
+            }
+          });
+
+          if (bestImages.length > 0) {
+            console.log(`📸 Found ${bestImages.length} SSENSE product images (deduplicated by resolution)`);
+            return bestImages.slice(0, 8);
           }
 
           // Fallback: just deduplicate and take first 8
           const deduped = [...new Set(cleanedImages)].slice(0, 8);
-          console.log(`📸 Found ${deduped.length} SSENSE images from HTML (no SKU grouping)`);
+          console.log(`📸 Found ${deduped.length} SSENSE images from HTML (no grouping)`);
           return deduped;
         }
       }
