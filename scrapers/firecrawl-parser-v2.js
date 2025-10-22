@@ -659,11 +659,28 @@ class FirecrawlParserV2 {
 
       // SSENSE-specific image URL patterns
       if (hostname.includes('ssense.com')) {
+        // Extract product ID from URL
+        const productIdMatch = url.match(/\/(\d+)\/?$/);
+        const productId = productIdMatch ? productIdMatch[1] : null;
+
         const ssenseImages = links
-          .filter(link =>
-            link.includes('img.ssensemedia.com/images/') &&
-            link.match(/\.(jpg|jpeg|png|webp)/)
-          )
+          .filter(link => {
+            // Must be from SSENSE image CDN
+            if (!link.includes('img.ssensemedia.com/images/')) return false;
+
+            // Must have image extension
+            if (!link.match(/\.(jpg|jpeg|png|webp)/)) return false;
+
+            // If we have a product ID, only include images with that ID in the filename
+            // SSENSE product images typically have format: /images/b123456/789_123456_1.jpg
+            // where the second number (123456) is the product ID
+            if (productId) {
+              // Check if the link contains the product ID
+              return link.includes(productId);
+            }
+
+            return true;
+          })
           .map(link => {
             try {
               const imgUrl = new URL(link);
@@ -675,7 +692,7 @@ class FirecrawlParserV2 {
           });
 
         if (ssenseImages.length > 0) {
-          console.log(`📸 Found ${ssenseImages.length} additional SSENSE images from links`);
+          console.log(`📸 Found ${ssenseImages.length} SSENSE product images (filtered by product ID: ${productId})`);
           normalized.push(...ssenseImages);
         }
       }
