@@ -692,8 +692,10 @@ class FirecrawlParserV2 {
           });
 
         if (ssenseImages.length > 0) {
-          console.log(`📸 Found ${ssenseImages.length} SSENSE product images (filtered by product ID: ${productId})`);
-          normalized.push(...ssenseImages);
+          // Limit to first 8 unique images to avoid grabbing recommendations
+          const limitedImages = [...new Set(ssenseImages)].slice(0, 8);
+          console.log(`📸 Found ${limitedImages.length} SSENSE product images (filtered by product ID: ${productId}, limited to 8)`);
+          normalized.push(...limitedImages);
         }
       }
 
