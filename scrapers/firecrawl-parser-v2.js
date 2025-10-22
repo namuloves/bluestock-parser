@@ -37,7 +37,7 @@ class FirecrawlParserV2 {
       originalPrice: z.number().optional().describe("Original price before discount"),
       currency: z.string().default("USD").describe("Currency code"),
       description: z.string().optional().describe("Product description"),
-      images: z.array(z.string()).describe("Array of product image URLs"),
+      images: z.array(z.string()).describe("CRITICAL: Extract ALL product image URLs from the image gallery/carousel. Most products have 4-8 images showing different angles, details, and views. Look for thumbnail navigation, image carousel, or multiple product images. Include every unique image URL you can find for this product."),
       inStock: z.boolean().default(true).describe("Whether product is in stock"),
       sku: z.string().optional().describe("Product SKU or identifier"),
       color: z.string().optional().describe("Product color"),
@@ -242,7 +242,7 @@ class FirecrawlParserV2 {
       original_price: extracted.originalPrice || extracted.price || 0,
       currency: extracted.currency || 'USD',
       description: extracted.description || metadata.description || '',
-      image_urls: this.normalizeImages(extracted.images || [], result.screenshot),
+      image_urls: this.normalizeImages(extracted.images || [], result.screenshot, result.links || [], url),
 
       // Additional fields
       is_on_sale: extracted.originalPrice && extracted.originalPrice > extracted.price,
@@ -639,7 +639,7 @@ class FirecrawlParserV2 {
   /**
    * Helper: Normalize image URLs
    */
-  normalizeImages(images, screenshot) {
+  normalizeImages(images, screenshot, links = [], url = '') {
     const normalized = images
       .filter(img => img && img.startsWith('http'))
       .map(img => {
@@ -651,6 +651,61 @@ class FirecrawlParserV2 {
           return img;
         }
       });
+
+    // Fallback: If we got very few images (1-2), try to extract from links
+    // This helps with sites where AI extraction misses gallery images
+    if (normalized.length <= 2 && links && links.length > 0) {
+      const hostname = url ? new URL(url).hostname.toLowerCase() : '';
+
+      // SSENSE-specific image URL patterns
+      if (hostname.includes('ssense.com')) {
+        const ssenseImages = links
+          .filter(link =>
+            link.includes('img.ssensemedia.com/images/') &&
+            link.match(/\.(jpg|jpeg|png|webp)/)
+          )
+          .map(link => {
+            try {
+              const imgUrl = new URL(link);
+              // Remove query params and size modifiers
+              return imgUrl.origin + imgUrl.pathname;
+            } catch {
+              return link;
+            }
+          });
+
+        if (ssenseImages.length > 0) {
+          console.log(`📸 Found ${ssenseImages.length} additional SSENSE images from links`);
+          normalized.push(...ssenseImages);
+        }
+      }
+
+      // Generic fallback: look for any product images in links
+      if (normalized.length <= 2) {
+        const additionalImages = links
+          .filter(link =>
+            link.startsWith('http') &&
+            link.match(/\.(jpg|jpeg|png|webp)/) &&
+            !link.includes('logo') &&
+            !link.includes('icon') &&
+            !link.includes('avatar')
+          )
+          .slice(0, 10) // Limit to prevent too many irrelevant images
+          .map(link => {
+            try {
+              const imgUrl = new URL(link);
+              return imgUrl.origin + imgUrl.pathname;
+            } catch {
+              return link;
+            }
+          });
+
+        if (additionalImages.length > 0) {
+          console.log(`📸 Found ${additionalImages.length} additional images from links`);
+          normalized.push(...additionalImages);
+        }
+      }
+    }
 
     // Add screenshot as last resort if no images
     if (normalized.length === 0 && screenshot) {
