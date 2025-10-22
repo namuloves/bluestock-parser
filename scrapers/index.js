@@ -284,9 +284,7 @@ const detectSite = (url) => {
   if (hostname.includes('nordstrom.')) {
     return 'nordstrom';
   }
-  if (hostname.includes('ssense.')) {
-    return 'ssense';
-  }
+  // SSENSE removed from here - handled by FIRECRAWL_REQUIRED_SITES above
   if (hostname.includes('saksfifthavenue.') || hostname.includes('saks.')) {
     return 'saksfifthavenue';
   }
@@ -574,13 +572,9 @@ const scrapeProduct = async (url, options = {}) => {
             product: product
           };
         } else {
-          // Firecrawl failed, try fallback based on site
-          const hostname = new URL(url).hostname.toLowerCase();
-          if (hostname.includes('ssense.')) {
-            console.log('⚠️ Firecrawl failed for SSENSE, trying proxy method');
-            return scrapeProduct(url); // Will use ssense case
-          }
-
+          // Firecrawl failed - return the failure result
+          // Note: SSENSE requires Firecrawl for high-quality image extraction
+          console.log('⚠️ Firecrawl parsing failed');
           return firecrawlResult;
         }
 
@@ -836,90 +830,9 @@ const scrapeProduct = async (url, options = {}) => {
           }
         };
         
-      case 'ssense':
-        console.log('🎨 Using SSENSE scraper');
-        let ssenseProduct;
+      // SSENSE case removed - now handled by 'firecrawl' case above
+      // SSENSE is in FIRECRAWL_REQUIRED_SITES for high-resolution image extraction
 
-        // Try simple scraper with proxy
-        try {
-          ssenseProduct = await scrapeSsenseSimple(url);
-          console.log('✅ SSENSE scraper succeeded');
-          console.log('Product extracted:', ssenseProduct.name, 'Price:', ssenseProduct.price);
-        } catch (error) {
-          console.log('⚠️ SSENSE scraper failed:', error.message);
-
-          // Try Firecrawl as fallback if available
-          const fallbackParser = getFirecrawlParser();
-          if (fallbackParser?.apiKey) {
-            console.log('🔥 Trying Firecrawl fallback for SSENSE...');
-            try {
-              const firecrawlResult = await fallbackParser.scrape(url);
-              if (firecrawlResult.success) {
-                console.log('✅ Firecrawl fallback succeeded');
-                return {
-                  success: true,
-                  product: {
-                    ...firecrawlResult.product,
-                    category: detectCategory(
-                      firecrawlResult.product.product_name || '',
-                      firecrawlResult.product.description || '',
-                      firecrawlResult.product.brand || '',
-                      null
-                    )
-                  }
-                };
-              }
-            } catch (firecrawlError) {
-              console.log('⚠️ Firecrawl fallback also failed:', firecrawlError.message);
-            }
-          }
-
-          console.log('Using basic fallback data');
-          ssenseProduct = scrapeSsenseFallback(url);
-        }
-        
-        return {
-          success: true,
-          product: {
-            // Keep all original fields
-            ...ssenseProduct,
-            
-            // Database schema fields
-            product_name: ssenseProduct.name,
-            brand: ssenseProduct.brand || 'SSENSE',
-            original_price: ssenseProduct.originalPrice || ssenseProduct.price,
-            sale_price: ssenseProduct.price,
-            is_on_sale: ssenseProduct.originalPrice && ssenseProduct.originalPrice > ssenseProduct.price,
-            discount_percentage: ssenseProduct.originalPrice && ssenseProduct.originalPrice > ssenseProduct.price ? 
-              Math.round((1 - ssenseProduct.price / ssenseProduct.originalPrice) * 100) : null,
-            sale_badge: ssenseProduct.originalPrice && ssenseProduct.originalPrice > ssenseProduct.price ? 'SALE' : null,
-            image_urls: ssenseProduct.images || [],
-            vendor_url: ssenseProduct.url || url,
-            color: ssenseProduct.color || '',
-            category: detectCategory(
-              ssenseProduct.name || '',
-              ssenseProduct.description || '',
-              ssenseProduct.brand || 'SSENSE',
-              ssenseProduct.category
-            ),
-            material: ssenseProduct.materials?.join(', ') || '',
-            description: ssenseProduct.description || '',
-            sizes: ssenseProduct.sizes || [],
-            sku: ssenseProduct.productId || '',
-            in_stock: ssenseProduct.inStock !== false,
-            
-            // Legacy fields for backward compatibility
-            name: ssenseProduct.name,
-            price: ssenseProduct.price,
-            images: ssenseProduct.images || [],
-            originalPrice: ssenseProduct.originalPrice || ssenseProduct.price,
-            isOnSale: ssenseProduct.originalPrice && ssenseProduct.originalPrice > ssenseProduct.price,
-            discountPercentage: ssenseProduct.originalPrice && ssenseProduct.originalPrice > ssenseProduct.price ? 
-              Math.round((1 - ssenseProduct.price / ssenseProduct.originalPrice) * 100) : null,
-            saleBadge: ssenseProduct.originalPrice && ssenseProduct.originalPrice > ssenseProduct.price ? 'SALE' : null
-          }
-        };
-        
       case 'saksfifthavenue':
         console.log('💎 Using Saks Fifth Avenue scraper');
         const saksProduct = await scrapeSaksFifthAvenue(url);

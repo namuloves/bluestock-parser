@@ -640,6 +640,70 @@ class FirecrawlParserV2 {
    * Helper: Normalize image URLs
    */
   normalizeImages(images, screenshot, links = [], url = '') {
+    const hostname = url ? new URL(url).hostname.toLowerCase() : '';
+
+    // SSENSE-specific handling: ALWAYS use link extraction with SKU grouping
+    // This ensures we get the correct product images, not recommendations
+    if (hostname.includes('ssense.com') && links && links.length > 0) {
+      console.log(`🔍 SSENSE detected - extracting product images by SKU grouping`);
+
+      // Get all SSENSE image URLs
+      const allSsenseImages = links
+        .filter(link => {
+          // Must be from SSENSE image CDN
+          if (!link.includes('img.ssensemedia.com/images/')) return false;
+          // Must have image extension
+          if (!link.match(/\.(jpg|jpeg|png|webp)/)) return false;
+          return true;
+        })
+        .map(link => {
+          try {
+            const imgUrl = new URL(link);
+            // Remove query params for cleaner URLs
+            return imgUrl.origin + imgUrl.pathname;
+          } catch {
+            return link;
+          }
+        });
+
+      if (allSsenseImages.length > 0) {
+        // Group images by SKU prefix (e.g., "251020F016003" from the path)
+        // SSENSE images typically have format: /images/b_white,.../251020F016003_1/product-name.jpg
+        const skuGroups = {};
+
+        allSsenseImages.forEach(img => {
+          // Extract SKU from path like: /251020F016003_1/ or /251020F016003/
+          const skuMatch = img.match(/\/(\d{6}[A-Z]\d{6})(?:_\d+)?\//);
+          if (skuMatch) {
+            const sku = skuMatch[1];
+            if (!skuGroups[sku]) {
+              skuGroups[sku] = [];
+            }
+            skuGroups[sku].push(img);
+          }
+        });
+
+        // Find the largest group (likely the main product images)
+        const skus = Object.keys(skuGroups);
+        if (skus.length > 0) {
+          // Sort by group size (descending) and take the largest group
+          const mainSku = skus.sort((a, b) => skuGroups[b].length - skuGroups[a].length)[0];
+          const mainImages = [...new Set(skuGroups[mainSku])].slice(0, 8);
+
+          console.log(`📸 Found ${mainImages.length} SSENSE product images (SKU: ${mainSku}, ${skus.length} total SKUs found)`);
+          return mainImages;
+        }
+
+        // Fallback: just take first 8 unique images if SKU extraction failed
+        const limitedImages = [...new Set(allSsenseImages)].slice(0, 8);
+        console.log(`📸 Found ${limitedImages.length} SSENSE images (SKU grouping failed, using first 8)`);
+        return limitedImages;
+      }
+
+      console.log('⚠️ No SSENSE images found in links, falling back to AI-extracted images');
+    }
+
+    // Default normalization for non-SSENSE sites or fallback
     const normalized = images
       .filter(img => img && img.startsWith('http'))
       .map(img => {
@@ -655,49 +719,6 @@ class FirecrawlParserV2 {
     // Fallback: If we got very few images (1-2), try to extract from links
     // This helps with sites where AI extraction misses gallery images
     if (normalized.length <= 2 && links && links.length > 0) {
-      const hostname = url ? new URL(url).hostname.toLowerCase() : '';
-
-      // SSENSE-specific image URL patterns
-      if (hostname.includes('ssense.com')) {
-        // Extract product ID from URL
-        const productIdMatch = url.match(/\/(\d+)\/?$/);
-        const productId = productIdMatch ? productIdMatch[1] : null;
-
-        const ssenseImages = links
-          .filter(link => {
-            // Must be from SSENSE image CDN
-            if (!link.includes('img.ssensemedia.com/images/')) return false;
-
-            // Must have image extension
-            if (!link.match(/\.(jpg|jpeg|png|webp)/)) return false;
-
-            // If we have a product ID, only include images with that ID in the filename
-            // SSENSE product images typically have format: /images/b123456/789_123456_1.jpg
-            // where the second number (123456) is the product ID
-            if (productId) {
-              // Check if the link contains the product ID
-              return link.includes(productId);
-            }
-
-            return true;
-          })
-          .map(link => {
-            try {
-              const imgUrl = new URL(link);
-              // Remove query params and size modifiers
-              return imgUrl.origin + imgUrl.pathname;
-            } catch {
-              return link;
-            }
-          });
-
-        if (ssenseImages.length > 0) {
-          // Limit to first 8 unique images to avoid grabbing recommendations
-          const limitedImages = [...new Set(ssenseImages)].slice(0, 8);
-          console.log(`📸 Found ${limitedImages.length} SSENSE product images (filtered by product ID: ${productId}, limited to 8)`);
-          normalized.push(...limitedImages);
-        }
-      }
 
       // Generic fallback: look for any product images in links
       if (normalized.length <= 2) {
