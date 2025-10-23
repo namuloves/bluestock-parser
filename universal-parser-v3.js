@@ -828,7 +828,12 @@ class UniversalParserV3 {
     const result = {};
     $('script[type="application/ld+json"]').each((i, elem) => {
       try {
-        let data = JSON.parse($(elem).html());
+        const scriptContent = $(elem).html();
+        if (!scriptContent || scriptContent.trim().length === 0) {
+          return; // Skip empty script tags
+        }
+
+        let data = JSON.parse(scriptContent);
 
         // Handle @graph wrapper (common in WordPress/WooCommerce)
         if (data['@graph'] && Array.isArray(data['@graph'])) {
@@ -973,7 +978,12 @@ class UniversalParserV3 {
 
     if (nextDataScript.length > 0) {
       try {
-        const nextData = JSON.parse(nextDataScript.html());
+        const scriptContent = nextDataScript.html();
+        if (!scriptContent || scriptContent.trim().length === 0) {
+          return result;
+        }
+
+        const nextData = JSON.parse(scriptContent);
         const pageProps = nextData?.props?.pageProps;
 
         if (pageProps?.product) {
@@ -1641,7 +1651,12 @@ class UniversalParserV3 {
     // Also check for variant data in application/json script tags
     $('script[type="application/json"]').each((i, elem) => {
       try {
-        const data = JSON.parse($(elem).html());
+        const scriptContent = $(elem).html();
+        if (!scriptContent || scriptContent.trim().length === 0) {
+          return; // Skip empty script tags
+        }
+
+        const data = JSON.parse(scriptContent);
 
         if (data.product?.variants) {
           const variant = data.product.variants.find(v =>
