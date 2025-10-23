@@ -731,6 +731,7 @@ class UniversalParserV3 {
     // Try multiple extraction strategies
     const strategies = [
       this.extractJsonLd($),
+      this.extractNextJsData($),
       this.extractOpenGraph($),
       this.extractSiteSpecific($, hostname),
       this.extractGeneric($)
@@ -747,7 +748,20 @@ class UniversalParserV3 {
         if (!result.images) result.images = [];
         // Merge images from all strategies, avoiding duplicates
         for (const img of strategy.images) {
-          if (!result.images.includes(img)) {
+          // Normalize URLs for duplicate checking (remove query params)
+          const isDuplicate = result.images.some(existingImg => {
+            try {
+              const newUrl = new URL(img);
+              const existingUrl = new URL(existingImg);
+              // Compare origin + pathname (ignore query params)
+              return newUrl.origin === existingUrl.origin && newUrl.pathname === existingUrl.pathname;
+            } catch {
+              // If URL parsing fails, fall back to simple string comparison
+              return existingImg === img;
+            }
+          });
+
+          if (!isDuplicate) {
             result.images.push(img);
           }
         }
@@ -953,6 +967,48 @@ class UniversalParserV3 {
     };
   }
 
+  extractNextJsData($) {
+    const result = {};
+    const nextDataScript = $('#__NEXT_DATA__');
+
+    if (nextDataScript.length > 0) {
+      try {
+        const nextData = JSON.parse(nextDataScript.html());
+        const pageProps = nextData?.props?.pageProps;
+
+        if (pageProps?.product) {
+          const product = pageProps.product;
+
+          // Extract basic product info
+          if (product.name) result.name = product.name;
+          if (product.brand) result.brand = product.brand;
+          if (product.description) result.description = product.description;
+
+          // Extract price from priceRanges (Clarks format)
+          if (product.priceRanges?.now) {
+            const priceInCents = product.priceRanges.now.minPrice || product.priceRanges.now.maxPrice;
+            if (priceInCents) {
+              result.price = priceInCents / 100; // Convert cents to dollars
+            }
+          }
+
+          // Extract images from imageUrls array (Clarks format)
+          if (product.imageUrls && Array.isArray(product.imageUrls)) {
+            result.images = product.imageUrls.filter(url => this.isValidImageUrl(url));
+          }
+          // Fallback to generic image field
+          else if (product.images && Array.isArray(product.images)) {
+            result.images = product.images.filter(url => this.isValidImageUrl(url));
+          }
+        }
+      } catch (e) {
+        // Silent fail
+      }
+    }
+
+    return result;
+  }
+
   extractSiteSpecific($, hostname) {
     const patterns = this.sitePatterns[hostname];
     if (!patterns) return {};
@@ -1034,7 +1090,13 @@ class UniversalParserV3 {
                 src = src.split(',')[0].trim().split(' ')[0];
               }
 
-              if (src && !src.includes('placeholder') && !src.includes('loading')) {
+              // Filter out invalid/placeholder images
+              if (src &&
+                  !src.includes('placeholder') &&
+                  !src.includes('loading') &&
+                  !src.startsWith('data:image') &&
+                  !src.includes('blank.gif') &&
+                  !src.includes('transparent.png')) {
                 images.push(src);
               }
             });
