@@ -1068,11 +1068,22 @@ class UniversalParserV3 {
               result.price = productData.member_price_range[0] / 100; // Convert cents to dollars
             }
 
-            // Extract images from default_image or first variant
-            if (productData.default_image?.desktop_image_uid) {
-              const imageUid = productData.default_image.desktop_image_uid;
-              // Bespoke Post uses Cloudinary
-              result.images = [`https://dam.bespokepost.com/image/upload/${imageUid}`];
+            // Extract images from the images array
+            if (productData.images && Array.isArray(productData.images)) {
+              const imageUrls = [];
+              productData.images.forEach(img => {
+                if (img.desktop_image_uid && img.kind === 'product-image') {
+                  imageUrls.push(`https://dam.bespokepost.com/image/upload/${img.desktop_image_uid}`);
+                }
+              });
+              // Fallback to default image if no product images found
+              if (imageUrls.length === 0 && productData.default_image?.desktop_image_uid) {
+                imageUrls.push(`https://dam.bespokepost.com/image/upload/${productData.default_image.desktop_image_uid}`);
+              }
+              result.images = imageUrls;
+            } else if (productData.default_image?.desktop_image_uid) {
+              // Fallback if no images array
+              result.images = [`https://dam.bespokepost.com/image/upload/${productData.default_image.desktop_image_uid}`];
             }
 
             if (this.logLevel === 'verbose') {
