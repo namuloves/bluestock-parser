@@ -1061,11 +1061,11 @@ class UniversalParserV3 {
             if (productData.name) result.name = productData.name;
             if (productData.brand?.name) result.brand = productData.brand.name;
 
-            // Extract price from retail_price_range or member_price_range
+            // Extract price from retail_price_range or member_price_range (prices are in cents)
             if (productData.retail_price_range && Array.isArray(productData.retail_price_range)) {
-              result.price = productData.retail_price_range[0]; // Price in cents
+              result.price = productData.retail_price_range[0] / 100; // Convert cents to dollars
             } else if (productData.member_price_range && Array.isArray(productData.member_price_range)) {
-              result.price = productData.member_price_range[0]; // Price in cents
+              result.price = productData.member_price_range[0] / 100; // Convert cents to dollars
             }
 
             // Extract images from default_image or first variant
