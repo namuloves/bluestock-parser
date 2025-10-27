@@ -194,6 +194,7 @@ class UniversalParserV3 {
         '.product-info h1'
       ],
       price: [
+        '.pri',  // thehipstore.co.uk and similar sites
         '.price',
         '.product-price',
         '[itemprop="price"]',
@@ -265,7 +266,9 @@ class UniversalParserV3 {
       }
 
       console.log('✅ Loaded patterns from database for', Object.keys(patterns).filter(k => !k.startsWith('_')).length, 'sites');
-      console.log('🔍 69mcfly patterns loaded:', JSON.stringify(this.sitePatterns['69mcfly.com'], null, 2));
+      if (hostname === 'thehipstore.co.uk') {
+        console.log('🔍 thehipstore patterns from DB:', JSON.stringify(this.sitePatterns[hostname], null, 2));
+      }
     } catch (error) {
       if (this.logLevel === 'verbose') {
         console.log('⚠️ Could not load pattern database:', error.message);
@@ -560,21 +563,31 @@ class UniversalParserV3 {
 
   extractFromApiResponse(data, interceptedData, hostname) {
     // Generic extraction patterns that work across many sites
-    const searchObject = (obj, depth = 0) => {
+    const searchObject = (obj, depth = 0, path = '') => {
       if (depth > 10 || !obj) return;
 
       for (const [key, value] of Object.entries(obj)) {
         const lowerKey = key.toLowerCase();
+        const currentPath = path ? `${path}.${key}` : key;
 
-        // Price extraction
+        // Price extraction - skip subscription/plan/box prices that aren't product-specific
         if (!interceptedData.price &&
             (lowerKey.includes('price') || lowerKey === 'amount' || lowerKey === 'cost')) {
-          if (typeof value === 'number' && value > 0 && value < 100000) {
-            interceptedData.price = value;
-          } else if (typeof value === 'string' && /\d/.test(value)) {
-            const parsed = parseFloat(value.replace(/[^0-9.]/g, ''));
-            if (!isNaN(parsed) && parsed > 0) {
-              interceptedData.price = parsed;
+
+          // Skip subscription, plan, or box-related prices that aren't product prices
+          const pathLower = currentPath.toLowerCase();
+          const isSubscriptionPrice = pathLower.includes('subscription') ||
+                                       pathLower.includes('plan') ||
+                                       (pathLower.includes('box') && !pathLower.includes('product'));
+
+          if (!isSubscriptionPrice) {
+            if (typeof value === 'number' && value > 0 && value < 100000) {
+              interceptedData.price = value;
+            } else if (typeof value === 'string' && /\d/.test(value)) {
+              const parsed = parseFloat(value.replace(/[^0-9.]/g, ''));
+              if (!isNaN(parsed) && parsed > 0) {
+                interceptedData.price = parsed;
+              }
             }
           }
         }
@@ -617,11 +630,11 @@ class UniversalParserV3 {
           if (Array.isArray(value)) {
             value.forEach(item => {
               if (typeof item === 'object') {
-                searchObject(item, depth + 1);
+                searchObject(item, depth + 1, currentPath);
               }
             });
           } else {
-            searchObject(value, depth + 1);
+            searchObject(value, depth + 1, currentPath);
           }
         }
       }
@@ -703,7 +716,10 @@ class UniversalParserV3 {
   async extractData($, hostname, url) {
     const result = {
       url,
-      confidence: 0
+      confidence: 0,
+      priceText: null,  // Store original price text with currency symbol
+      currency: null,   // Store detected currency
+      html: $.html()    // Store HTML for fallback currency detection
     };
 
     // Check if this is a Shopify store
@@ -741,6 +757,7 @@ class UniversalParserV3 {
     for (const strategy of strategies) {
       if (strategy.name && !result.name) result.name = strategy.name;
       if (strategy.price && !result.price) result.price = strategy.price;
+      if (strategy.priceText && !result.priceText) result.priceText = strategy.priceText;  // Merge priceText field
       if (strategy.brand && !result.brand) result.brand = strategy.brand;
 
       // Only merge images if we don't already have Shopify images
@@ -777,6 +794,15 @@ class UniversalParserV3 {
 
     // Calculate confidence
     result.confidence = this.calculateConfidence(result);
+
+    // Detect currency from price text if we have it
+    if (result.priceText) {
+      const detectedCurrency = this.detectCurrencyFromText(result.priceText);
+      if (detectedCurrency) {
+        result.currency = detectedCurrency;
+        console.log(`💰 Detected currency from price text: ${detectedCurrency} (text: ${result.priceText})`);
+      }
+    }
 
     // Normalize data
     if (result.price) {
@@ -1021,6 +1047,56 @@ class UniversalParserV3 {
 
   extractSiteSpecific($, hostname) {
     const patterns = this.sitePatterns[hostname];
+
+    // Special handling for Bespoke Post - extract from inline product cache
+    if (hostname === 'bespokepost.com') {
+      const result = {};
+      $('script').each((i, elem) => {
+        const content = $(elem).html() || '';
+        // Look for BP.CacheManager.set("Product.cache.xxxxx", {...})
+        const productCacheMatch = content.match(/BP\.CacheManager\.set\("Product\.cache\.\d+",\s*({.*?})\);/s);
+        if (productCacheMatch) {
+          try {
+            const productData = JSON.parse(productCacheMatch[1]);
+            if (productData.name) result.name = productData.name;
+            if (productData.brand?.name) result.brand = productData.brand.name;
+
+            // Extract price from retail_price_range or member_price_range
+            if (productData.retail_price_range && Array.isArray(productData.retail_price_range)) {
+              result.price = productData.retail_price_range[0]; // Price in cents
+            } else if (productData.member_price_range && Array.isArray(productData.member_price_range)) {
+              result.price = productData.member_price_range[0]; // Price in cents
+            }
+
+            // Extract images from default_image or first variant
+            if (productData.default_image?.desktop_image_uid) {
+              const imageUid = productData.default_image.desktop_image_uid;
+              // Bespoke Post uses Cloudinary
+              result.images = [`https://dam.bespokepost.com/image/upload/${imageUid}`];
+            }
+
+            if (this.logLevel === 'verbose') {
+              console.log('🎯 Extracted Bespoke Post product data:', {
+                name: result.name,
+                price: result.price,
+                brand: result.brand
+              });
+            }
+          } catch (e) {
+            // Continue if parsing fails
+            if (this.logLevel === 'verbose') {
+              console.log('⚠️ Failed to parse Bespoke Post product cache:', e.message);
+            }
+          }
+        }
+      });
+
+      // If we found product data, return it early
+      if (result.name && result.price) {
+        return result;
+      }
+    }
+
     if (!patterns) return {};
 
     const result = {};
@@ -1062,6 +1138,10 @@ class UniversalParserV3 {
           } else {
             const value = $(selector).first().text()?.trim();
             if (value) {
+              // For price field, also store the original text with currency symbol
+              if (field === 'price') {
+                result.priceText = value; // Store original price text
+              }
               result[field] = value;
               break;
             }
@@ -1117,6 +1197,10 @@ class UniversalParserV3 {
           } else {
             const value = $(selector).first().text()?.trim();
             if (value) {
+              // For price field, also store the original text with currency symbol
+              if (field === 'price') {
+                result.priceText = value; // Store original price text
+              }
               result[field] = value;
               break;
             }
@@ -1148,6 +1232,41 @@ class UniversalParserV3 {
     }
 
     return Math.min(score, 1);
+  }
+
+  detectCurrencyFromText(priceText) {
+    if (!priceText) return null;
+
+    // Currency symbol patterns
+    const currencyPatterns = {
+      'GBP': /£|GBP/,
+      'EUR': /€|EUR/,
+      'USD': /\$|USD/,
+      'CAD': /CAD|C\$/,
+      'AUD': /AUD|A\$/,
+      'JPY': /¥|JPY|円/,
+      'CNY': /¥|CNY|元|RMB/,
+      'KRW': /₩|KRW|원/,
+      'DKK': /DKK|kr\.?(?:\s|$)/i,
+      'SEK': /SEK|kr(?:\s|$)/i,
+      'NOK': /NOK|kr(?:\s|$)/i,
+      'CHF': /CHF|Fr\./,
+      'NZD': /NZD|NZ\$/,
+      'SGD': /SGD|S\$/,
+      'HKD': /HKD|HK\$/,
+      'INR': /₹|INR|Rs\.?/,
+      'MXN': /MXN|Mex\$/,
+      'BRL': /R\$|BRL/
+    };
+
+    // Check each pattern
+    for (const [currency, pattern] of Object.entries(currencyPatterns)) {
+      if (pattern.test(priceText)) {
+        return currency;
+      }
+    }
+
+    return null;
   }
 
   normalizePrice(price) {
