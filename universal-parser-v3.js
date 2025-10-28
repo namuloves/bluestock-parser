@@ -812,6 +812,11 @@ class UniversalParserV3 {
       result.images = this.normalizeImages(result.images, url);
     }
 
+    // Clean site-specific title suffixes
+    if (result.name) {
+      result.name = this.cleanProductTitle(result.name, hostname);
+    }
+
     return result;
   }
 
@@ -1060,6 +1065,14 @@ class UniversalParserV3 {
             const productData = JSON.parse(productCacheMatch[1]);
             if (productData.name) result.name = productData.name;
             if (productData.brand?.name) result.brand = productData.brand.name;
+            // Extract description - prefer long_description over short_description
+            if (productData.long_description) {
+              result.description = productData.long_description;
+            } else if (productData.description) {
+              result.description = productData.description;
+            } else if (productData.short_description) {
+              result.description = productData.short_description;
+            }
 
             // Extract price from retail_price_range or member_price_range (prices are in cents)
             if (productData.retail_price_range && Array.isArray(productData.retail_price_range)) {
@@ -1090,7 +1103,11 @@ class UniversalParserV3 {
               console.log('🎯 Extracted Bespoke Post product data:', {
                 name: result.name,
                 price: result.price,
-                brand: result.brand
+                brand: result.brand,
+                description: result.description?.substring(0, 100),
+                hasLongDescription: !!productData.long_description,
+                hasDescription: !!productData.description,
+                hasShortDescription: !!productData.short_description
               });
             }
           } catch (e) {
@@ -1328,6 +1345,37 @@ class UniversalParserV3 {
     }
 
     return normalized.slice(0, 10);
+  }
+
+  cleanProductTitle(title, hostname) {
+    if (!title || typeof title !== 'string') return title;
+
+    // Remove site-specific suffixes
+    const cleanupRules = [
+      // Bespoke Post: "Product Name | Bespoke Post"
+      { pattern: /\s*\|\s*Bespoke Post\s*$/i, sites: ['bespokepost.com'] },
+      // Generic cleanup: "Product Name | Brand Name" (only if hostname matches)
+      { pattern: /\s*\|\s*[^|]+\s*$/, sites: ['nordstrom.com', 'bloomingdales.com'] },
+      // Remove trailing hyphens or pipes
+      { pattern: /\s*[-|]\s*$/, sites: [] } // Apply to all sites
+    ];
+
+    for (const rule of cleanupRules) {
+      // If rule has specific sites, only apply if hostname matches
+      if (rule.sites.length > 0 && !rule.sites.some(site => hostname.includes(site))) {
+        continue;
+      }
+
+      const cleaned = title.replace(rule.pattern, '').trim();
+      if (cleaned && cleaned !== title) {
+        if (this.logLevel === 'verbose') {
+          console.log(`🧹 Cleaned title: "${title}" → "${cleaned}"`);
+        }
+        title = cleaned;
+      }
+    }
+
+    return title;
   }
 
   extractInitialImages($) {
