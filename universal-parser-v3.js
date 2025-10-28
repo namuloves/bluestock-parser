@@ -741,6 +741,9 @@ class UniversalParserV3 {
       }
       if (this.logLevel === 'verbose') {
         console.log('🛍️ Detected Shopify store, using Shopify-specific image extraction');
+        if (shopifyImages.length === 0) {
+          console.log('   Note: No Shopify CDN images found, will merge from other sources');
+        }
       }
     }
 
@@ -760,27 +763,32 @@ class UniversalParserV3 {
       if (strategy.priceText && !result.priceText) result.priceText = strategy.priceText;  // Merge priceText field
       if (strategy.brand && !result.brand) result.brand = strategy.brand;
 
-      // Only merge images if we don't already have Shopify images
-      if (!isShopify && strategy.images?.length > 0) {
+      // Merge images - for Shopify stores, we'll dedupe later
+      if (strategy.images?.length > 0) {
         if (!result.images) result.images = [];
-        // Merge images from all strategies, avoiding duplicates
-        for (const img of strategy.images) {
-          // Normalize URLs for duplicate checking (remove query params)
-          const isDuplicate = result.images.some(existingImg => {
-            try {
-              const newUrl = new URL(img);
-              const existingUrl = new URL(existingImg);
-              // Compare origin + pathname (ignore query params)
-              return newUrl.origin === existingUrl.origin && newUrl.pathname === existingUrl.pathname;
-            } catch {
-              // If URL parsing fails, fall back to simple string comparison
-              return existingImg === img;
-            }
-          });
+        // For non-Shopify stores, check for exact duplicates
+        if (!isShopify) {
+          for (const img of strategy.images) {
+            // Normalize URLs for duplicate checking (remove query params)
+            const isDuplicate = result.images.some(existingImg => {
+              try {
+                const newUrl = new URL(img);
+                const existingUrl = new URL(existingImg);
+                // Compare origin + pathname (ignore query params)
+                return newUrl.origin === existingUrl.origin && newUrl.pathname === existingUrl.pathname;
+              } catch {
+                // If URL parsing fails, fall back to simple string comparison
+                return existingImg === img;
+              }
+            });
 
-          if (!isDuplicate) {
-            result.images.push(img);
+            if (!isDuplicate) {
+              result.images.push(img);
+            }
           }
+        } else {
+          // For Shopify stores, just collect all images - we'll dedupe with size awareness later
+          result.images.push(...strategy.images);
         }
       }
       if (strategy.description && !result.description) result.description = strategy.description;
@@ -808,6 +816,12 @@ class UniversalParserV3 {
     if (result.price) {
       result.price = this.normalizePrice(result.price);
     }
+
+    // Apply Shopify deduplication if it's a Shopify store
+    if (isShopify && result.images && result.images.length > 1) {
+      result.images = this.dedupeShopifyImages(result.images);
+    }
+
     if (result.images) {
       result.images = this.normalizeImages(result.images, url);
     }
@@ -1680,6 +1694,83 @@ class UniversalParserV3 {
     return null;
   }
 
+  dedupeShopifyImages(images) {
+    const imageBaseMap = new Map();
+
+    // Get the base image name without size suffixes
+    const getNormalizedImageBase = (url) => {
+      if (!url) return null;
+
+      try {
+        // Handle protocol-relative URLs
+        let normalizedUrl = url;
+        if (url.startsWith('//')) {
+          normalizedUrl = 'https:' + url;
+        } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          return null;
+        }
+
+        // Parse the URL to get the pathname
+        const urlObj = new URL(normalizedUrl);
+        let pathname = urlObj.pathname;
+
+        // Remove Shopify size suffixes like _1200x1200, _4000x, _grande, _large, etc.
+        pathname = pathname.replace(/_\d+x\d*\./, '.');  // _1200x1200.jpg -> .jpg
+        pathname = pathname.replace(/_\d+x\./, '.');      // _4000x.jpg -> .jpg
+        pathname = pathname.replace(/_(pico|icon|thumb|small|compact|medium|large|grande|original|master)\./, '.');
+
+        // Return normalized base (pathname + version param if exists)
+        const vParam = urlObj.searchParams.get('v');
+        return pathname + (vParam ? `?v=${vParam}` : '');
+      } catch (e) {
+        return null;
+      }
+    };
+
+    // Choose the best quality URL between two URLs of the same image
+    const chooseBestQuality = (url1, url2) => {
+      const score = (url) => {
+        if (!url) return 0;
+        if (url.includes('_4000x')) return 100;
+        if (url.includes('_original') || url.includes('_master')) return 90;
+        if (url.includes('_2048x')) return 80;
+        if (url.includes('_grande')) return 70;
+        if (url.includes('_large')) return 60;
+        if (url.includes('_1200x')) return 50;
+        if (url.includes('_medium')) return 40;
+        if (url.includes('_small')) return 20;
+        // No size suffix = original (high score)
+        if (!/_\d+x|_[a-z]+\./i.test(url)) return 95;
+        return 30;
+      };
+
+      return score(url1) >= score(url2) ? url1 : url2;
+    };
+
+    // Process all images
+    for (const img of images) {
+      const base = getNormalizedImageBase(img);
+      if (!base) continue;
+
+      if (imageBaseMap.has(base)) {
+        // Choose the better quality version
+        const existing = imageBaseMap.get(base);
+        const best = chooseBestQuality(existing, img);
+        imageBaseMap.set(base, best);
+      } else {
+        imageBaseMap.set(base, img);
+      }
+    }
+
+    const deduped = Array.from(imageBaseMap.values());
+
+    if (this.logLevel === 'verbose' && deduped.length < images.length) {
+      console.log(`🧹 Deduped Shopify images: ${images.length} → ${deduped.length}`);
+    }
+
+    return deduped;
+  }
+
   detectShopify($) {
     // Check for Shopify indicators
     // 1. Check og:image or og:image:url for cdn.shopify.com
@@ -1710,6 +1801,9 @@ class UniversalParserV3 {
 
   extractShopifyImages($) {
     const images = [];
+    // Track normalized image bases to detect duplicates
+    const imageBaseMap = new Map(); // normalized base -> best quality URL
+    const logLevel = this.logLevel; // Capture this for nested functions
 
     // 1. First try to get images from og:image tags (often high quality)
     const ogImage = $('meta[property="og:image"]').attr('content');
@@ -1717,7 +1811,14 @@ class UniversalParserV3 {
 
     // Process OG image - remove crop parameters for higher resolution
     const processShopifyImage = (url) => {
-      if (!url || !url.includes('cdn.shopify.com')) return null;
+      if (!url) return null;
+
+      // Accept both cdn.shopify.com and Shopify-hosted custom CDNs (e.g., domain.com/cdn/shop/)
+      const isShopifyUrl = url.includes('cdn.shopify.com') ||
+                          url.includes('/cdn/shop/') ||
+                          url.includes('/cdn/shopifycloud/');
+
+      if (!isShopifyUrl) return null;
 
       // Remove crop and size parameters to get original image
       // From: https://cdn.shopify.com/s/files/1/2193/5809/files/I036942_3YM_XX-ST-01.jpg?v=1758648612&width=1200&height=630&crop=top
@@ -1739,50 +1840,119 @@ class UniversalParserV3 {
       return urlObj.toString();
     };
 
+    // Get the base image name without size suffixes
+    const getNormalizedImageBase = (url) => {
+      if (!url) return null;
+
+      try {
+        // Handle protocol-relative URLs
+        let normalizedUrl = url;
+        if (url.startsWith('//')) {
+          normalizedUrl = 'https:' + url;
+        } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          // Relative URL - shouldn't happen for product images but handle it
+          return null;
+        }
+
+        // Parse the URL to get the pathname
+        const urlObj = new URL(normalizedUrl);
+        let pathname = urlObj.pathname;
+
+        // Remove Shopify size suffixes like _1200x1200, _4000x, _grande, _large, etc.
+        pathname = pathname.replace(/_\d+x\d*\./, '.');  // _1200x1200.jpg -> .jpg
+        pathname = pathname.replace(/_\d+x\./, '.');      // _4000x.jpg -> .jpg
+        pathname = pathname.replace(/_(pico|icon|thumb|small|compact|medium|large|grande|original|master)\./, '.');
+
+        // Return normalized base (pathname + version param if exists)
+        const vParam = urlObj.searchParams.get('v');
+        return pathname + (vParam ? `?v=${vParam}` : '');
+      } catch (e) {
+        // Invalid URL, skip it
+        return null;
+      }
+    };
+
+    // Choose the best quality URL between two URLs of the same image
+    const chooseBestQuality = (url1, url2) => {
+      // Prefer URLs with higher resolution indicators
+      const score = (url) => {
+        if (!url) return 0;
+        if (url.includes('_4000x')) return 100;
+        if (url.includes('_original') || url.includes('_master')) return 90;
+        if (url.includes('_2048x')) return 80;
+        if (url.includes('_grande')) return 70;
+        if (url.includes('_large')) return 60;
+        if (url.includes('_1200x')) return 50;
+        if (url.includes('_medium')) return 40;
+        if (url.includes('_small')) return 20;
+        // No size suffix = original
+        if (!/_\d+x|_[a-z]+\./i.test(url)) return 95;
+        return 30;
+      };
+
+      return score(url1) >= score(url2) ? url1 : url2;
+    };
+
+    // Helper to add image with deduplication
+    const addImageWithDedup = (url) => {
+      try {
+        const processed = processShopifyImage(url);
+        if (!processed) return;
+
+        const base = getNormalizedImageBase(processed);
+        if (!base) return;
+
+        // Check if we already have this image (different size variant)
+        if (imageBaseMap.has(base)) {
+          // Choose the better quality version
+          const existing = imageBaseMap.get(base);
+          const best = chooseBestQuality(existing, processed);
+          imageBaseMap.set(base, best);
+        } else {
+          // New unique image
+          imageBaseMap.set(base, processed);
+        }
+      } catch (e) {
+        // Skip problematic URLs
+        if (logLevel === 'verbose') {
+          console.log(`⚠️ Skipped problematic image URL: ${url} (${e.message})`);
+        }
+      }
+    };
+
     // Add processed OG image
     if (ogImageUrl) {
-      const processed = processShopifyImage(ogImageUrl);
-      if (processed) images.push(processed);
+      addImageWithDedup(ogImageUrl);
     } else if (ogImage) {
-      const processed = processShopifyImage(ogImage);
-      if (processed) images.push(processed);
+      addImageWithDedup(ogImage);
     }
 
-    // 2. Find other product images with cdn.shopify.com
-    $('img[src*="cdn.shopify.com"]').each((i, el) => {
+    // 2. Find other product images with Shopify CDNs
+    $('img[src*="cdn.shopify.com"], img[src*="/cdn/shop/"], img[src*="/cdn/shopifycloud/"]').each((i, el) => {
       const src = $(el).attr('src');
       if (src && !src.includes('logo') && !src.includes('icon') && !src.includes('badge')) {
-        // Skip srcset for Shopify - it often has broken format
-        const processed = processShopifyImage(src);
-        if (processed && !images.includes(processed)) {
-          images.push(processed);
-        }
+        addImageWithDedup(src);
       }
     });
 
     // 3. Look for Shopify product gallery images
     $('.product__media img, .product-image img, .product-photo img').each((i, el) => {
       const src = $(el).attr('src') || $(el).attr('data-src');
-      if (src && src.includes('cdn.shopify.com')) {
-        const processed = processShopifyImage(src);
-        if (processed && !images.includes(processed)) {
-          images.push(processed);
-        }
+      if (src) {
+        addImageWithDedup(src);
       }
     });
 
     // 4. Check for images in data attributes
-    $('[data-src*="cdn.shopify.com"], [data-zoom*="cdn.shopify.com"]').each((i, el) => {
+    $('[data-src*="cdn.shopify.com"], [data-src*="/cdn/shop/"], [data-zoom*="cdn.shopify.com"], [data-zoom*="/cdn/shop/"]').each((i, el) => {
       const src = $(el).attr('data-src') || $(el).attr('data-zoom');
       if (src) {
-        const processed = processShopifyImage(src);
-        if (processed && !images.includes(processed)) {
-          images.push(processed);
-        }
+        addImageWithDedup(src);
       }
     });
 
-    return images.slice(0, 10); // Return max 10 images
+    // Return the best quality version of each unique image
+    return Array.from(imageBaseMap.values()).slice(0, 10); // Return max 10 images
   }
 
   async extractShopifyVariant($, url) {
