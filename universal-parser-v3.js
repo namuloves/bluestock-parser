@@ -1094,6 +1094,10 @@ class UniversalParserV3 {
                 imageUrls.push(`https://dam.bespokepost.com/image/upload/${productData.default_image.desktop_image_uid}`);
               }
               result.images = imageUrls;
+
+              if (this.logLevel === 'verbose') {
+                console.log(`📸 Found ${imageUrls.length} product images (filtered from ${productData.images.length} total)`);
+              }
             } else if (productData.default_image?.desktop_image_uid) {
               // Fallback if no images array
               result.images = [`https://dam.bespokepost.com/image/upload/${productData.default_image.desktop_image_uid}`];
@@ -1313,9 +1317,27 @@ class UniversalParserV3 {
 
     const normalized = [];
     const baseUrlObj = new URL(baseUrl);
+    const hostname = baseUrlObj.hostname.replace('www.', '');
 
     for (let img of images) {
       if (!img || typeof img !== 'string') continue;
+
+      // Site-specific filtering for Bespoke Post
+      if (hostname === 'bespokepost.com') {
+        // Filter out icon images
+        if (img.includes('/icons/')) continue;
+
+        // Filter out incomplete Cloudinary transformation URLs
+        // Valid Cloudinary URLs have a path after transformations like c_fill, c_limit, etc.
+        if (img.includes('dam.bespokepost.com/image/upload/')) {
+          const pathAfterUpload = img.split('/image/upload/')[1];
+          // Check if it ends with just a transformation parameter (no actual image path)
+          if (pathAfterUpload && /^[a-z_]+$/.test(pathAfterUpload)) {
+            // It's just a transformation like "c_fill" or "c_limit" with no image path
+            continue;
+          }
+        }
+      }
 
       // Handle malformed URLs like "https:files/..." (missing //)
       // Treat these as relative paths since they're broken
