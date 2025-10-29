@@ -1100,12 +1100,14 @@ class UniversalParserV3 {
               const imageUrls = [];
               productData.images.forEach(img => {
                 if (img.desktop_image_uid && img.kind === 'product-image') {
-                  imageUrls.push(`https://dam.bespokepost.com/image/upload/${img.desktop_image_uid}`);
+                  // Always add format parameter to ensure web-friendly images (not PSD files)
+                  // Cloudinary will auto-convert PSD to JPEG when f_auto is specified
+                  imageUrls.push(`https://dam.bespokepost.com/image/upload/f_auto/${img.desktop_image_uid}`);
                 }
               });
               // Fallback to default image if no product images found
               if (imageUrls.length === 0 && productData.default_image?.desktop_image_uid) {
-                imageUrls.push(`https://dam.bespokepost.com/image/upload/${productData.default_image.desktop_image_uid}`);
+                imageUrls.push(`https://dam.bespokepost.com/image/upload/f_auto/${productData.default_image.desktop_image_uid}`);
               }
               result.images = imageUrls;
 
@@ -1114,7 +1116,7 @@ class UniversalParserV3 {
               }
             } else if (productData.default_image?.desktop_image_uid) {
               // Fallback if no images array
-              result.images = [`https://dam.bespokepost.com/image/upload/${productData.default_image.desktop_image_uid}`];
+              result.images = [`https://dam.bespokepost.com/image/upload/f_auto/${productData.default_image.desktop_image_uid}`];
             }
 
             if (this.logLevel === 'verbose') {
