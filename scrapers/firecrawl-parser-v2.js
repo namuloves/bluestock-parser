@@ -293,6 +293,7 @@ class FirecrawlParserV2 {
       'ssense.com': {
         waitFor: 6000,
         requiresProxy: true,
+        timeout: 90000,  // 90 second timeout - SSENSE has heavy bot protection
         removeBase64Images: false, // Keep base64 images for SSENSE product gallery
         actions: [
           { type: 'wait', milliseconds: 2000 },
