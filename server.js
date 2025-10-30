@@ -747,22 +747,28 @@ app.post('/scrape', async (req, res) => {
     // CURRENCY DETECTION (NO CONVERSION - KEEP ORIGINAL PRICES)
     console.log('💱 Detecting currency...');
     try {
-      const currencyDetector = getCurrencyDetector();
+      // First check if parser already detected currency
+      if (productData.currency && productData.currency !== 'USD') {
+        console.log(`💰 Using parser-detected currency: ${productData.currency}`);
+      } else {
+        // Fallback to currency detector
+        const currencyDetector = getCurrencyDetector();
 
-      // Get HTML content for detection (if available)
-      const htmlContent = scrapeResult.html || '';
+        // Get HTML content for detection (if available)
+        const htmlContent = productData.html || scrapeResult.html || '';
 
-      // Get price text for detection
-      const priceText = productData.price_text ||
-                       productData.sale_price?.toString() ||
-                       productData.price?.toString() || '';
+        // Get price text for detection - use original text with currency symbols
+        const priceText = productData.price_text ||
+                         productData.sale_price?.toString() ||
+                         productData.price?.toString() || '';
 
-      // Detect currency
-      const currencyInfo = currencyDetector.detect(htmlContent, url, priceText);
-      console.log(`💰 Detected currency: ${currencyInfo.currency} (confidence: ${currencyInfo.confidence})`);
+        // Detect currency
+        const currencyInfo = currencyDetector.detect(htmlContent, url, priceText);
+        console.log(`💰 Detected currency: ${currencyInfo.currency} (confidence: ${currencyInfo.confidence}, source: ${currencyInfo.source})`);
 
-      // Store currency info
-      productData.currency = currencyInfo.currency;
+        // Store currency info
+        productData.currency = currencyInfo.currency;
+      }
 
       // Keep prices as-is in their original currency
       console.log(`💵 Storing price as: ${productData.sale_price || productData.price} ${currencyInfo.currency}`);

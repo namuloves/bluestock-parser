@@ -20,7 +20,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",
     "@mendable/firecrawl-js": "^1.21.1",
-    "@supabase/supabase-js": "^2.58.0",
+    "@supabase/supabase-js": "^2.76.1",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "apify-client": "^2.17.0",
@@ -32,6 +32,7 @@
     "https-proxy-agent": "^7.0.6",
     "ioredis": "^5.7.0",
     "js-yaml": "^4.1.0",
+    "node-fetch": "^3.3.2",
     "playwright": "^1.54.1",
     "playwright-extra": "^4.3.6",
     "puppeteer": "^24.16.2",

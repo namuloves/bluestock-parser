@@ -28,14 +28,18 @@ selectors:
     transform: extractNumber
 
   images:
-    selector: .media-image__image
+    selector: img[src*="static.zara.net/assets"]
     type: images
     attribute: src
     min: 1
     transform: high_quality
     fallback:
-      - .product-detail-images__image
-      - picture source[type="image/webp"]
+      - selector: .media-image__image img
+        type: images
+        attribute: src
+      - selector: picture img
+        type: images
+        attribute: src
 
   brand:
     value: ZARA

@@ -169,11 +169,19 @@ class RecipeExtractor {
     // Handle different extraction types
     if (config.type === 'images') {
       const images = [];
+      console.log(`🔍 RecipeExtractor: Found ${element.length} elements matching selector "${selector}"`);
       element.each((i, el) => {
         const attr = config.attribute || 'src';
         const img = $(el).attr(attr);
-        if (img) images.push(img);
+        if (img) {
+          images.push(img);
+          // Log first 3 images for debugging
+          if (i < 3) {
+            console.log(`  📸 Image ${i + 1}: ${img.substring(0, 100)}...`);
+          }
+        }
       });
+      console.log(`  📊 Total images extracted: ${images.length}`);
       return images.length > 0 ? images : null;
     }
 

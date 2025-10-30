@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-10-18T17:57:55.234Z",
+    "updated": "2025-10-30T02:24:10.497Z",
     "total_sites": 12,
-    "successful_extractions": 54
+    "successful_extractions": 102
   },
   "global_patterns": {
     "price": [
@@ -65,9 +65,9 @@
       ".media-image__image",
       ".product-detail-images__image"
     ],
-    "lastSuccess": "2025-09-20T19:16:57.477Z",
+    "lastSuccess": "2025-10-30T02:24:10.497Z",
     "confidence": 0.5,
-    "successCount": null,
+    "successCount": 4,
     "patterns": {
       "name": "h1",
       "price": ".price",
@@ -465,6 +465,34 @@
     "patterns": {
       "name": "h1",
       "price": null
+    }
+  },
+  "clarks.com": {
+    "successCount": 3,
+    "lastSuccess": "2025-10-23T03:44:55.336Z",
+    "patterns": {
+      "name": "h1",
+      "price": null,
+      "brand": "Clarks Originals"
+    }
+  },
+  "thehipstore.co.uk": {
+    "successCount": 3,
+    "lastSuccess": "2025-10-23T17:07:05.078Z",
+    "patterns": {}
+  },
+  "bespokepost.com": {
+    "successCount": 33,
+    "lastSuccess": "2025-10-28T22:57:17.026Z",
+    "patterns": {}
+  },
+  "boutique.airelles.com": {
+    "successCount": 5,
+    "lastSuccess": "2025-10-28T21:44:40.169Z",
+    "patterns": {
+      "name": "h1",
+      "price": ".price",
+      "brand": "Boutique Airelles"
     }
   }
 }
