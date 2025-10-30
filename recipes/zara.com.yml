@@ -67,9 +67,10 @@ assertions:
   - images[0].startsWith('https')
 
 extraction_settings:
-  render_required: false
+  render_required: true  # Zara has anti-bot protection, needs browser rendering
   wait_for_selector: .product-detail-info__header-name
-  timeout: 5000
+  timeout: 10000
+  use_firecrawl: true  # Use Firecrawl to bypass anti-bot protection
 
 notes:
   - Zara uses structured data, prefer JSON-LD extraction

@@ -3,6 +3,7 @@
 // ============================================
 const UniversalParserV3 = require('../universal-parser-v3');
 const { getMetricsCollector } = require('../monitoring/metrics-collector');
+const { extractZaraImages, extractZaraProductId } = require('./zara-image-extractor');
 let universalParser;
 let metricsCollector;
 
@@ -56,6 +57,7 @@ function normalizeToExistingFormat(data) {
     currency: data.currency || 'USD',
     availability: data.availability || 'in_stock',
     vendor_url: data.url,
+    html: data.html || data._rawHtml,  // Preserve HTML for post-processors
 
     // Legacy fields for compatibility
     name: data.name,
@@ -2311,6 +2313,31 @@ const scrapeProduct = async (url, options = {}) => {
             const universalResult = await tryUniversalParser(url);
             if (universalResult && universalResult.success) {
               console.log('✅ Universal Parser succeeded as fallback');
+
+              // ZARA POST-PROCESSOR: Extract all product images if this is a Zara URL
+              if (url.includes('zara.com') && universalResult.product) {
+                const productId = extractZaraProductId(url);
+                if (productId) {
+                  console.log('🎯 Applying Zara image post-processor...');
+
+                  // Get the HTML from the universal parser result
+                  const html = universalResult.product.html || universalResult.product._rawHtml || '';
+
+                  if (html) {
+                    const zaraImages = extractZaraImages(html, productId);
+
+                    if (zaraImages.length > 0) {
+                      console.log(`✨ Extracted ${zaraImages.length} Zara product images`);
+                      // Replace the single image with all product images
+                      universalResult.product.images = zaraImages;
+                      universalResult.product.image_urls = zaraImages;
+                    }
+                  } else {
+                    console.log('⚠️ No HTML available for Zara image extraction');
+                  }
+                }
+              }
+
               return universalResult;
             }
             console.log('⚠️ Universal Parser returned low confidence or failed');
