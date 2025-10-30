@@ -56,8 +56,6 @@ function normalizeToExistingFormat(data) {
     currency: data.currency || 'USD',
     availability: data.availability || 'in_stock',
     vendor_url: data.url,
-    price_text: data.priceText,  // Pass through original price text
-    html: data.html,  // Pass through HTML for fallback currency detection
 
     // Legacy fields for compatibility
     name: data.name,
@@ -1130,9 +1128,35 @@ const scrapeProduct = async (url, options = {}) => {
           url: url
         };
         
-        // Note: Removed the overly aggressive check for static.zara.net images
-        // Zara images from static.zara.net are actually accessible in most cases
-        // The previous check was rejecting valid products unnecessarily
+        // Check for Zara-specific image issues (static.zara.net URLs often return 403)
+        const hasInaccessibleImages = productData.images && productData.images.length > 0 && 
+          productData.images.every(img => img.includes('static.zara.net'));
+        
+        if (hasInaccessibleImages) {
+          console.log(`❌ Zara product has inaccessible images (static.zara.net URLs)`);
+          
+          // Send notification for invalid product data
+          try {
+            const SlackNotificationService = require('../services/slack-notifications');
+            const slackNotifications = new SlackNotificationService();
+            
+            await slackNotifications.notifyInvalidProduct({
+              url: url,
+              product: productData,
+              validationErrors: [{ message: 'Images may be inaccessible (static.zara.net URLs)' }],
+              userEmail: 'Anonymous',
+              timestamp: new Date().toISOString()
+            });
+          } catch (notificationError) {
+            console.error('Failed to send invalid product notification:', notificationError);
+          }
+          
+          return {
+            success: false,
+            error: 'Product has inaccessible images',
+            validationErrors: [{ message: 'Images may be inaccessible' }]
+          };
+        }
         
         console.log(`✅ Zara product passed Quality Gate validation`);
         
