@@ -1,7 +1,9 @@
 /**
- * Zara Image Post-Processor
- * Extracts all main product images from Firecrawl HTML
+ * Zara Post-Processor
+ * Extracts main product images and price from Firecrawl HTML
  */
+
+const cheerio = require('cheerio');
 
 /**
  * Extract all main product images from Zara HTML
@@ -77,7 +79,55 @@ function extractZaraProductId(url) {
   return match ? match[1] : null;
 }
 
+/**
+ * Extract price from Zara HTML
+ * @param {string} html - Raw HTML from Firecrawl
+ * @returns {number|null} - Price as number or null
+ */
+function extractZaraPrice(html) {
+  if (!html) {
+    console.log('⚠️ Missing HTML for Zara price extraction');
+    return null;
+  }
+
+  console.log('💰 Extracting Zara price...');
+
+  try {
+    const $ = cheerio.load(html);
+
+    // Try the specific product detail price selector first
+    const productPrice = $('.product-detail-info__price .money-amount__main').first().text().trim();
+    if (productPrice) {
+      // Extract numeric value from price string like "$ 55.90"
+      const priceMatch = productPrice.match(/[\d,]+\.?\d*/);
+      if (priceMatch) {
+        const price = parseFloat(priceMatch[0].replace(/,/g, ''));
+        console.log(`  ✅ Found price: $${price}`);
+        return price;
+      }
+    }
+
+    // Fallback: try general money-amount__main selector
+    const generalPrice = $('.money-amount__main').first().text().trim();
+    if (generalPrice) {
+      const priceMatch = generalPrice.match(/[\d,]+\.?\d*/);
+      if (priceMatch) {
+        const price = parseFloat(priceMatch[0].replace(/,/g, ''));
+        console.log(`  ✅ Found price (fallback): $${price}`);
+        return price;
+      }
+    }
+
+    console.log('  ⚠️ Could not find price in HTML');
+    return null;
+  } catch (error) {
+    console.log(`  ❌ Error extracting price: ${error.message}`);
+    return null;
+  }
+}
+
 module.exports = {
   extractZaraImages,
-  extractZaraProductId
+  extractZaraProductId,
+  extractZaraPrice
 };

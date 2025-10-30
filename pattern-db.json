@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-10-30T03:12:51.418Z",
+    "updated": "2025-10-30T03:30:07.520Z",
     "total_sites": 12,
-    "successful_extractions": 103
+    "successful_extractions": 104
   },
   "global_patterns": {
     "price": [
@@ -65,12 +65,12 @@
       ".media-image__image",
       ".product-detail-images__image"
     ],
-    "lastSuccess": "2025-10-30T03:12:51.418Z",
+    "lastSuccess": "2025-10-30T03:30:07.520Z",
     "confidence": 0.5,
-    "successCount": 5,
+    "successCount": 6,
     "patterns": {
       "name": "h1",
-      "price": null,
+      "price": ".price",
       "brand": "Zara"
     }
   },
