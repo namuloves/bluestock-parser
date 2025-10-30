@@ -1128,34 +1128,21 @@ const scrapeProduct = async (url, options = {}) => {
           url: url
         };
         
-        // Check for Zara-specific image issues (static.zara.net URLs often return 403)
-        const hasInaccessibleImages = productData.images && productData.images.length > 0 && 
+        // Check for Zara-specific image issues (static.zara.net URLs often return 404)
+        const hasInaccessibleImages = productData.images && productData.images.length > 0 &&
           productData.images.every(img => img.includes('static.zara.net'));
-        
+
         if (hasInaccessibleImages) {
-          console.log(`❌ Zara product has inaccessible images (static.zara.net URLs)`);
-          
-          // Send notification for invalid product data
-          try {
-            const SlackNotificationService = require('../services/slack-notifications');
-            const slackNotifications = new SlackNotificationService();
-            
-            await slackNotifications.notifyInvalidProduct({
-              url: url,
-              product: productData,
-              validationErrors: [{ message: 'Images may be inaccessible (static.zara.net URLs)' }],
-              userEmail: 'Anonymous',
-              timestamp: new Date().toISOString()
-            });
-          } catch (notificationError) {
-            console.error('Failed to send invalid product notification:', notificationError);
-          }
-          
-          return {
-            success: false,
-            error: 'Product has inaccessible images',
-            validationErrors: [{ message: 'Images may be inaccessible' }]
-          };
+          console.log(`⚠️ Warning: Zara product has potentially inaccessible images (static.zara.net URLs)`);
+          console.log(`⚠️ Returning product data without images due to Zara's anti-bot protection`);
+
+          // Clear the invalid images from both objects
+          productData.images = [];
+          productData.image_urls = [];
+          zaraProduct.images = [];  // Also clear from original product object
+
+          // Add a note about missing images
+          productData.notes = 'Images could not be extracted due to Zara anti-bot protection. Product details are accurate.';
         }
         
         console.log(`✅ Zara product passed Quality Gate validation`);
