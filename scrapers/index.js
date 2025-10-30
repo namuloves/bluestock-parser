@@ -309,9 +309,10 @@ const detectSite = (url) => {
   if (hostname.includes('instagram.com')) {
     return 'instagram';
   }
-  if (hostname.includes('zara.com')) {
-    return 'zara';
-  }
+  // Commented out - let Universal/Firecrawl handle Zara since dedicated scraper can't get images
+  // if (hostname.includes('zara.com')) {
+  //   return 'zara';
+  // }
   if (hostname.includes('urbanoutfitters.')) {
     return 'urbanoutfitters';
   }
@@ -439,7 +440,7 @@ const scrapeProduct = async (url, options = {}) => {
 
   // Sites to skip Universal Parser for - they have optimized dedicated scrapers
   const skipUniversalSites = [
-    'zara.com',
+    // 'zara.com', // Commented out - let Universal/Firecrawl handle Zara since dedicated scraper can't get images
     'amazon.com',
     'ebay.com',
     'etsy.com',
