@@ -50,6 +50,16 @@ reliable:
 
 # Sites requiring special handling
 special:
+  - domain: mmmmood.com
+    timeout: 8000
+    rate_limit: 10
+    render_required: true  # Client-side rendered Next.js app
+    render_budget: 100
+    wait_for: 2000  # Wait for React hydration
+    wait_for_selector: "img[alt]"  # Wait for product images
+    circuit_breaker:
+      failure_threshold: 5
+
   - domain: cos.com
     timeout: 8000
     rate_limit: 2
