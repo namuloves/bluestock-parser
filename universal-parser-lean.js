@@ -371,15 +371,15 @@ class UniversalParserLean {
         }
       });
 
-      // Navigate
+      // Navigate - use networkidle2 for better content loading
       await page.goto(url, {
-        waitUntil: 'domcontentloaded',
+        waitUntil: 'networkidle2',
         timeout: policy.timeout || 10000
       });
 
-      // Additional wait for Nuxt.js/SSR sites if specified
+      // Additional wait for client-side rendered apps if specified
       if (policy.wait_for) {
-        console.log(`⏳ Waiting ${policy.wait_for}ms for SSR hydration...`);
+        console.log(`⏳ Waiting ${policy.wait_for}ms for client-side hydration...`);
         await new Promise(r => setTimeout(r, policy.wait_for));
       }
 

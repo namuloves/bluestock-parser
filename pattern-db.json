@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-10-30T03:30:07.520Z",
+    "updated": "2025-10-30T14:55:26.531Z",
     "total_sites": 12,
-    "successful_extractions": 104
+    "successful_extractions": 107
   },
   "global_patterns": {
     "price": [
@@ -176,9 +176,14 @@
       ".product-images-container img",
       ".product-image img"
     ],
-    "lastSuccess": "2025-09-19T18:03:36.407Z",
+    "lastSuccess": "2025-10-30T14:55:26.531Z",
     "confidence": 0.5,
-    "successCount": 3
+    "successCount": 6,
+    "patterns": {
+      "name": null,
+      "price": ".product-price",
+      "brand": "ISSEY MIYAKE"
+    }
   },
   "farfetch.com": {
     "price": [

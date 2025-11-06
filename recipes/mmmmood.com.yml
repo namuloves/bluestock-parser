@@ -1,0 +1,49 @@
+domain: mmmmood.com
+version: 1.0.0
+last_validated: 2025-11-06
+confidence_level: high
+
+selectors:
+  name:
+    selector: h2
+    type: text
+    required: true
+    fallback:
+      - h1
+
+  price:
+    selector: "span:contains('$')"
+    type: price
+    transform: extractNumber
+    required: true
+
+  images:
+    selector: "img[src*='/_next/image']"
+    type: images
+    attribute: src
+    min: 1
+    fallback:
+      - selector: "img[src*='bluestock']"
+        type: images
+        attribute: src
+      - selector: "img[alt*='Image']"
+        type: images
+        attribute: src
+
+  brand:
+    selector: ".brand"
+    type: text
+
+  description:
+    selector: ".product-description"
+    type: text
+
+extraction_settings:
+  render_required: true
+  timeout: 30000
+  wait_for: 5000
+
+notes:
+  - Client-side rendered Next.js application
+  - Requires JavaScript execution and network idle
+  - Images are served through Next.js Image Optimization
