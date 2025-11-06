@@ -359,11 +359,12 @@ class UniversalParserLean {
       // Set user agent
       await page.setUserAgent(policy.user_agent || this.policies.defaults.user_agent);
 
-      // Block unnecessary resources
+      // Block unnecessary resources (but keep images for product extraction)
       await page.setRequestInterception(true);
       page.on('request', (req) => {
         const type = req.resourceType();
-        if (['image', 'stylesheet', 'font', 'media'].includes(type)) {
+        // Only block stylesheets, fonts, and media - keep images for product extraction
+        if (['stylesheet', 'font', 'media'].includes(type)) {
           req.abort();
         } else {
           req.continue();
