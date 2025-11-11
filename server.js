@@ -649,7 +649,7 @@ app.post('/scrape', async (req, res) => {
                   images: v3Result.images || [],
                   description: v3Result.description
                 },
-                validationErrors: validation.errors,
+                validationErrors: [],
                 userEmail: req.body.userEmail || 'Anonymous',
                 timestamp: new Date().toISOString()
               });
@@ -771,7 +771,7 @@ app.post('/scrape', async (req, res) => {
       }
 
       // Keep prices as-is in their original currency
-      console.log(`💵 Storing price as: ${productData.sale_price || productData.price} ${currencyInfo.currency}`);
+      console.log(`💵 Storing price as: ${productData.sale_price || productData.price} ${productData.currency}`);
 
     } catch (error) {
       console.error('⚠️ Currency detection failed:', error.message);
@@ -871,6 +871,12 @@ app.post('/scrape', async (req, res) => {
     // Clear the timeout since we're done
     clearTimeout(timeout);
 
+    // Check if response was already sent by timeout
+    if (res.headersSent) {
+      console.log('⚠️ Response already sent by timeout, skipping success response');
+      return;
+    }
+
     // Validate normalized product before returning
     if (!normalizedProduct.product_name || !normalizedProduct.image_urls || normalizedProduct.image_urls.length === 0) {
       console.warn('⚠️ Product data missing critical fields:', {
@@ -913,35 +919,53 @@ app.post('/scrape', async (req, res) => {
 
     // Don't send response if already sent by timeout
     if (!res.headersSent) {
+      // Determine user-friendly error message
+      let userFriendlyMessage = "Oops! We cannot read this page for now, but we pinged the admin to fix the issue – please try uploading them manually.";
+      let statusCode = 500;
+
       // Check if it's a timeout error
       if (error.message === 'Scraping timeout') {
-        res.status(504).json({
-          success: false,
-          error: 'Request timeout - the site may have anti-bot protection',
-          details: error.message
-        });
-      } else {
-        // Log the full error for debugging
-        console.error('Full error object:', JSON.stringify(error, null, 2));
-
-        // Always return valid JSON with success: false
-        res.status(500).json({
-          success: false,
-          error: error.message || 'Internal server error',
-          details: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
-          // Provide minimal fallback product structure
-          product: {
-            product_name: '',
-            brand: 'Unknown',
-            original_price: 0,
-            sale_price: 0,
-            image_urls: [],
-            images: [],
-            description: error.message,
-            currency: 'USD'
-          }
-        });
+        userFriendlyMessage = "This page is taking too long to load. Please try again or upload manually.";
+        statusCode = 504;
       }
+      // Check for 403 Forbidden (anti-bot protection)
+      else if (error.message && (error.message.includes('403') || error.message.includes('Forbidden'))) {
+        userFriendlyMessage = "This website has blocked our scraper. We've notified the admin – please try uploading manually for now.";
+        statusCode = 403;
+      }
+      // Check for 404 Not Found
+      else if (error.message && error.message.includes('404')) {
+        userFriendlyMessage = "This product page could not be found. Please check the URL and try again.";
+        statusCode = 404;
+      }
+      // Check for network errors
+      else if (error.message && (error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT') || error.message.includes('network'))) {
+        userFriendlyMessage = "Unable to connect to this website. Please check your internet connection and try again.";
+        statusCode = 503;
+      }
+
+      // Log the full error for debugging
+      console.error('Full error object:', JSON.stringify(error, null, 2));
+
+      // Always return valid JSON with success: false and user-friendly message
+      res.status(statusCode).json({
+        success: false,
+        error: userFriendlyMessage,
+        userMessage: userFriendlyMessage, // Explicit user-facing message
+        technicalError: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        details: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+        // Provide minimal fallback product structure to prevent frontend crashes
+        product: {
+          product_name: '',
+          brand: 'Unknown',
+          original_price: 0,
+          sale_price: 0,
+          image_urls: [],
+          images: [],
+          description: '',
+          currency: 'USD'
+        }
+      });
     }
   }
 });

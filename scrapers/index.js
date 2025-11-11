@@ -343,9 +343,10 @@ const detectSite = (url) => {
   if (hostname.includes('madewell.')) {
     return 'madewell';
   }
-  if (hostname.includes('aritzia.')) {
-    return 'aritzia';
-  }
+  // Disabled - Aritzia now uses Universal Parser with Puppeteer
+  // if (hostname.includes('aritzia.')) {
+  //   return 'aritzia';
+  // }
   if (hostname.includes('lululemon.')) {
     return 'lululemon';
   }
@@ -1297,9 +1298,10 @@ const scrapeProduct = async (url, options = {}) => {
         console.log('👖 Using Madewell scraper');
         return await scrapeMadewell(url);
         
-      case 'aritzia':
-        console.log('🍁 Using Aritzia scraper');
-        return await scrapeAritzia(url);
+      // Disabled - Aritzia now uses Universal Parser with Puppeteer for better reliability
+      // case 'aritzia':
+      //   console.log('🍁 Using Aritzia scraper');
+      //   return await scrapeAritzia(url);
       
       case 'lululemon':
         console.log('🍋 Using Lululemon scraper');
