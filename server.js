@@ -581,32 +581,45 @@ app.post('/scrape', async (req, res) => {
           validatedProduct = null;
         } else {
           // V3 parser needs Quality Gate validation
-          const validation = qualityGate.validate({
-            name: v3Result.name,
-            price: v3Result.price,
-            images: v3Result.images || [],
-            brand: v3Result.brand,
-            description: v3Result.description,
-            sale_price: v3Result.salePrice || v3Result.sale_price,
-            currency: v3Result.currency || 'USD',
-            url: url
-          });
+          let validation;
+          try {
+            validation = qualityGate.validate({
+              name: v3Result.name,
+              price: v3Result.price,
+              images: v3Result.images || [],
+              brand: v3Result.brand,
+              description: v3Result.description,
+              sale_price: v3Result.salePrice || v3Result.sale_price,
+              currency: v3Result.currency || 'USD',
+              url: url
+            });
+          } catch (validationError) {
+            console.error('❌ Quality Gate validation threw an error:', validationError.message);
+            console.error('Error stack:', validationError.stack);
+            validation = null;
+          }
 
           // Deprecation warning for confidence scores
           if (v3Result.confidence !== undefined) {
             console.log(`[DEPRECATION] Confidence score (${v3Result.confidence}) is deprecated. Using Quality Gate validation.`);
           }
 
-          if (validation.valid) {
+          if (validation && validation.valid) {
             console.log(`✅ Parser passed Quality Gate validation`);
 
-            if (validation.warnings.length > 0) {
+            if (validation.warnings && validation.warnings.length > 0) {
               console.log(`⚠️ Warnings: ${validation.warnings.map(w => w.message).join(', ')}`);
             }
 
             validatedProduct = validation.product;
+          } else if (validation) {
+            const errorMessages = (validation.errors && Array.isArray(validation.errors))
+              ? validation.errors.map(e => e.message).join(', ')
+              : 'Unknown validation errors';
+            console.log(`❌ Parser failed Quality Gate: ${errorMessages}`);
+            validatedProduct = null;
           } else {
-            console.log(`❌ Parser failed Quality Gate: ${validation.errors.map(e => e.message).join(', ')}`);
+            console.log(`❌ Quality Gate validation returned undefined`);
             validatedProduct = null;
           }
         }
