@@ -1,9 +1,9 @@
 {
   "_meta": {
     "version": "1.0",
-    "updated": "2025-10-30T14:55:26.531Z",
+    "updated": "2025-11-13T23:35:42.838Z",
     "total_sites": 12,
-    "successful_extractions": 107
+    "successful_extractions": 115
   },
   "global_patterns": {
     "price": [
@@ -498,6 +498,15 @@
       "name": "h1",
       "price": ".price",
       "brand": "Boutique Airelles"
+    }
+  },
+  "aritzia.com": {
+    "successCount": 8,
+    "lastSuccess": "2025-11-13T23:35:42.838Z",
+    "patterns": {
+      "name": "h1",
+      "price": null,
+      "brand": "Aritzia"
     }
   }
 }
