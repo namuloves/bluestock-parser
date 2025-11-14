@@ -133,9 +133,9 @@ class UniversalParserV3 {
         brand: () => 'Uniqlo'
       },
       'aritzia.com': {
-        name: ['h1.product-name', '.pdp-product-name h1', '[data-test-id="product-name"]'],
-        price: ['.product-price', '.pdp-product-price', '[data-test-id="product-price"]'],
-        images: ['.product-image img', '.pdp-image img', '.product-images-carousel img'],
+        name: ['h1[data-test="pdp-title"]', '.pdp-product-name', 'h1.product-name', '[data-test-id="product-name"]'],
+        price: ['[data-test="pdp-price"]', '.product-price', '.pdp-product-price'],
+        images: ['[data-test="pdp-image"] img', '.product-images img', '.pdp-image img', '.product-image img', '.product-images-carousel img'],
         brand: () => 'Aritzia'
       },
       'net-a-porter.com': {

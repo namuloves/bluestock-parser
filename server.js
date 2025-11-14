@@ -809,14 +809,18 @@ app.post('/scrape', async (req, res) => {
           format: 'auto'
         });
 
-        // Update image URLs to use CDN
-        productData.image_urls = uploadResults.map(result => result.cdn);
-        productData.images = uploadResults.map(result => result.cdn);
-
-        console.log(`✅ Uploaded ${uploadResults.length} images to Bunny Storage`);
+        // Update image URLs to use CDN (with safety check)
+        if (uploadResults && Array.isArray(uploadResults)) {
+          productData.image_urls = uploadResults.map(result => result.cdn);
+          productData.images = uploadResults.map(result => result.cdn);
+          console.log(`✅ Uploaded ${uploadResults.length} images to Bunny Storage`);
+        } else {
+          console.warn('⚠️ uploadResults is not an array, keeping original image URLs');
+        }
       }
     } catch (error) {
       console.error('⚠️ Bunny Storage upload failed, using original URLs:', error.message);
+      console.error('Error stack:', error.stack);
     }
 
     // Ensure all database schema fields are present with correct names
