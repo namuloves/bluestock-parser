@@ -343,10 +343,9 @@ const detectSite = (url) => {
   if (hostname.includes('madewell.')) {
     return 'madewell';
   }
-  // Disabled - Aritzia now uses Universal Parser with Puppeteer
-  // if (hostname.includes('aritzia.')) {
-  //   return 'aritzia';
-  // }
+  if (hostname.includes('aritzia.')) {
+    return 'aritzia';
+  }
   if (hostname.includes('lululemon.')) {
     return 'lululemon';
   }
@@ -1297,12 +1296,23 @@ const scrapeProduct = async (url, options = {}) => {
       case 'madewell':
         console.log('👖 Using Madewell scraper');
         return await scrapeMadewell(url);
-        
-      // Disabled - Aritzia now uses Universal Parser with Puppeteer for better reliability
-      // case 'aritzia':
-      //   console.log('🍁 Using Aritzia scraper');
-      //   return await scrapeAritzia(url);
-      
+
+      case 'aritzia':
+        console.log('🍁 Using Firecrawl for Aritzia (bypasses 403)');
+        if (firecrawlParserV2 && firecrawlParserV2.apiKey) {
+          try {
+            const firecrawlResult = await firecrawlParserV2.parse(url);
+            if (firecrawlResult && !firecrawlResult.error) {
+              return firecrawlResult;
+            }
+          } catch (firecrawlError) {
+            console.log('⚠️ Firecrawl failed for Aritzia:', firecrawlError.message);
+          }
+        }
+        // Fallback to regular scraper if Firecrawl fails
+        console.log('🍁 Falling back to Aritzia scraper');
+        return await scrapeAritzia(url);
+
       case 'lululemon':
         console.log('🍋 Using Lululemon scraper');
         return await scrapeLululemon(url);
