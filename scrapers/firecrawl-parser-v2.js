@@ -324,16 +324,18 @@ class FirecrawlParserV2 {
         ]
       },
       'net-a-porter.com': {
-        waitFor: 6000,
+        waitFor: 8000,  // Increased from 6000 - NAP needs more time to load
         requiresProxy: true,
-        timeout: 45000,  // 45 seconds - allows frontend buffer
+        timeout: 60000,  // Increased to 60 seconds - NAP is very slow
         location: {
           country: 'US',
           languages: ['en-US']
         },
         actions: [
-          { type: 'wait', milliseconds: 3000 },
-          { type: 'scroll', direction: 'down' }
+          { type: 'wait', milliseconds: 5000 },  // Wait longer before scrolling
+          { type: 'scroll', direction: 'down' },
+          { type: 'wait', milliseconds: 2000 },  // Wait after scroll
+          { type: 'scroll', direction: 'down' }  // Scroll again to load more images
         ]
       },
       'farfetch.com': {
@@ -524,6 +526,10 @@ class FirecrawlParserV2 {
 
     if (hostname.includes('ralphlauren')) {
       return "Extract Ralph Lauren product details. Include product name, price, all product images, description, available sizes, colors, and material composition if available.";
+    }
+
+    if (hostname.includes('net-a-porter')) {
+      return "Extract luxury fashion product from NET-A-PORTER. CRITICAL: Find ALL product images from the image carousel/gallery (typically 5-10 images). Include: designer/brand name, product name, current price, original price if on sale, color/variant, detailed material composition, sizes available, and ALL image URLs from the product gallery.";
     }
 
     // Generic prompt
