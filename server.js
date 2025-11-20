@@ -151,6 +151,18 @@ const corsOptions = process.env.NODE_ENV === 'production'
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Handle malformed JSON payloads gracefully
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('❌ Invalid JSON payload:', err.message);
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid JSON payload'
+    });
+  }
+  next(err);
+});
+
 // Explicit OPTIONS handler for preflight requests
 app.options('*', cors(corsOptions));
 
@@ -427,7 +439,12 @@ app.post('/scrape', async (req, res) => {
     const useDedicatedScraper = hostname.includes('zara.com') ||
                                hostname.includes('ebay.com') ||
                                hostname.includes('ebay.') ||
-                               hostname.includes('wconcept.com');
+                               hostname.includes('wconcept.com') ||
+                               hostname.includes('ssense.com') ||
+                               hostname.includes('aritzia.com') ||  // Requires Firecrawl (403 without it)
+                               hostname.includes('rei.com') ||  // Requires Firecrawl
+                               hostname.includes('ralphlauren.com') ||  // Requires Firecrawl
+                               hostname.includes('net-a-porter.com');  // Requires Firecrawl
 
     // Import Quality Gate for validation
     const { getQualityGate } = require('./utils/qualityGate');

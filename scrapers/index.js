@@ -196,6 +196,169 @@ try {
   console.error('⚠️ Auto-discovery failed:', e.message);
 }
 
+/**
+ * Normalize SSENSE product data into the expected schema
+ */
+function normalizeSsenseProduct(rawProduct = {}, url) {
+  if (!rawProduct) return null;
+
+  const productName = rawProduct.product_name || rawProduct.name || rawProduct.title || '';
+  const brand = rawProduct.brand?.name || rawProduct.brand || 'SSENSE';
+
+  const salePriceRaw = rawProduct.sale_price ?? rawProduct.price ?? 0;
+  const salePrice = typeof salePriceRaw === 'number'
+    ? salePriceRaw
+    : parseFloat(String(salePriceRaw).replace(/[^\d.]/g, '')) || 0;
+
+  const originalPriceRaw = rawProduct.original_price ?? rawProduct.originalPrice ?? salePrice;
+  const originalPrice = typeof originalPriceRaw === 'number'
+    ? originalPriceRaw
+    : parseFloat(String(originalPriceRaw).replace(/[^\d.]/g, '')) || salePrice;
+
+  const computedDiscount = originalPrice > salePrice && salePrice > 0
+    ? Math.round((1 - salePrice / originalPrice) * 100)
+    : null;
+
+  const images = rawProduct.image_urls || rawProduct.images || [];
+
+  return {
+    product_name: productName,
+    brand,
+    original_price: originalPrice,
+    sale_price: salePrice,
+    is_on_sale: rawProduct.is_on_sale ?? rawProduct.isOnSale ?? (computedDiscount !== null),
+    discount_percentage: rawProduct.discount_percentage ?? rawProduct.discountPercentage ?? computedDiscount,
+    sale_badge: rawProduct.sale_badge ?? rawProduct.saleBadge ?? (computedDiscount ? `${computedDiscount}% OFF` : null),
+    image_urls: images,
+    vendor_url: rawProduct.vendor_url || rawProduct.url || url,
+    description: rawProduct.description || '',
+    color: rawProduct.color || '',
+    category: rawProduct.category || detectCategory(
+      productName,
+      rawProduct.description || '',
+      brand,
+      rawProduct.category
+    ),
+    material: rawProduct.material ||
+      (Array.isArray(rawProduct.materials) ? rawProduct.materials.join(', ') : ''),
+    platform: rawProduct.platform || 'ssense',
+    currency: rawProduct.currency || 'USD',
+
+    // Legacy fields
+    name: productName,
+    price: salePrice,
+    images,
+    originalPrice,
+    isOnSale: rawProduct.is_on_sale ?? rawProduct.isOnSale ?? (computedDiscount !== null),
+    discountPercentage: rawProduct.discount_percentage ?? rawProduct.discountPercentage ?? computedDiscount,
+    saleBadge: rawProduct.sale_badge ?? rawProduct.saleBadge ?? (computedDiscount ? `${computedDiscount}% OFF` : null)
+  };
+}
+
+/**
+ * Attempt multiple SSENSE scraping strategies (simple -> puppeteer -> fallback -> Firecrawl)
+ */
+async function scrapeSsenseWithFallbacks(url, { allowFirecrawl = true } = {}) {
+  const strategies = [
+    {
+      name: 'SSENSE simple scraper',
+      runner: async () => {
+        const result = await scrapeSsenseSimple(url);
+        return result ? { success: true, product: normalizeSsenseProduct(result, url) } : null;
+      }
+    },
+    {
+      name: 'SSENSE Puppeteer scraper',
+      runner: async () => {
+        const result = await scrapeSsense(url);
+        return result ? { success: true, product: normalizeSsenseProduct(result, url) } : null;
+      }
+    },
+    {
+      name: 'SSENSE fallback scraper',
+      runner: async () => {
+        const result = await scrapeSsenseFallback(url);
+        if (result?.blocked) {
+          return {
+            success: false,
+            blocked: true,
+            error: result.message || 'SSENSE is blocking automated requests',
+            product: normalizeSsenseProduct(result, url)
+          };
+        }
+        return result ? { success: true, product: normalizeSsenseProduct(result, url) } : null;
+      }
+    }
+  ];
+
+  if (allowFirecrawl) {
+    const selectedParser = getFirecrawlParser();
+    if (selectedParser) {
+      strategies.push({
+        name: 'Firecrawl parser (fallback)',
+        runner: async () => {
+          const firecrawlResult = await selectedParser.scrape(url);
+          if (!firecrawlResult?.success) {
+            throw new Error(firecrawlResult?.error || 'Firecrawl scrape failed');
+          }
+          return {
+            success: true,
+            product: normalizeSsenseProduct(firecrawlResult.product, url)
+          };
+        }
+      });
+    }
+  }
+
+  const errors = [];
+
+  for (const strategy of strategies) {
+    try {
+      console.log(`🔄 Attempting ${strategy.name}...`);
+      const result = await strategy.runner();
+
+      if (!result) {
+        console.log(`ℹ️ ${strategy.name} returned no data, moving on...`);
+        continue;
+      }
+
+      if (result.blocked) {
+        console.warn(`🚫 ${strategy.name} indicates SSENSE is blocking requests`);
+        return {
+          success: false,
+          error: result.error || 'SSENSE is blocking requests',
+          blocked: true,
+          product: result.product || null
+        };
+      }
+
+      if (result.success && result.product) {
+        console.log(`✅ ${strategy.name} succeeded`);
+        return {
+          success: true,
+          product: result.product
+        };
+      }
+
+      if (result.error) {
+        errors.push({ strategy: strategy.name, error: result.error });
+      }
+    } catch (err) {
+      const message = err?.message || 'Unknown error';
+      errors.push({ strategy: strategy.name, error: message });
+      console.error(`❌ ${strategy.name} failed:`, message);
+    }
+  }
+
+  console.error('❌ All SSENSE strategies failed', errors);
+
+  return {
+    success: false,
+    error: 'All SSENSE strategies failed',
+    details: errors
+  };
+}
+
 // Helper function to get scraper by site name
 function getScraperFunction(siteName) {
   return SCRAPER_REGISTRY[siteName] || null;
@@ -235,7 +398,7 @@ const FIRECRAWL_REQUIRED_SITES = [
   'rei.com',  // REI has strong bot detection, always use Firecrawl
   'ralphlauren.com',  // Ralph Lauren blocks standard scrapers, use Firecrawl
   'net-a-porter.com',  // Net-a-Porter has enterprise bot protection, use Firecrawl
-  'ssense.com'  // SSENSE requires Firecrawl for high-resolution image extraction
+  'aritzia.com'  // Aritzia returns 403 for all standard requests, use Firecrawl
 ];
 
 // Sites that can use Firecrawl as fallback if primary scraper fails
@@ -246,6 +409,11 @@ const FIRECRAWL_FALLBACK_SITES = [
 // Site detection function
 const detectSite = (url) => {
   const hostname = new URL(url).hostname.toLowerCase();
+
+  // SSENSE uses dedicated scrapers with Firecrawl fallback
+  if (hostname.includes('ssense.com')) {
+    return 'ssense';
+  }
 
   // Check if site requires Firecrawl
   const requiresFirecrawl = FIRECRAWL_REQUIRED_SITES.some(site =>
@@ -343,9 +511,7 @@ const detectSite = (url) => {
   if (hostname.includes('madewell.')) {
     return 'madewell';
   }
-  if (hostname.includes('aritzia.')) {
-    return 'aritzia';
-  }
+  // Aritzia removed - now handled by FIRECRAWL_REQUIRED_SITES above
   if (hostname.includes('lululemon.')) {
     return 'lululemon';
   }
@@ -449,7 +615,8 @@ const scrapeProduct = async (url, options = {}) => {
     'nordstrom.com',
     'saksfifthavenue.com',
     'saks.com',
-    'wconcept.com'
+    'wconcept.com',
+    'ssense.com'
   ];
 
   const shouldSkipUniversal = skipUniversalSites.some(site => hostname.includes(site));
@@ -545,41 +712,73 @@ const scrapeProduct = async (url, options = {}) => {
 
   try {
     switch (site) {
-      case 'firecrawl':
+      case 'firecrawl': {
         console.log('🔥 Using Firecrawl for enterprise bot detection bypass');
         const selectedParser = getFirecrawlParser();
 
+        const respondWithFirecrawlResult = (firecrawlResult) => {
+          if (firecrawlResult?.success) {
+            const product = firecrawlResult.product;
+            product.category = detectCategory(
+              product.product_name || '',
+              product.description || '',
+              product.brand || '',
+              null
+            );
+
+            return {
+              success: true,
+              product
+            };
+          }
+          return firecrawlResult || {
+            success: false,
+            error: 'Firecrawl parsing failed'
+          };
+        };
+
         if (!selectedParser) {
           console.log('❌ No Firecrawl parser available');
+          if (hostname.includes('ssense.com')) {
+            return await scrapeSsenseWithFallbacks(url, { allowFirecrawl: false });
+          }
           return {
             success: false,
             error: 'Firecrawl parser not configured'
           };
         }
 
-        const firecrawlResult = await selectedParser.scrape(url);
-
-        if (firecrawlResult.success) {
-          const product = firecrawlResult.product;
-
-          // Detect category
-          product.category = detectCategory(
-            product.product_name || '',
-            product.description || '',
-            product.brand || '',
-            null
-          );
-
-          return {
-            success: true,
-            product: product
+        let firecrawlResult;
+        try {
+          firecrawlResult = await selectedParser.scrape(url);
+        } catch (error) {
+          console.error('❌ Firecrawl parser threw an error:', error.message);
+          firecrawlResult = {
+            success: false,
+            error: error.message || 'Firecrawl parser error'
           };
-        } else {
-          // Firecrawl failed - return the failure result
-          // Note: SSENSE requires Firecrawl for high-quality image extraction
-          console.log('⚠️ Firecrawl parsing failed');
-          return firecrawlResult;
         }
+
+        if (firecrawlResult?.success) {
+          return respondWithFirecrawlResult(firecrawlResult);
+        }
+
+        console.log('⚠️ Firecrawl parsing failed');
+
+        if (hostname.includes('ssense.com')) {
+          const fallback = await scrapeSsenseWithFallbacks(url, { allowFirecrawl: false });
+          if (fallback) {
+            return fallback;
+          }
+        }
+
+        return respondWithFirecrawlResult(firecrawlResult);
+      }
+
+      case 'ssense': {
+        console.log('🧥 Using dedicated SSENSE scrapers');
+        return await scrapeSsenseWithFallbacks(url, { allowFirecrawl: true });
+      }
 
       case 'amazon':
         console.log('🛒 Using Amazon scraper');
@@ -1296,22 +1495,6 @@ const scrapeProduct = async (url, options = {}) => {
       case 'madewell':
         console.log('👖 Using Madewell scraper');
         return await scrapeMadewell(url);
-
-      case 'aritzia':
-        console.log('🍁 Using Firecrawl for Aritzia (bypasses 403)');
-        if (firecrawlParserV2 && firecrawlParserV2.apiKey) {
-          try {
-            const firecrawlResult = await firecrawlParserV2.parse(url);
-            if (firecrawlResult && !firecrawlResult.error) {
-              return firecrawlResult;
-            }
-          } catch (firecrawlError) {
-            console.log('⚠️ Firecrawl failed for Aritzia:', firecrawlError.message);
-          }
-        }
-        // Fallback to regular scraper if Firecrawl fails
-        console.log('🍁 Falling back to Aritzia scraper');
-        return await scrapeAritzia(url);
 
       case 'lululemon':
         console.log('🍋 Using Lululemon scraper');
