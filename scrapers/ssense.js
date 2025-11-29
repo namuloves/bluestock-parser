@@ -116,72 +116,73 @@ async function scrapeSsense(url) {
 
       // Extract all image URLs - focus on product images
       const extractImages = () => {
-        const images = [];
         const productImageUrls = new Set();
 
-        // First, try to get the current product ID from the URL or page
-        const productId = window.location.pathname.match(/\/(\d+)$/)?.[1];
-
-        // Strategy 1: Look for main product image gallery
-        // These are usually in a carousel or image viewer
-        document.querySelectorAll('.pdp__image img, .product-image img, [class*="gallery"] img, [class*="carousel"] img').forEach(img => {
-          if (img.src && img.src.includes('ssensemedia.com')) {
-            // Only add if it contains the product ID or is clearly a product image
-            if (!productId || img.src.includes(productId)) {
-              productImageUrls.add(img.src.split('?')[0]);
+        // Get the SKU from JSON-LD if available
+        const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+        let jsonLdSku = null;
+        for (const script of scripts) {
+          try {
+            const data = JSON.parse(script.textContent);
+            if (data['@type'] === 'Product' && data.sku) {
+              jsonLdSku = data.sku;
+              break;
             }
+          } catch (e) {
+            // Continue
           }
-        });
-
-        // Strategy 2: Check picture elements for main product images
-        document.querySelectorAll('picture img').forEach(img => {
-          if (img.src && img.src.includes('ssensemedia.com')) {
-            // Check if the image URL contains the product ID
-            if (productId && img.src.includes(productId)) {
-              productImageUrls.add(img.src.split('?')[0]);
-            } else if (productImageUrls.size === 0) {
-              // If we haven't found any product images yet, be less strict
-              productImageUrls.add(img.src.split('?')[0]);
-            }
-          }
-        });
-
-        // Strategy 3: Check data attributes
-        document.querySelectorAll('[data-src*="ssensemedia"]').forEach(el => {
-          const src = el.getAttribute('data-src');
-          if (src) {
-            if (!productId || src.includes(productId)) {
-              productImageUrls.add(src.split('?')[0]);
-            }
-          }
-        });
-
-        // Strategy 4: Look for thumbnails that might contain all product images
-        document.querySelectorAll('.thumbnail img, [class*="thumb"] img').forEach(img => {
-          if (img.src && img.src.includes('ssensemedia.com')) {
-            // Convert thumbnail URL to full size
-            const fullSizeSrc = img.src.replace(/_\d+x\d+/, '').split('?')[0];
-            if (!productId || fullSizeSrc.includes(productId)) {
-              productImageUrls.add(fullSizeSrc);
-            }
-          }
-        });
-
-        // Convert Set to Array and filter for unique product images
-        let finalImages = Array.from(productImageUrls);
-
-        // If we still have no images, fall back to any SSENSE images
-        if (finalImages.length === 0) {
-          document.querySelectorAll('img').forEach(img => {
-            if (img.src && img.src.includes('ssensemedia.com')) {
-              finalImages.push(img.src.split('?')[0]);
-            }
-          });
-          // Limit to first 10 if using fallback
-          finalImages = finalImages.slice(0, 10);
         }
 
-        return finalImages;
+        if (!jsonLdSku) {
+          console.error('Could not find product SKU');
+          return [];
+        }
+
+        // Strategy 1: Extract from picture elements (SSENSE uses srcset)
+        // Look for picture sources with the product SKU
+        document.querySelectorAll('picture source, picture img').forEach(el => {
+          const srcset = el.srcset || el.src;
+          if (srcset && srcset.includes(jsonLdSku)) {
+            // SSENSE srcset format is just a single URL (no "1x" or "2x" suffixes)
+            // The URL contains Cloudinary parameters with commas, so don't split by comma
+            if (srcset.includes('ssensemedia.com')) {
+              // Clean the URL - remove any trailing whitespace or params after the file path
+              const cleanUrl = srcset.trim().split(' ')[0];
+              productImageUrls.add(cleanUrl);
+            }
+          }
+        });
+
+        // Strategy 2: Also check img elements with the SKU
+        document.querySelectorAll('img').forEach(img => {
+          if (img.src && img.src.includes('ssensemedia.com') && img.src.includes(jsonLdSku)) {
+            productImageUrls.add(img.src.split('?')[0]);
+          }
+        });
+
+        // Convert Set to Array and deduplicate by image number
+        // SSENSE uses format: ...252814F095000_1/... where the number after _ is the image variant
+        const finalImages = Array.from(productImageUrls);
+
+        // Extract unique image numbers (e.g., _1, _2, _3, _4)
+        const imagesByNumber = new Map();
+        finalImages.forEach(url => {
+          const match = url.match(new RegExp(`${jsonLdSku}_(\\d+)`));
+          if (match) {
+            const imageNumber = match[1];
+            // Keep the highest quality version (f_auto,c_limit,h_2800)
+            if (!imagesByNumber.has(imageNumber) || url.includes('h_2800')) {
+              imagesByNumber.set(imageNumber, url);
+            }
+          }
+        });
+
+        // Sort by image number and return
+        const sortedImages = Array.from(imagesByNumber.entries())
+          .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+          .map(([_, url]) => url);
+
+        return sortedImages.slice(0, 15);
       };
 
       // Extract sizes with multiple strategies
@@ -271,8 +272,10 @@ async function scrapeSsense(url) {
           originalPrice: getText('[class*="original"]') ||
                         getText('[class*="crossed"]'),
 
-          description: getText('.pdp-product-details__content') ||
+          description: getText('.pdp-product-description') ||
+                      getText('.pdp-product-details__content') ||
                       getText('[class*="product-details"]') ||
+                      getText('[class*="product-description"]') ||
                       getText('[class*="description"]'),
 
           // Get all image URLs using the new extraction method
@@ -321,7 +324,7 @@ async function scrapeSsense(url) {
       price: jsonLd?.offers?.price || cleanPrice(pageData.price) || 0,
       originalPrice: cleanPrice(pageData.originalPrice),
       currency: jsonLd?.offers?.priceCurrency || 'USD',
-      description: jsonLd?.description || pageData.description || '',
+      description: pageData.description || jsonLd?.description || '',
       images: pageData.images?.length > 0 ? pageData.images : 
               (jsonLd?.image ? [jsonLd.image] : []),
       sizes: pageData.sizes || [],
@@ -341,11 +344,44 @@ async function scrapeSsense(url) {
       }
     }
     
-    // Extract materials from description
+    // Extract materials and details from description
     if (result.description) {
+      // Extract percentage-based materials (e.g., "100% cotton")
       const materialMatches = result.description.match(/(\d+%\s+\w+)/g);
       if (materialMatches) {
         result.materials = materialMatches;
+      }
+
+      // Extract specific material mentions (e.g., "950 sterling silver")
+      const materialDetails = result.description.match(/\d+\s+sterling\s+silver/i);
+      if (materialDetails && !result.materials.length) {
+        result.materials = [materialDetails[0]];
+      }
+
+      // Extract origin information (e.g., "Made in Japan")
+      const madeInMatch = result.description.match(/Made in ([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i);
+      if (madeInMatch) {
+        result.origin = madeInMatch[1];
+      }
+
+      // Extract additional details like "Logo engraved at inner band"
+      // First, remove the supplier color section and everything after it
+      const cleanedDescription = result.description.split(/Supplier color:/i)[0];
+
+      const detailLines = cleanedDescription
+        .split(/\n|·/)
+        .map(line => line.trim())
+        .filter(line =>
+          line.length > 0 &&
+          !line.match(/^\d+%/) &&
+          !line.match(/^Made in/i) &&
+          !line.match(/^\d+\s+sterling/i) &&
+          !line.match(/^\d{12,}$/) && // Filter out SKU numbers (12+ digits)
+          line.length > 3 // Filter out very short lines
+        );
+
+      if (detailLines.length > 0) {
+        result.details = detailLines;
       }
     }
     

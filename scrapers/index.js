@@ -243,6 +243,8 @@ function normalizeSsenseProduct(rawProduct = {}, url) {
       (Array.isArray(rawProduct.materials) ? rawProduct.materials.join(', ') : ''),
     platform: rawProduct.platform || 'ssense',
     currency: rawProduct.currency || 'USD',
+    origin: rawProduct.origin || '',
+    details: rawProduct.details || [],
 
     // Legacy fields
     name: productName,
