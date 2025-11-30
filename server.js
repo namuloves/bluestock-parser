@@ -777,11 +777,31 @@ app.post('/scrape', async (req, res) => {
     // CURRENCY DETECTION (NO CONVERSION - KEEP ORIGINAL PRICES)
     console.log('💱 Detecting currency...');
     try {
-      // First check if parser already detected currency
-      if (productData.currency && productData.currency !== 'USD') {
-        console.log(`💰 Using parser-detected currency: ${productData.currency}`);
-      } else {
-        // Fallback to currency detector
+      let finalCurrency = null;
+      let currencySource = 'unknown';
+
+      // Priority 1: Displayed price currency (from GenericExtractor)
+      if (productData.currency && productData.currency_source === 'displayed') {
+        finalCurrency = productData.currency;
+        currencySource = 'displayed_price';
+        console.log(`💰 Using displayed price currency: ${finalCurrency}`);
+      }
+      // Priority 2: Parser-detected currency from JSON-LD (but lower priority)
+      else if (productData.currency && productData.currency_source === 'jsonld') {
+        // JSON-LD currency might not match what US visitors see
+        // Only use it if we don't have displayed price currency
+        finalCurrency = productData.currency;
+        currencySource = 'jsonld';
+        console.log(`💰 Using JSON-LD currency: ${finalCurrency} (may differ from displayed price)`);
+      }
+      // Priority 3: Any other parser-detected currency
+      else if (productData.currency) {
+        finalCurrency = productData.currency;
+        currencySource = 'parser';
+        console.log(`💰 Using parser-detected currency: ${finalCurrency}`);
+      }
+      // Priority 4: Fallback to currency detector
+      else {
         const currencyDetector = getCurrencyDetector();
 
         // Get HTML content for detection (if available)
@@ -794,11 +814,14 @@ app.post('/scrape', async (req, res) => {
 
         // Detect currency
         const currencyInfo = currencyDetector.detect(htmlContent, url, priceText);
-        console.log(`💰 Detected currency: ${currencyInfo.currency} (confidence: ${currencyInfo.confidence}, source: ${currencyInfo.source})`);
-
-        // Store currency info
-        productData.currency = currencyInfo.currency;
+        finalCurrency = currencyInfo.currency;
+        currencySource = currencyInfo.source;
+        console.log(`💰 Detected currency: ${finalCurrency} (confidence: ${currencyInfo.confidence}, source: ${currencyInfo.source})`);
       }
+
+      // Store final currency
+      productData.currency = finalCurrency;
+      productData.currency_detection_source = currencySource;
 
       // Keep prices as-is in their original currency
       console.log(`💵 Storing price as: ${productData.sale_price || productData.price} ${productData.currency}`);

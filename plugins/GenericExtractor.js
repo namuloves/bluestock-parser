@@ -27,7 +27,17 @@ class GenericExtractor {
     data.name = this.extractName($);
 
     // Extract price - be aggressive in finding it
-    data.price = this.extractPrice($);
+    const priceInfo = this.extractPriceWithCurrency($);
+    if (priceInfo) {
+      data.price = priceInfo.price;
+      if (priceInfo.currency) {
+        data.currency = priceInfo.currency;
+        data.currency_source = 'displayed';
+      }
+      if (priceInfo.price_text) {
+        data.price_text = priceInfo.price_text;
+      }
+    }
 
     // Extract images - find all product images
     data.images = this.extractImages($, url);
@@ -86,7 +96,100 @@ class GenericExtractor {
   }
 
   /**
-   * Extract price aggressively
+   * Extract price with currency information
+   */
+  extractPriceWithCurrency($) {
+    // Look for price with currency symbol in multiple places
+    const pricePatterns = [
+      // Common price selectors
+      '.price', '.product-price', '.current-price', '.sale-price',
+      '.price-now', '.price-current', '.product-price-value',
+      '[data-price]', '[data-product-price]', '.money',
+      '.price--on-sale', '.price-item--sale',
+      'span[itemprop="price"]', '.product__price', '.price__regular',
+      '[class*="price"]:not([class*="compare"])'
+    ];
+
+    for (const selector of pricePatterns) {
+      const element = $(selector).first();
+      if (element.length > 0) {
+        const text = element.text().trim();
+        const priceInfo = this.parsePriceText(text);
+        if (priceInfo && priceInfo.price > 0) {
+          return priceInfo;
+        }
+      }
+    }
+
+    // Search body text for price with currency
+    const bodyText = $('body').text();
+    const priceRegex = /([\$£€]\s*\d+(?:[,\.]\d{3})*(?:[,\.]\d{2})?|\d+(?:[,\.]\d{3})*(?:[,\.]\d{2})?\s*(?:USD|EUR|GBP|CAD|AUD))/gi;
+    const matches = [...bodyText.matchAll(priceRegex)];
+
+    for (const match of matches) {
+      const priceInfo = this.parsePriceText(match[0]);
+      if (priceInfo && priceInfo.price > 0 && priceInfo.price < 100000) {
+        return priceInfo;
+      }
+    }
+
+    // Fallback to old method
+    const price = this.extractPrice($);
+    return price ? { price, currency: null, price_text: null } : null;
+  }
+
+  /**
+   * Parse price text and extract currency
+   */
+  parsePriceText(text) {
+    if (!text) return null;
+
+    const currencySymbols = {
+      '$': 'USD',
+      '€': 'EUR',
+      '£': 'GBP',
+      '¥': 'JPY',
+      'A$': 'AUD',
+      'C$': 'CAD'
+    };
+
+    const currencyCodes = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'NZD', 'CHF', 'SEK', 'NOK', 'DKK'];
+
+    // Check for currency symbol
+    for (const [symbol, code] of Object.entries(currencySymbols)) {
+      if (text.includes(symbol)) {
+        const price = this.parsePrice(text);
+        if (price > 0) {
+          return {
+            price,
+            currency: code,
+            price_text: text.trim()
+          };
+        }
+      }
+    }
+
+    // Check for currency code
+    for (const code of currencyCodes) {
+      if (text.toUpperCase().includes(code)) {
+        const price = this.parsePrice(text);
+        if (price > 0) {
+          return {
+            price,
+            currency: code,
+            price_text: text.trim()
+          };
+        }
+      }
+    }
+
+    // No currency found, just return price
+    const price = this.parsePrice(text);
+    return price > 0 ? { price, currency: null, price_text: text.trim() } : null;
+  }
+
+  /**
+   * Extract price aggressively (legacy method)
    */
   extractPrice($) {
     // First check add to cart button - often has the real selected variant price!

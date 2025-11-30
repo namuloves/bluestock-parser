@@ -91,14 +91,19 @@ class JsonLdPlugin {
 
       if (offers.price) {
         data.price = this.parsePrice(offers.price);
+        // Store original price with currency for reference
+        data.price_raw = offers.price;
       }
 
       if (offers.lowPrice) {
         data.price = this.parsePrice(offers.lowPrice);
+        data.price_raw = offers.lowPrice;
       }
 
       if (offers.priceCurrency) {
         data.currency = offers.priceCurrency;
+        // Mark this as JSON-LD sourced currency (might not match displayed price)
+        data.currency_source = 'jsonld';
       }
 
       if (offers.availability) {
