@@ -120,6 +120,7 @@ const { scrapeChiclara } = require('./chiclara');
 const { scrapeGalleryDept } = require('./gallerydept');
 const { scrapeBoden } = require('./boden');
 const { scrapeWConcept } = require('./wconcept');
+const scrapeOurLegacy = require('./ourlegacy');
 // const { scrapeArket } = require('./arket'); // Removed - Arket blocks HTTP, uses Universal Parser
 const { detectCategory } = require('../utils/categoryDetection');
 const FirecrawlParser = require('./firecrawl-parser');
@@ -417,6 +418,11 @@ const detectSite = (url) => {
     return 'ssense';
   }
 
+  // Our Legacy uses Puppeteer scraper for JavaScript-rendered prices
+  if (hostname.includes('ourlegacy.com')) {
+    return 'ourlegacy';
+  }
+
   // Check if site requires Firecrawl
   const requiresFirecrawl = FIRECRAWL_REQUIRED_SITES.some(site =>
     hostname.includes(site)
@@ -618,7 +624,8 @@ const scrapeProduct = async (url, options = {}) => {
     'saksfifthavenue.com',
     'saks.com',
     'wconcept.com',
-    'ssense.com'
+    'ssense.com',
+    'ourlegacy.com'
   ];
 
   const shouldSkipUniversal = skipUniversalSites.some(site => hostname.includes(site));
@@ -780,6 +787,51 @@ const scrapeProduct = async (url, options = {}) => {
       case 'ssense': {
         console.log('🧥 Using dedicated SSENSE scrapers');
         return await scrapeSsenseWithFallbacks(url, { allowFirecrawl: true });
+      }
+
+      case 'ourlegacy': {
+        console.log('👕 Using Our Legacy Puppeteer scraper');
+        const ourLegacyResult = await scrapeOurLegacy(url);
+        if (ourLegacyResult.success && ourLegacyResult.product) {
+          // Normalize to expected format
+          const product = {
+            product_name: ourLegacyResult.product.name,
+            brand: ourLegacyResult.product.brand || 'Our Legacy',
+            original_price: ourLegacyResult.product.price || 0,
+            sale_price: ourLegacyResult.product.price || 0,
+            is_on_sale: false,
+            discount_percentage: null,
+            image_urls: ourLegacyResult.product.images || [],
+            description: ourLegacyResult.product.description || '',
+            currency: ourLegacyResult.product.currency || 'USD',
+            currency_detection_source: ourLegacyResult.product.currency_source || 'displayed',
+            price_text: ourLegacyResult.product.price_text,
+            vendor_url: url,
+            material: Array.isArray(ourLegacyResult.product.materials)
+              ? ourLegacyResult.product.materials.join(', ')
+              : '',
+            category: detectCategory(
+              ourLegacyResult.product.name || '',
+              ourLegacyResult.product.description || '',
+              'Our Legacy',
+              ''
+            ),
+            platform: 'ourlegacy',
+            extraction_method: 'ourlegacy-puppeteer',
+
+            // Legacy fields
+            name: ourLegacyResult.product.name,
+            price: ourLegacyResult.product.price || 0,
+            images: ourLegacyResult.product.images || [],
+            sku: ourLegacyResult.product.sku || ''
+          };
+
+          return {
+            success: true,
+            product
+          };
+        }
+        return ourLegacyResult;
       }
 
       case 'amazon':
