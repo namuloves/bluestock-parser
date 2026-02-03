@@ -109,6 +109,7 @@ const { scrapeFarfetch } = require('./farfetch');
 const { scrapeStories } = require('./stories');
 const { scrapeMytheresa, isMytheresaStore } = require('./mytheresa');
 const { scrapeClothbase, isClothbase } = require('./clothbase');
+const { scrapeKolonmall } = require('./kolonmall');
 const { scrapeArcteryx, isArcteryx } = require('./arcteryx');
 const { scrapeSongForTheMute, isSongForTheMute } = require('./songforthemute');
 const { scrapeMassimoDutti } = require('./massimodutti');
@@ -837,6 +838,29 @@ const scrapeProduct = async (url, options = {}) => {
           };
         }
         return ourLegacyResult;
+      }
+
+      case 'kolonmall': {
+        console.log('🛍️ Using Kolonmall scraper');
+        const kmResult = await scrapeKolonmall(url);
+
+        const kmProduct = kmResult?.product || kmResult || {};
+
+        return {
+          success: kmResult?.success !== false,
+          product: {
+            ...kmProduct,
+            product_name: kmProduct.product_name || kmProduct.name || '',
+            name: kmProduct.product_name || kmProduct.name || '',
+            brand: kmProduct.brand || 'Kolon Mall',
+            original_price: kmProduct.original_price ?? kmProduct.price ?? 0,
+            sale_price: kmProduct.sale_price ?? kmProduct.price ?? 0,
+            image_urls: kmProduct.image_urls || kmProduct.images || [],
+            images: kmProduct.image_urls || kmProduct.images || [],
+            vendor_url: url,
+            platform: 'kolonmall'
+          }
+        };
       }
 
       case 'amazon':
@@ -2478,15 +2502,16 @@ const scrapeProduct = async (url, options = {}) => {
           console.log(`✨ Using auto-discovered scraper for: ${site}`);
           try {
             const autoResult = await autoDiscoveredScraper(url);
+            const productData = autoResult && autoResult.product ? autoResult.product : autoResult || {};
             return {
-              success: !autoResult.error,
+              success: autoResult?.success !== false && !autoResult?.error,
               product: {
-                ...autoResult,
-                product_name: autoResult.name || autoResult.product_name,
-                brand: autoResult.brand || 'Unknown',
-                original_price: autoResult.originalPrice || autoResult.price || 0,
-                sale_price: autoResult.price || 0,
-                image_urls: autoResult.images || [],
+                ...productData,
+                product_name: productData.name || productData.product_name,
+                brand: productData.brand || 'Unknown',
+                original_price: productData.originalPrice || productData.price || productData.original_price || 0,
+                sale_price: productData.price || productData.sale_price || 0,
+                image_urls: productData.image_urls || productData.images || [],
                 vendor_url: url,
                 platform: site
               }
