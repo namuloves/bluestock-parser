@@ -436,7 +436,7 @@ app.post('/scrape', async (req, res) => {
 
     // Check if this requires a dedicated scraper - use dedicated scraper for better results
     const hostname = new URL(url).hostname.toLowerCase();
-    const useDedicatedScraper = hostname.includes('zara.com') ||
+  const useDedicatedScraper = hostname.includes('zara.com') ||
                                hostname.includes('ebay.com') ||
                                hostname.includes('ebay.') ||
                                hostname.includes('wconcept.com') ||
@@ -444,7 +444,8 @@ app.post('/scrape', async (req, res) => {
                                hostname.includes('aritzia.com') ||  // Requires Firecrawl (403 without it)
                                hostname.includes('rei.com') ||  // Requires Firecrawl
                                hostname.includes('ralphlauren.com') ||  // Requires Firecrawl
-                               hostname.includes('net-a-porter.com');  // Requires Firecrawl
+                               hostname.includes('net-a-porter.com') ||  // Requires Firecrawl
+                               hostname.includes('kolonmall.com');  // Use dedicated scraper for hi-res images/prices
 
     // Import Quality Gate for validation
     const { getQualityGate } = require('./utils/qualityGate');

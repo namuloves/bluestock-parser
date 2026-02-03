@@ -435,6 +435,10 @@ const detectSite = (url) => {
     return 'firecrawl';
   }
 
+  if (hostname.includes('kolonmall.')) {
+    return 'kolonmall';
+  }
+
   if (hostname.includes('amazon.')) {
     return 'amazon';
   }
@@ -625,7 +629,8 @@ const scrapeProduct = async (url, options = {}) => {
     'saks.com',
     'wconcept.com',
     'ssense.com',
-    'ourlegacy.com'
+    'ourlegacy.com',
+    'kolonmall.com'
   ];
 
   const shouldSkipUniversal = skipUniversalSites.some(site => hostname.includes(site));
