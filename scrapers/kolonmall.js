@@ -57,6 +57,7 @@ async function scrapeKolonmall(url) {
   const salePrice = priceObj?.price || null;
   const originalPrice = priceObj?.wishPrice || salePrice || null;
   const currency = priceObj?.currencyIso || 'KRW';
+  const currencySource = currency ? 'parser' : 'unknown';
   const discountPercentage = priceObj?.discountRate ?? (
     originalPrice && salePrice && originalPrice > salePrice
       ? Math.round((1 - salePrice / originalPrice) * 100)
@@ -80,6 +81,9 @@ async function scrapeKolonmall(url) {
       is_on_sale: originalPrice ? originalPrice > (salePrice || 0) : false,
       discount_percentage: discountPercentage,
       currency,
+      currency_source: currencySource,
+      currency_detection_source: currencySource,
+      price_text: priceObj?.formattedPrice || '',
       image_urls: imageList,
       description,
       vendor_url: url,

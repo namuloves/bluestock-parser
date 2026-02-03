@@ -782,8 +782,14 @@ app.post('/scrape', async (req, res) => {
       let finalCurrency = null;
       let currencySource = 'unknown';
 
+      // If currency already has a source, respect it and skip detection
+      if (productData.currency && (productData.currency_detection_source || productData.currency_source)) {
+        finalCurrency = productData.currency;
+        currencySource = productData.currency_detection_source || productData.currency_source;
+        console.log(`💰 Keeping existing currency: ${finalCurrency} (source: ${currencySource})`);
+      }
       // Priority 1: Displayed price currency (from GenericExtractor)
-      if (productData.currency && productData.currency_source === 'displayed') {
+      else if (productData.currency && productData.currency_source === 'displayed') {
         finalCurrency = productData.currency;
         currencySource = 'displayed_price';
         console.log(`💰 Using displayed price currency: ${finalCurrency}`);
