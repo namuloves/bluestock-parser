@@ -404,7 +404,8 @@ app.post('/scrape', async (req, res) => {
                              url.includes('net-a-porter.com') ||
                              url.includes('ssense.com') ||
                              url.includes('fwrd.com') ||
-                             url.includes('rei.com');
+                             url.includes('rei.com') ||
+                             url.includes('kolonmall.com'); // Larger image set, allow more time
   
   // Set a timeout for the entire request (60 seconds for protected sites, 30 for others)
   const timeoutDuration = needsLongerTimeout ? 60000 : 30000;
