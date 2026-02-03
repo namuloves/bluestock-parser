@@ -7,13 +7,48 @@ const cheerio = require('cheerio');
  * - Extracts prices from embedded JSON (price, wishPrice, currencyIso)
  */
 async function scrapeKolonmall(url) {
+  const useFallback = async () => {
+    try {
+      const parser = getFallbackParser();
+      const result = await parser.parse(url);
+      return {
+        success: !!result,
+        product: {
+          product_name: result?.name || '',
+          name: result?.name || '',
+          brand: result?.brand || 'Kolon Mall',
+          sale_price: result?.sale_price ?? result?.price ?? 0,
+          original_price: result?.original_price ?? result?.price ?? 0,
+          currency: result?.currency || 'KRW',
+          currency_source: result?.currency ? 'universal' : 'unknown',
+          currency_detection_source: result?.currency ? 'universal' : 'unknown',
+          price_text: result?.priceText || '',
+          image_urls: result?.images || [],
+          images: result?.images || [],
+          description: result?.description || '',
+          vendor_url: url,
+          platform: 'kolonmall',
+          source: 'kolonmall-fallback'
+        }
+      };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  };
+
   const headers = {
     'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     'accept-language': 'en-US,en;q=0.8,ko;q=0.6'
   };
 
-  const response = await axios.get(url, { headers });
-  const html = response.data;
+  let html;
+  try {
+    const response = await axios.get(url, { headers });
+    html = response.data;
+  } catch (e) {
+    return useFallback();
+  }
+
   const $ = cheerio.load(html);
 
   // Try to infer the product code from the URL to keep images scoped
@@ -40,7 +75,19 @@ async function scrapeKolonmall(url) {
     images.add(imgUrl);
   }
 
-  const imageList = Array.from(images);
+  let imageList = Array.from(images);
+
+  // Prefer high-res LZ variants; if present, drop lower-quality variants (LL/LM/LS)
+  const lzOnly = imageList.filter(url =>
+    /\/LZ\d+\//i.test(url) || /_LZ\d+\./i.test(url) || /\/LZ\//i.test(url)
+  );
+  if (lzOnly.length > 0) {
+    imageList = lzOnly;
+  }
+
+  if (imageList.length === 0) {
+    return useFallback();
+  }
 
   // Extract price block from embedded JSON
   let priceObj = null;
@@ -58,6 +105,9 @@ async function scrapeKolonmall(url) {
   const originalPrice = priceObj?.wishPrice || salePrice || null;
   const currency = priceObj?.currencyIso || 'KRW';
   const currencySource = currency ? 'parser' : 'unknown';
+  if (!salePrice && !originalPrice) {
+    return useFallback();
+  }
   const discountPercentage = priceObj?.discountRate ?? (
     originalPrice && salePrice && originalPrice > salePrice
       ? Math.round((1 - salePrice / originalPrice) * 100)
@@ -98,3 +148,12 @@ async function scrapeKolonmall(url) {
 }
 
 module.exports = { scrapeKolonmall };
+const UniversalParserV3 = require('../universal-parser-v3');
+
+let fallbackParser = null;
+function getFallbackParser() {
+  if (!fallbackParser) {
+    fallbackParser = new UniversalParserV3();
+  }
+  return fallbackParser;
+}
