@@ -445,6 +445,21 @@ class FirecrawlParserV2 {
       },
 
       // Luxury sites
+      'chanel.com': {
+        waitFor: 8000,  // Heavy JS rendering, editorial images load late
+        requiresProxy: true,
+        timeout: 60000,
+        location: {
+          country: 'US',
+          languages: ['en-US']
+        },
+        actions: [
+          { type: 'wait', milliseconds: 5000 },
+          { type: 'scroll', direction: 'down' },
+          { type: 'wait', milliseconds: 2000 },
+          { type: 'scroll', direction: 'down' }
+        ]
+      },
       'gucci.com': {
         waitFor: 7000,
         requiresProxy: true,

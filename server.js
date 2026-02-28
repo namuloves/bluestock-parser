@@ -92,6 +92,43 @@ const productEnhancer = new ProductEnhancer();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// ─── Site Registry ────────────────────────────────────────────────────────────
+// Single source of truth for per-site scraping config.
+// Adding a new site here is the ONLY change needed — everything else is derived.
+//
+// scraper:  'firecrawl'   → routes through FirecrawlParserV2 (bot-protected sites)
+//           'dedicated'   → routes through scrapers/index.js dedicated scraper
+//           'universal'   → default Lean/V3 pipeline (no entry needed, listed for clarity)
+// timeout:  milliseconds for the entire /scrape request timeout (default 30000)
+const SITE_REGISTRY = {
+  // ── Firecrawl required (enterprise bot protection) ──
+  'rei.com':           { scraper: 'firecrawl', timeout: 60000 },
+  'ralphlauren.com':   { scraper: 'firecrawl', timeout: 60000 },
+  'net-a-porter.com':  { scraper: 'firecrawl', timeout: 60000 },
+  'mrporter.com':      { scraper: 'firecrawl', timeout: 60000 },
+  'aritzia.com':       { scraper: 'firecrawl', timeout: 60000 },
+  'etsy.com':          { scraper: 'firecrawl', timeout: 60000 },
+  'chanel.com':        { scraper: 'firecrawl', timeout: 60000 },
+  // ── Dedicated scrapers ──
+  'zara.com':          { scraper: 'dedicated', timeout: 30000 },
+  'ebay.com':          { scraper: 'dedicated', timeout: 30000 },
+  'wconcept.com':      { scraper: 'dedicated', timeout: 30000 },
+  'ssense.com':        { scraper: 'dedicated', timeout: 60000 },
+  'fwrd.com':          { scraper: 'dedicated', timeout: 60000 },
+  'kolonmall.com':     { scraper: 'dedicated', timeout: 60000 },
+  'massimodutti.com':  { scraper: 'dedicated', timeout: 60000 },
+};
+
+// Derive per-request flags from the registry — do not edit these directly
+const getSiteConfig = (urlOrHostname) => {
+  const hostname = urlOrHostname.includes('://')
+    ? new URL(urlOrHostname).hostname.toLowerCase()
+    : urlOrHostname.toLowerCase();
+  const match = Object.keys(SITE_REGISTRY).find(domain => hostname.includes(domain));
+  return match ? SITE_REGISTRY[match] : { scraper: 'universal', timeout: 30000 };
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Add error handling for uncaught exceptions
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error);
@@ -400,19 +437,9 @@ app.get('/debug-foot', async (req, res) => {
 app.post('/scrape', async (req, res) => {
   console.log('📥 /scrape endpoint hit');
   
-  // Check if this is a Massimo Dutti URL that needs more time
   const url = req.body.url || '';
-  const needsLongerTimeout = url.includes('massimodutti.com') ||
-                             url.includes('net-a-porter.com') ||
-                             url.includes('ssense.com') ||
-                             url.includes('fwrd.com') ||
-                             url.includes('rei.com') ||
-                             url.includes('mrporter.com') || // Same NAP Group stack, needs Firecrawl time
-                             url.includes('etsy.com') || // Etsy blocks all direct requests, needs Firecrawl time
-                             url.includes('kolonmall.com'); // Larger image set, allow more time
-  
-  // Set a timeout for the entire request (60 seconds for protected sites, 30 for others)
-  const timeoutDuration = needsLongerTimeout ? 60000 : 30000;
+  const siteConfig = getSiteConfig(url);
+  const timeoutDuration = siteConfig.timeout;
   const timeout = setTimeout(() => {
     console.log(`⏱️ Request timeout after ${timeoutDuration/1000} seconds`);
     if (!res.headersSent) {
@@ -439,20 +466,8 @@ app.post('/scrape', async (req, res) => {
 
     let scrapeResult = null;
 
-    // Check if this requires a dedicated scraper - use dedicated scraper for better results
-    const hostname = new URL(url).hostname.toLowerCase();
-  const useDedicatedScraper = hostname.includes('zara.com') ||
-                               hostname.includes('ebay.com') ||
-                               hostname.includes('ebay.') ||
-                               hostname.includes('wconcept.com') ||
-                               hostname.includes('ssense.com') ||
-                               hostname.includes('aritzia.com') ||  // Requires Firecrawl (403 without it)
-                               hostname.includes('rei.com') ||  // Requires Firecrawl
-                               hostname.includes('ralphlauren.com') ||  // Requires Firecrawl
-                               hostname.includes('net-a-porter.com') ||  // Requires Firecrawl
-                               hostname.includes('mrporter.com') ||  // Requires Firecrawl (same NAP Group stack)
-                               hostname.includes('etsy.com') ||  // Requires Firecrawl (403 on all direct requests)
-                               hostname.includes('kolonmall.com');  // Use dedicated scraper for hi-res images/prices
+    // Derive scraper strategy from SITE_REGISTRY (single source of truth above)
+    const useDedicatedScraper = siteConfig.scraper === 'firecrawl' || siteConfig.scraper === 'dedicated';
 
     // Import Quality Gate for validation
     const { getQualityGate } = require('./utils/qualityGate');

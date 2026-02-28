@@ -396,16 +396,17 @@ function getFirecrawlParser() {
   }
 }
 
-// List of sites that require Firecrawl due to enterprise bot detection
-// These sites will ALWAYS use Firecrawl as primary method
+// Sites that require Firecrawl — keep in sync with SITE_REGISTRY in server.js
+// To add a new site: update SITE_REGISTRY in server.js, then add the domain here
 const FIRECRAWL_REQUIRED_SITES = [
-  'rei.com',  // REI has strong bot detection, always use Firecrawl
-  'ralphlauren.com',  // Ralph Lauren blocks standard scrapers, use Firecrawl
-  'net-a-porter.com',  // Net-a-Porter has enterprise bot protection, use Firecrawl
-  'aritzia.com',  // Aritzia returns 403 for all standard requests, use Firecrawl
-  'kolonmall.com', // Kolonmall often blocks direct fetches; prefer Firecrawl
-  'mrporter.com',  // Mr Porter has enterprise bot protection similar to Net-a-Porter
-  'etsy.com'  // Etsy returns 403 on all direct requests; requires Firecrawl
+  'rei.com',
+  'ralphlauren.com',
+  'net-a-porter.com',
+  'aritzia.com',
+  'mrporter.com',
+  'etsy.com',
+  'chanel.com',
+  'kolonmall.com',
 ];
 
 // Sites that can use Firecrawl as fallback if primary scraper fails
