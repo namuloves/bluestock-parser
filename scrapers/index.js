@@ -402,7 +402,10 @@ const FIRECRAWL_REQUIRED_SITES = [
   'rei.com',  // REI has strong bot detection, always use Firecrawl
   'ralphlauren.com',  // Ralph Lauren blocks standard scrapers, use Firecrawl
   'net-a-porter.com',  // Net-a-Porter has enterprise bot protection, use Firecrawl
-  'aritzia.com'  // Aritzia returns 403 for all standard requests, use Firecrawl
+  'aritzia.com',  // Aritzia returns 403 for all standard requests, use Firecrawl
+  'kolonmall.com', // Kolonmall often blocks direct fetches; prefer Firecrawl
+  'mrporter.com',  // Mr Porter has enterprise bot protection similar to Net-a-Porter
+  'etsy.com'  // Etsy returns 403 on all direct requests; requires Firecrawl
 ];
 
 // Sites that can use Firecrawl as fallback if primary scraper fails
@@ -595,7 +598,8 @@ const detectSite = (url) => {
     'jamesstreetco.com',
     'gimaguas.com',
     'footindustry.com',
-    'shopcatandkate.com'
+    'shopcatandkate.com',
+    'wearing-esme.com'
   ];
   
   for (const domain of shopifyDomains) {
@@ -631,7 +635,8 @@ const scrapeProduct = async (url, options = {}) => {
     'wconcept.com',
     'ssense.com',
     'ourlegacy.com',
-    'kolonmall.com'
+    'kolonmall.com',
+    'wearing-esme.com'
   ];
 
   const shouldSkipUniversal = skipUniversalSites.some(site => hostname.includes(site));
@@ -793,6 +798,59 @@ const scrapeProduct = async (url, options = {}) => {
       case 'ssense': {
         console.log('🧥 Using dedicated SSENSE scrapers');
         return await scrapeSsenseWithFallbacks(url, { allowFirecrawl: true });
+      }
+
+      case 'kolonmall': {
+        console.log('🧠 Using Firecrawl for Kolonmall (primary)');
+        const selectedParser = getFirecrawlParser();
+        if (selectedParser && selectedParser.apiKey) {
+          try {
+            const fcResult = await selectedParser.scrape(url);
+            if (fcResult?.success && fcResult.product) {
+              return {
+                success: true,
+                product: {
+                  ...fcResult.product,
+                  product_name: fcResult.product.product_name || fcResult.product.name || '',
+                  name: fcResult.product.product_name || fcResult.product.name || '',
+                  brand: fcResult.product.brand || 'Kolon Mall',
+                  vendor_url: url,
+                  platform: 'kolonmall',
+                  currency: fcResult.product.currency || 'KRW',
+                  currency_source: fcResult.product.currency ? 'firecrawl' : 'unknown',
+                  currency_detection_source: fcResult.product.currency ? 'firecrawl' : 'unknown'
+                }
+              };
+            }
+            console.log('⚠️ Firecrawl Kolonmall failed, falling back to dedicated scraper');
+          } catch (err) {
+            console.log('⚠️ Firecrawl Kolonmall error:', err.message);
+          }
+        } else {
+          console.log('⚠️ Firecrawl parser unavailable, using dedicated scraper');
+        }
+
+        // Fallback to dedicated Kolonmall scraper
+        const kmResult = await scrapeKolonmall(url);
+        const kmProduct = kmResult?.product || kmResult || {};
+        return {
+          success: kmResult?.success !== false,
+          product: {
+            ...kmProduct,
+            product_name: kmProduct.product_name || kmProduct.name || '',
+            name: kmProduct.product_name || kmProduct.name || '',
+            brand: kmProduct.brand || 'Kolon Mall',
+            original_price: kmProduct.original_price ?? kmProduct.price ?? 0,
+            sale_price: kmProduct.sale_price ?? kmProduct.price ?? 0,
+            image_urls: kmProduct.image_urls || kmProduct.images || [],
+            images: kmProduct.image_urls || kmProduct.images || [],
+            vendor_url: url,
+            platform: 'kolonmall',
+            currency: kmProduct.currency || 'KRW',
+            currency_source: kmProduct.currency_source || kmProduct.currency_detection_source || 'parser',
+            currency_detection_source: kmProduct.currency_source || kmProduct.currency_detection_source || 'parser'
+          }
+        };
       }
 
       case 'ourlegacy': {

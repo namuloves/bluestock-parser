@@ -338,6 +338,31 @@ class FirecrawlParserV2 {
           { type: 'scroll', direction: 'down' }  // Scroll again to load more images
         ]
       },
+      'mrporter.com': {
+        waitFor: 8000,  // Mr Porter is same YOOX/NAP Group stack as Net-a-Porter
+        requiresProxy: true,
+        timeout: 60000,
+        location: {
+          country: 'US',
+          languages: ['en-US']
+        },
+        actions: [
+          { type: 'wait', milliseconds: 5000 },
+          { type: 'scroll', direction: 'down' },
+          { type: 'wait', milliseconds: 2000 },
+          { type: 'scroll', direction: 'down' }
+        ]
+      },
+      'etsy.com': {
+        waitFor: 5000,  // Etsy is JS-rendered but not as slow as luxury sites
+        requiresProxy: true,  // Proxy needed to bypass 403 bot detection
+        timeout: 60000,
+        actions: [
+          { type: 'wait', milliseconds: 3000 },
+          { type: 'scroll', direction: 'down' },  // Trigger lazy-loaded images
+          { type: 'wait', milliseconds: 1500 }
+        ]
+      },
       'farfetch.com': {
         waitFor: 8000,
         requiresProxy: true,

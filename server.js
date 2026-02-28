@@ -13,6 +13,7 @@ const ProductEnhancer = require('./utils/productEnhancer');
 const healthRoutes = require('./routes/health');
 const duplicateCheckRoutes = require('./routes/duplicate-check');
 const imageProxyRoutes = require('./routes/image-proxy');
+const crawlerRoutes = require('./routes/crawler');
 const { getCDNService } = require('./services/bunny-cdn');
 const BunnyStorageService = require('./services/bunny-storage');
 const { getCurrencyDetector } = require('./services/currency-detector');
@@ -170,6 +171,7 @@ app.options('*', cors(corsOptions));
 app.use('/', healthRoutes);
 app.use('/api', duplicateCheckRoutes);
 app.use('/', imageProxyRoutes);
+app.use('/crawler', crawlerRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -405,6 +407,8 @@ app.post('/scrape', async (req, res) => {
                              url.includes('ssense.com') ||
                              url.includes('fwrd.com') ||
                              url.includes('rei.com') ||
+                             url.includes('mrporter.com') || // Same NAP Group stack, needs Firecrawl time
+                             url.includes('etsy.com') || // Etsy blocks all direct requests, needs Firecrawl time
                              url.includes('kolonmall.com'); // Larger image set, allow more time
   
   // Set a timeout for the entire request (60 seconds for protected sites, 30 for others)
@@ -446,6 +450,8 @@ app.post('/scrape', async (req, res) => {
                                hostname.includes('rei.com') ||  // Requires Firecrawl
                                hostname.includes('ralphlauren.com') ||  // Requires Firecrawl
                                hostname.includes('net-a-porter.com') ||  // Requires Firecrawl
+                               hostname.includes('mrporter.com') ||  // Requires Firecrawl (same NAP Group stack)
+                               hostname.includes('etsy.com') ||  // Requires Firecrawl (403 on all direct requests)
                                hostname.includes('kolonmall.com');  // Use dedicated scraper for hi-res images/prices
 
     // Import Quality Gate for validation
