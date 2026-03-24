@@ -109,6 +109,7 @@ const SITE_REGISTRY = {
   'aritzia.com':       { scraper: 'firecrawl', timeout: 60000 },
   'etsy.com':          { scraper: 'firecrawl', timeout: 60000 },
   'chanel.com':        { scraper: 'firecrawl', timeout: 60000 },
+  'mammut.com':        { scraper: 'firecrawl', timeout: 60000 },
   // ── Dedicated scrapers ──
   'zara.com':          { scraper: 'dedicated', timeout: 30000 },
   'ebay.com':          { scraper: 'dedicated', timeout: 30000 },
