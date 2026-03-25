@@ -407,6 +407,7 @@ const FIRECRAWL_REQUIRED_SITES = [
   'etsy.com',
   'chanel.com',
   'kolonmall.com',
+  'mammut.com',
 ];
 
 // Sites that can use Firecrawl as fallback if primary scraper fails

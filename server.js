@@ -911,8 +911,8 @@ app.post('/scrape', async (req, res) => {
       // Primary fields matching database schema
       product_name: productData.product_name || productData.name || productData.title || '',
       brand: productData.brand || 'Unknown Brand',
-      original_price: productData.original_price || productData.originalPrice || productData.price || 0,
-      sale_price: productData.sale_price || productData.price || 0,
+      original_price: parseFloat(productData.original_price || productData.originalPrice || productData.price || 0) || 0,
+      sale_price: parseFloat(productData.sale_price || productData.price || 0) || 0,
       is_on_sale: productData.is_on_sale || productData.isOnSale || productData.onSale || false,
       discount_percentage: productData.discount_percentage || productData.discountPercentage || productData.discount || null,
       sale_badge: productData.sale_badge || productData.saleBadge || null,
@@ -930,9 +930,9 @@ app.post('/scrape', async (req, res) => {
       
       // Legacy fields for backward compatibility
       name: productData.product_name || productData.name || '',
-      price: productData.sale_price || productData.price || 0,
+      price: parseFloat(productData.sale_price || productData.price || 0) || 0,
       images: productData.image_urls || productData.images || [],
-      originalPrice: productData.original_price || productData.originalPrice || 0,
+      originalPrice: parseFloat(productData.original_price || productData.originalPrice || 0) || 0,
       isOnSale: productData.is_on_sale || productData.isOnSale || false,
       discountPercentage: productData.discount_percentage || productData.discountPercentage || null,
       saleBadge: productData.sale_badge || productData.saleBadge || null
