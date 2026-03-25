@@ -934,25 +934,41 @@ class FirecrawlParserV2 {
       console.log('⚠️ No SSENSE images found in HTML or links, falling back to AI-extracted images');
     }
 
-    // Mammut-specific handling: extract all gallery images from static.mammut.com
+    // Mammut-specific handling: extract product gallery images from static.mammut.com
+    // Filter by SKU from the URL to exclude related/recommended product images
     if (hostname.includes('mammut.com')) {
       console.log(`🔍 Mammut detected - extracting product images from HTML`);
+
+      // Extract SKU from the product URL, e.g. /products/1010-30010-6433/...
+      const skuMatch = url.match(/\/products\/(\d{4}-\d{5}-\d{4})/);
+      const sku = skuMatch ? skuMatch[1] : null;
+      console.log(`📌 Mammut product SKU: ${sku || 'not found in URL'}`);
 
       const mammutImages = [];
 
       if (html) {
         // Extract all static.mammut.com image URLs from HTML
-        // Gallery images are served via cdn-cgi or direct master paths
-        const patterns = [
-          /https:\/\/static\.mammut\.com\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)/gi,
-        ];
+        const pattern = /https:\/\/static\.mammut\.com\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)/gi;
+        const matches = [...html.matchAll(pattern)];
 
-        for (const pattern of patterns) {
-          const matches = [...html.matchAll(pattern)];
+        matches.forEach(match => {
+          const imgUrl = match[0];
+          // Skip tiny thumbnails (e.g. /512/ path which is the og:image low-res)
+          if (imgUrl.includes('/512/')) return;
+          // If we found a SKU, only keep images that contain it (filters out related products)
+          if (sku && !imgUrl.includes(sku)) return;
+          if (!mammutImages.includes(imgUrl)) {
+            mammutImages.push(imgUrl);
+          }
+        });
+
+        // If SKU filter was too strict and found nothing, retry without SKU filter
+        if (mammutImages.length === 0 && sku) {
+          console.log(`⚠️ SKU filter found 0 images, retrying without SKU filter`);
           matches.forEach(match => {
             const imgUrl = match[0];
-            // Skip tiny thumbnails (e.g. /512/ path which is the og:image low-res)
-            if (!imgUrl.includes('/512/') && !mammutImages.includes(imgUrl)) {
+            if (imgUrl.includes('/512/')) return;
+            if (!mammutImages.includes(imgUrl)) {
               mammutImages.push(imgUrl);
             }
           });
@@ -963,7 +979,6 @@ class FirecrawlParserV2 {
         const deduped = mammutImages.filter(img => {
           try {
             const u = new URL(img);
-            // Key on the filename portion to avoid dupes with different CDN params
             const key = u.pathname.split('/').pop();
             if (seen.has(key)) return false;
             seen.add(key);
@@ -974,13 +989,11 @@ class FirecrawlParserV2 {
         });
 
         if (deduped.length > 0) {
-          console.log(`📸 Found ${deduped.length} Mammut product images from HTML`);
-          // Prefer cdn-cgi high-res versions; fall back to direct URLs
-          const sorted = [
-            ...deduped.filter(u => u.includes('cdn-cgi')),
-            ...deduped.filter(u => !u.includes('cdn-cgi'))
-          ];
-          return sorted.slice(0, 10);
+          // Prefer cdn-cgi high-res versions; exclude color variant thumbnails (main-png)
+          const gallery = deduped.filter(u => !u.includes('main-png'));
+          const final = gallery.length > 0 ? gallery : deduped;
+          console.log(`📸 Found ${final.length} Mammut product images from HTML (SKU: ${sku})`);
+          return final.slice(0, 10);
         }
       }
 
