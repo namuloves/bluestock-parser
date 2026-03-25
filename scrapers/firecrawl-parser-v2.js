@@ -363,6 +363,15 @@ class FirecrawlParserV2 {
           { type: 'wait', milliseconds: 1500 }
         ]
       },
+      'mammut.com': {
+        waitFor: 5000,
+        timeout: 60000,
+        actions: [
+          { type: 'wait', milliseconds: 3000 },
+          { type: 'scroll', direction: 'down' },
+          { type: 'wait', milliseconds: 1500 }
+        ]
+      },
       'farfetch.com': {
         waitFor: 8000,
         requiresProxy: true,
@@ -923,6 +932,62 @@ class FirecrawlParserV2 {
       }
 
       console.log('⚠️ No SSENSE images found in HTML or links, falling back to AI-extracted images');
+    }
+
+    // Mammut-specific handling: extract all gallery images from static.mammut.com
+    if (hostname.includes('mammut.com')) {
+      console.log(`🔍 Mammut detected - extracting product images from HTML`);
+
+      const mammutImages = [];
+
+      if (html) {
+        // Extract all static.mammut.com image URLs from HTML
+        // Gallery images are served via cdn-cgi or direct master paths
+        const patterns = [
+          /https:\/\/static\.mammut\.com\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)/gi,
+        ];
+
+        for (const pattern of patterns) {
+          const matches = [...html.matchAll(pattern)];
+          matches.forEach(match => {
+            const imgUrl = match[0];
+            // Skip tiny thumbnails (e.g. /512/ path which is the og:image low-res)
+            if (!imgUrl.includes('/512/') && !mammutImages.includes(imgUrl)) {
+              mammutImages.push(imgUrl);
+            }
+          });
+        }
+
+        // Deduplicate by filename stem (strip cdn-cgi params)
+        const seen = new Set();
+        const deduped = mammutImages.filter(img => {
+          try {
+            const u = new URL(img);
+            // Key on the filename portion to avoid dupes with different CDN params
+            const key = u.pathname.split('/').pop();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          } catch {
+            return true;
+          }
+        });
+
+        if (deduped.length > 0) {
+          console.log(`📸 Found ${deduped.length} Mammut product images from HTML`);
+          // Prefer cdn-cgi high-res versions; fall back to direct URLs
+          const sorted = [
+            ...deduped.filter(u => u.includes('cdn-cgi')),
+            ...deduped.filter(u => !u.includes('cdn-cgi'))
+          ];
+          return sorted.slice(0, 10);
+        }
+      }
+
+      // Fallback: use AI-extracted images + links
+      if (images.length > 0 || links.length > 0) {
+        console.log(`⚠️ Mammut HTML extraction found nothing, falling through to default normalization`);
+      }
     }
 
     // Default normalization for non-SSENSE sites or fallback
