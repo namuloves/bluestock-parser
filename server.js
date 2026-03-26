@@ -219,82 +219,13 @@ app.get('/', (req, res) => {
 // Health endpoint moved to routes/health.js
 
 // Redis connection test (remove after verifying)
-app.get('/test-redis', async (req, res) => {
-  try {
-    const { getCache } = require('./cache/redis-cache');
-    const cache = getCache();
-
-    // Wait a moment for connection
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const metrics = await cache.getMetrics();
-
-    res.json({
-      status: 'Redis test endpoint',
-      environment: {
-        redis_url_set: !!process.env.REDIS_URL,
-        redis_host_set: !!process.env.REDIS_HOST,
-        redis_password_set: !!process.env.REDIS_PASSWORD,
-        redis_enabled: process.env.REDIS_ENABLED !== 'false'
-      },
-      connection: {
-        connected: metrics.connected,
-        enabled: metrics.enabled
-      },
-      metrics: metrics
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
-  }
-});
 
 // Serve dashboard HTML
 app.get('/dashboard', (req, res) => {
   res.sendFile(__dirname + '/dashboard.html');
 });
 
-// Debug SSENSE endpoint
-app.get('/debug-ssense', async (req, res) => {
-  try {
-    const { scrapeSsenseSimple } = require('./scrapers/ssense-simple');
-    const testUrl = 'https://www.ssense.com/en-us/women/product/still-kelly/black-workwear-trousers/18061791';
-    console.log('🔍 Debug: Testing SSENSE simple scraper directly');
-    const result = await scrapeSsenseSimple(testUrl);
-    res.json({
-      success: true,
-      message: 'SSENSE simple scraper test',
-      result
-    });
-  } catch (error) {
-    console.error('Debug SSENSE error:', error);
-    res.json({
-      success: false,
-      error: error.message,
-      stack: error.stack
-    });
-  }
-});
 
-// Slack test endpoint
-app.get('/test-slack', async (req, res) => {
-  try {
-    const success = await slackNotifications.sendTestNotification();
-    res.json({
-      success: success,
-      message: success ? 'Slack test notification sent!' : 'Slack test failed',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Failed to send Slack test notification'
-    });
-  }
-});
 
 // Enhancement metrics endpoint
 app.get('/enhancement-metrics', (req, res) => {
@@ -373,66 +304,15 @@ app.post('/api/firecrawl/metrics/reset', (req, res) => {
   }
 });
 
-// Test endpoint
+// Health check endpoint
 app.get('/test', (req, res) => {
-  // Read the actual parser file to check what's deployed
-  const fs = require('fs');
-  let parserVersion = 'unknown';
-  let hasSpeedyRomeoFix = false;
-
-  try {
-    const parserCode = fs.readFileSync('./universal-parser-v3.js', 'utf8');
-    // Check for the version string
-    const versionMatch = parserCode.match(/this\.version = ['"]([^'"]+)['"]/);
-    if (versionMatch) {
-      parserVersion = versionMatch[1];
-    }
-    // Check for Speedy Romeo fix
-    hasSpeedyRomeoFix = parserCode.includes('speedyromeo');
-  } catch (e) {
-    parserVersion = 'error: ' + e.message;
-  }
-
   res.json({
     status: 'OK',
-    service: 'mmmmood-parser',
-    timestamp: new Date().toISOString(),
-    message: 'Parser service is running and accessible!',
-    parserVersion: parserVersion,
-    hasSpeedyRomeoFix: hasSpeedyRomeoFix,
-    universalParserLoaded: !!universalParser,
-    proxy: {
-      USE_PROXY: process.env.USE_PROXY,
-      hasDecodoUsername: !!process.env.DECODO_USERNAME,
-      hasDecodoPassword: !!process.env.DECODO_PASSWORD,
-      proxyEnabled: process.env.USE_PROXY === 'true' || (!!process.env.DECODO_USERNAME && !!process.env.DECODO_PASSWORD),
-      note: 'Proxy auto-enables when Decodo credentials are present'
-    }
+    service: 'bluestock-parser',
+    timestamp: new Date().toISOString()
   });
 });
 
-// Debug endpoint for Foot Industry price issue
-app.get('/debug-foot', async (req, res) => {
-  const url = 'https://footindustry.com/en-en/collections/all/products/new-ballet-brown-antique-white';
-
-  try {
-    const result = await scrapeProduct(url);
-
-    res.json({
-      debug: true,
-      timestamp: new Date().toISOString(),
-      raw_price: result.product?.price,
-      raw_sale_price: result.product?.sale_price,
-      raw_original_price: result.product?.original_price,
-      type_price: typeof result.product?.price,
-      type_sale_price: typeof result.product?.sale_price,
-      expected: 183,
-      matches: result.product?.sale_price === 183
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // Main scraping endpoint
 app.post('/scrape', async (req, res) => {
@@ -1357,33 +1237,6 @@ app.get('/api/quality-gate/metrics', (req, res) => {
   }
 });
 
-// Quality Gate test endpoint - test validation on any URL
-app.post('/api/quality-gate/test', async (req, res) => {
-  try {
-    const { product } = req.body;
-
-    if (!product) {
-      return res.status(400).json({
-        error: 'Product data required in request body'
-      });
-    }
-
-    const { getQualityGate } = require('./utils/qualityGate');
-    const qualityGate = getQualityGate();
-    const validation = qualityGate.validate(product);
-
-    res.json({
-      input: product,
-      validation,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: 'Validation failed',
-      message: error.message
-    });
-  }
-});
 
 // Lean Parser metrics endpoints
 app.get('/api/lean-parser/metrics', (req, res) => {
