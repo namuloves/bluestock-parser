@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 // Only load dotenv in development
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
@@ -333,8 +334,21 @@ app.get('/test', (req, res) => {
 });
 
 
+// Rate limiter: 30 requests per minute per IP
+const scrapeLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30,
+  standardHeaders: true, // Return rate limit info in RateLimit-* headers
+  legacyHeaders: false,
+  message: {
+    error: 'Too many requests',
+    message: 'Rate limit exceeded. Max 30 scrape requests per minute per IP.',
+    retryAfter: 60
+  }
+});
+
 // Main scraping endpoint
-app.post('/scrape', async (req, res) => {
+app.post('/scrape', scrapeLimiter, async (req, res) => {
   console.log('📥 /scrape endpoint hit');
   
   const url = req.body.url || '';
