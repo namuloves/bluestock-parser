@@ -1,18 +1,9 @@
-const { scrapeWithApifyPuppeteer } = require('./apify-puppeteer');
 
 // Fallback scraper for SSENSE when direct access is blocked
 async function scrapeSsenseFallback(url) {
   console.log('⚠️ Using SSENSE fallback scraper (site is blocking requests)');
   
-  // Try Apify if available
-  if (process.env.APIFY_API_TOKEN) {
-    console.log('🚀 Attempting with Apify for SSENSE...');
-    try {
-      return await scrapeWithApifyPuppeteer(url, 'ssense');
-    } catch (error) {
-      console.error('❌ Apify also failed for SSENSE:', error.message);
-    }
-  }
+  // Apify puppeteer no longer available - fall through to URL-based extraction
   
   // Extract product ID from URL
   const urlParts = url.split('/');

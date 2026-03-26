@@ -1,7 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { getAxiosConfig } = require('../config/proxy');
-const { scrapeStoriesWithPuppeteer } = require('./stories-puppeteer');
 
 async function scrapeStoriesHTML(url) {
   try {
@@ -321,17 +320,7 @@ async function scrapeStoriesHTML(url) {
     if (error.response && (error.response.status === 403 || error.response.status === 429)) {
       console.log('⚠️ Stories.com blocked direct request, trying Puppeteer...');
       
-      try {
-        // Check if puppeteer is available
-        try {
-          require.resolve('puppeteer');
-          return await scrapeStoriesWithPuppeteer(url);
-        } catch (puppeteerCheckError) {
-          console.log('Puppeteer not available, returning limited data');
-        }
-      } catch (puppeteerError) {
-        console.error('Puppeteer also failed:', puppeteerError.message);
-      }
+      console.log('Stories.com blocked direct request, returning limited data');
       
       // Return minimal data if all methods fail
       return {

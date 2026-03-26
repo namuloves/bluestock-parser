@@ -27,17 +27,6 @@ const scrapeZara = async (url) => {
     console.log('Stack trace:', enhancedError.stack);
   }
 
-  // Try standard Puppeteer as fallback
-  try {
-    const { scrapeZaraPuppeteer } = require('./zara-puppeteer');
-    console.log('🚀 Trying standard Puppeteer for Zara...');
-    const puppeteerResult = await scrapeZaraPuppeteer(url);
-    if (!puppeteerResult.error && puppeteerResult.name) {
-      return puppeteerResult;
-    }
-  } catch (puppeteerError) {
-    console.log('⚠️ Standard Puppeteer failed:', puppeteerError.message);
-  }
 
   // API approach as last resort
   try {

@@ -1,7 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { getAxiosConfig } = require('../config/proxy');
-const { scrapeRalphLaurenWithPuppeteer } = require('./ralphlauren-puppeteer');
 
 async function scrapeRalphLaurenHTML(url) {
   try {
@@ -179,24 +178,7 @@ async function scrapeRalphLauren(url) {
   console.log('🔍 Ralph Lauren scraper - Using Puppeteer');
   
   try {
-    // Try Puppeteer first for better results
-    console.log('🚀 Attempting Puppeteer scraping for Ralph Lauren...');
-    
-    try {
-      const puppeteerResult = await scrapeRalphLaurenWithPuppeteer(url);
-      
-      // If we got good data from Puppeteer, return it
-      if (puppeteerResult.name && puppeteerResult.name !== 'Ralph Lauren Product' && 
-          puppeteerResult.name !== 'Product temporarily unavailable') {
-        console.log('✅ Puppeteer scraping successful');
-        return puppeteerResult;
-      }
-    } catch (puppeteerError) {
-      console.error('⚠️ Puppeteer failed:', puppeteerError.message);
-      console.log('⚠️ Falling back to HTML scraping...');
-    }
-    
-    // Otherwise, fall back to HTML scraping
+    // HTML scraping
     console.log('⚠️ Trying HTML scraping with proxy...');
     return await scrapeRalphLaurenHTML(url);
     

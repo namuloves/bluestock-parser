@@ -1,7 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { getAxiosConfig } = require('../config/proxy');
-const { scrapeFarfetchWithPuppeteer } = require('./farfetch-puppeteer');
 
 const scrapeFarfetch = async (url) => {
   console.log('🛍️ Starting Farfetch scraper for:', url);
@@ -303,11 +302,8 @@ const scrapeFarfetch = async (url) => {
     
     // If we didn't get good data, try with Puppeteer
     if (product.price === 0 || product.images.length === 0 || product.brand === 'Unknown Brand') {
-      console.log('⚠️ Limited data from HTML scraping, trying Puppeteer...');
+      console.log('⚠️ Limited data from HTML scraping, returning what we have...');
       try {
-        return await scrapeFarfetchWithPuppeteer(url);
-      } catch (puppeteerError) {
-        console.error('⚠️ Puppeteer failed:', puppeteerError.message);
         // Return what we have even if incomplete
         if (product.name !== 'Unknown Product' || product.images.length > 0) {
           console.log('📦 Returning partial data from HTML scraping');

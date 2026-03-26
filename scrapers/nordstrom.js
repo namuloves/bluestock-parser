@@ -1,7 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { getAxiosConfig } = require('../config/proxy');
-const { scrapeNordstromWithPuppeteer } = require('./nordstrom-puppeteer');
 
 async function scrapeNordstromHTML(url) {
   try {
@@ -313,20 +312,8 @@ async function scrapeNordstrom(url) {
   console.log('🔍 Nordstrom scraper - Using Puppeteer');
   
   try {
-    // Try Puppeteer first for better results
-    console.log('🚀 Attempting Puppeteer scraping for Nordstrom...');
-    
+    // HTML scraping for Nordstrom
     try {
-      const puppeteerResult = await scrapeNordstromWithPuppeteer(url);
-      
-      // If we got good data from Puppeteer, return it
-      if (puppeteerResult.name && puppeteerResult.name !== 'Nordstrom Product') {
-        console.log('✅ Puppeteer scraping successful');
-        return puppeteerResult;
-      }
-    } catch (puppeteerError) {
-      console.error('⚠️ Puppeteer failed:', puppeteerError.message);
-      console.log('⚠️ Falling back to HTML scraping...');
     }
     
     // Otherwise, fall back to HTML scraping

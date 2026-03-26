@@ -1,7 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { getAxiosConfig } = require('../config/proxy');
-const { scrapeWithApifyPuppeteer } = require('./apify-puppeteer');
 
 // Use puppeteer-extra with stealth plugin for better anti-detection
 let puppeteer;
@@ -389,9 +388,7 @@ const scrapeNetAPorter = async (url) => {
       // Try with Apify if we have the API token
       if (process.env.APIFY_API_TOKEN) {
         if (browser) await browser.close();
-        return await scrapeWithApifyPuppeteer(url, 'netaporter');
-      } else {
-        console.warn('❌ Apify API token not configured. Add APIFY_API_TOKEN to .env file');
+        console.warn('❌ Apify puppeteer no longer available');
       }
     }
     

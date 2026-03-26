@@ -1,15 +1,11 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { getAxiosConfig } = require('../config/proxy');
-const { scrapeFWRDWithPuppeteer } = require('./fwrd-puppeteer');
 
 const scrapeFWRD = async (url) => {
   console.log('🛍️ Starting FWRD scraper for:', url);
 
-  // FWRD often requires Puppeteer due to anti-bot measures
-  // Skip straight to Puppeteer for better success rate
-  console.log('🔄 Falling back to Puppeteer for FWRD...');
-  return await scrapeFWRDWithPuppeteer(url);
+  // FWRD HTML scraping
 
   try {
     const headers = {
@@ -255,10 +251,8 @@ const scrapeFWRD = async (url) => {
   } catch (error) {
     console.error('❌ FWRD scraping error:', error.message);
 
-    // If regular scraping fails, try with Puppeteer
     if (error.message.includes('timeout') || error.response?.status === 403) {
-      console.log('🔄 Falling back to Puppeteer for FWRD...');
-      return await scrapeFWRDWithPuppeteer(url);
+      console.log('⚠️ FWRD blocked direct request, returning limited data');
     }
 
     return {
