@@ -44,7 +44,8 @@ class UniversalParserV3 {
       'nordstrom.com',
       'saksfifthavenue.com',
       'bloomingdales.com',
-      'uniqlo.com'  // Added - loads price dynamically
+      'uniqlo.com',  // Added - loads price dynamically
+      'octobre-editions.com'  // Added - has DataDome bot protection
     ]);
 
     // Sites that block axios requests
@@ -1808,8 +1809,14 @@ class UniversalParserV3 {
     const logLevel = this.logLevel; // Capture this for nested functions
 
     // 1. First try to get images from og:image tags (often high quality)
-    const ogImage = $('meta[property="og:image"]').attr('content');
-    const ogImageUrl = $('meta[property="og:image:url"]').attr('content');
+    // Collect ALL og:image tags (some stores like nepenthesamerica.com put each product image in its own og:image tag)
+    const ogImages = [];
+    $('meta[property="og:image"], meta[property="og:image:secure_url"], meta[property="og:image:url"]').each((i, el) => {
+      const content = $(el).attr('content');
+      if (content) ogImages.push(content);
+    });
+    const ogImage = ogImages[0] || null;
+    const ogImageUrl = null; // now handled via ogImages array
 
     // Process OG image - remove crop parameters for higher resolution
     const processShopifyImage = (url) => {
@@ -1922,12 +1929,8 @@ class UniversalParserV3 {
       }
     };
 
-    // Add processed OG image
-    if (ogImageUrl) {
-      addImageWithDedup(ogImageUrl);
-    } else if (ogImage) {
-      addImageWithDedup(ogImage);
-    }
+    // Add all OG images (deduplication handles any overlaps)
+    ogImages.forEach(url => addImageWithDedup(url));
 
     // 2. Find other product images with Shopify CDNs
     $('img[src*="cdn.shopify.com"], img[src*="/cdn/shop/"], img[src*="/cdn/shopifycloud/"]').each((i, el) => {
