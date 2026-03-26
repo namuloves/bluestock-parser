@@ -313,11 +313,6 @@ async function scrapeNordstrom(url) {
   
   try {
     // HTML scraping for Nordstrom
-    try {
-    }
-    
-    // Otherwise, fall back to HTML scraping
-    console.log('⚠️ Puppeteer didn\'t get full data, trying HTML scraping...');
     return await scrapeNordstromHTML(url);
     
   } catch (error) {

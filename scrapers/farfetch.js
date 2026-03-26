@@ -303,19 +303,15 @@ const scrapeFarfetch = async (url) => {
     // If we didn't get good data, try with Puppeteer
     if (product.price === 0 || product.images.length === 0 || product.brand === 'Unknown Brand') {
       console.log('⚠️ Limited data from HTML scraping, returning what we have...');
-      try {
-        // Return what we have even if incomplete
-        if (product.name !== 'Unknown Product' || product.images.length > 0) {
-          console.log('📦 Returning partial data from HTML scraping');
-          return product;
-        }
-        // If we have nothing useful, return error
-        return {
-          url,
-          error: `Scraping failed: ${puppeteerError.message}`,
-          source: 'farfetch'
-        };
+      if (product.name !== 'Unknown Product' || product.images.length > 0) {
+        console.log('📦 Returning partial data from HTML scraping');
+        return product;
       }
+      return {
+        url,
+        error: 'Scraping returned limited data',
+        source: 'farfetch'
+      };
     }
     
     console.log('✅ Successfully scraped Farfetch product:', product.name);
