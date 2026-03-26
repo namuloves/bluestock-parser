@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 // Only load dotenv in development
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
@@ -202,6 +203,9 @@ const corsOptions = process.env.NODE_ENV === 'production'
       optionsSuccessStatus: 200
     };
 
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' } // allow images/assets to load cross-origin
+}));
 app.use(cors(corsOptions));
 app.use(express.json());
 

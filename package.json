@@ -7,6 +7,10 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "dashboard": "node crawlers/dashboard.js",
+    "crawl": "node crawlers/crawl-agent.js",
+    "download-images": "node crawlers/download-images.js",
+    "rescrape": "node crawlers/rescrape-products.js",
     "check": "./check.sh",
     "test-ssense": "USE_PROXY=true node -e \"const {scrapeSsenseSimple} = require('./scrapers/ssense-simple'); scrapeSsenseSimple('https://www.ssense.com/en-us/women/product/still-kelly/black-workwear-trousers/18061791').then(r => console.log(JSON.stringify(r, null, 2))).catch(console.error)\""
   },
@@ -29,6 +33,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
+    "helmet": "^8.1.0",
     "https-proxy-agent": "^7.0.6",
     "ioredis": "^5.7.0",
     "js-yaml": "^4.1.0",
