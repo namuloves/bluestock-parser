@@ -3,6 +3,83 @@ const cheerio = require('cheerio');
 const { getAxiosConfig } = require('../config/proxy');
 const { getHostnameFallbackUrl, isDnsResolutionError } = require('../utils/url-normalizer');
 
+const normalizeText = (value = '') => String(value)
+  .replace(/\s+/g, ' ')
+  .replace(/\u00a0/g, ' ')
+  .trim();
+
+const uniqueTextJoin = (parts) => {
+  const seen = new Set();
+  const output = [];
+  for (const part of parts) {
+    const cleaned = normalizeText(part);
+    if (!cleaned) continue;
+    if (seen.has(cleaned)) continue;
+    seen.add(cleaned);
+    output.push(cleaned);
+  }
+  return output.join('\n');
+};
+
+const extractJsonLdProduct = ($) => {
+  let productNode = null;
+
+  $('script[type="application/ld+json"]').each((i, el) => {
+    if (productNode) return;
+    const raw = $(el).html();
+    if (!raw) return;
+
+    try {
+      const json = JSON.parse(raw);
+      const candidates = Array.isArray(json)
+        ? json
+        : json['@graph']
+          ? json['@graph']
+          : [json];
+
+      for (const node of candidates) {
+        const type = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
+        if (type.includes('Product')) {
+          productNode = node;
+          break;
+        }
+      }
+    } catch (e) {
+      // Ignore invalid JSON-LD blocks
+    }
+  });
+
+  if (!productNode) return {};
+
+  let brand = '';
+  if (typeof productNode.brand === 'string') {
+    brand = productNode.brand;
+  } else if (productNode.brand?.name) {
+    brand = productNode.brand.name;
+  }
+
+  return {
+    description: productNode.description || '',
+    brand
+  };
+};
+
+const extractTextFromSelectors = ($, selectors) => {
+  const collected = [];
+
+  for (const selector of selectors) {
+    const nodes = $(selector);
+    if (!nodes.length) continue;
+
+    nodes.each((i, el) => {
+      const text = $(el).text();
+      if (text) collected.push(text);
+    });
+  }
+
+  return uniqueTextJoin(collected);
+};
+
 const scrapeShopify = async (url) => {
   console.log('🛍️ Starting Shopify scraper for:', url);
   
@@ -108,6 +185,31 @@ const scrapeShopify = async (url) => {
         }
       }
     });
+
+    // Method 1b: Look for Product JSON in application/json blocks (Dawn and similar themes)
+    if (!productJson) {
+      $('script[type="application/json"]').each((i, script) => {
+        if (productJson) return;
+
+        const id = ($(script).attr('id') || '').toLowerCase();
+        const hasProductJsonMarker = id.includes('productjson') || $(script).attr('data-product-json') !== undefined;
+
+        if (!hasProductJsonMarker) return;
+
+        const raw = $(script).html() || '';
+        if (!raw) return;
+
+        try {
+          const parsed = JSON.parse(raw);
+          const candidate = parsed.product || parsed;
+          if (candidate && (candidate.title || candidate.variants)) {
+            productJson = candidate;
+          }
+        } catch (e) {
+          // Continue to next block
+        }
+      });
+    }
     
     // Method 2: Try Shopify's .json endpoint
     if (!productJson) {
@@ -149,13 +251,35 @@ const scrapeShopify = async (url) => {
         product.description = $desc.text().trim();
       }
       
-      // Extract images
-      if (productJson.images && Array.isArray(productJson.images)) {
-        product.images = productJson.images.map(img => 
-          typeof img === 'string' ? img : (img.src || img.url)
-        ).filter(Boolean);
-      } else if (productJson.image) {
-        product.images = [productJson.image];
+      // Extract images — always fetch the .json endpoint to get ALL images (all color variants)
+      // The embedded page JSON only contains the selected variant's images
+      try {
+        const base = requestUrl.split('?')[0].replace(/\.json$/, '');
+        // Normalize to /products/<slug> path for the JSON API
+        const jsonApiUrl = base.replace(/\/collections\/[^/]+\/products\//, '/products/') + '.json';
+        const fullJsonResp = await axios.get(jsonApiUrl, {
+          ...axiosConfig,
+          validateStatus: s => s === 200,
+          timeout: 10000,
+        });
+        if (fullJsonResp.data?.product?.images?.length) {
+          product.images = fullJsonResp.data.product.images
+            .map(img => typeof img === 'string' ? img : (img.src || img.url))
+            .filter(Boolean);
+        }
+      } catch (e) {
+        // Fall back to whatever the embedded JSON had
+      }
+
+      // Fallback if JSON API fetch failed
+      if (product.images.length === 0) {
+        if (productJson.images && Array.isArray(productJson.images)) {
+          product.images = productJson.images.map(img =>
+            typeof img === 'string' ? img : (img.src || img.url)
+          ).filter(Boolean);
+        } else if (productJson.image) {
+          product.images = [productJson.image];
+        }
       }
       
       // Extract variants for sizes/colors/prices
@@ -253,10 +377,27 @@ const scrapeShopify = async (url) => {
       product.brand = $('meta[property="product:brand"]').attr('content') ||
                       $('[itemprop="brand"]').text().trim() ||
                       $('.product__vendor').text().trim();
+
+      if (!product.brand) {
+        const jsonLd = extractJsonLdProduct($);
+        if (jsonLd.brand) product.brand = jsonLd.brand;
+      }
+
+      if (!product.brand) {
+        product.brand = $('meta[property="og:site_name"]').attr('content') ||
+                        $('meta[name="application-name"]').attr('content') ||
+                        $('meta[name="apple-mobile-web-app-title"]').attr('content') ||
+                        $('meta[name="twitter:site"]').attr('content') ||
+                        '';
+        product.brand = product.brand.replace(/^@/, '').trim();
+      }
       
       // If no brand found or if it's a different designer, use domain name
       const domainName = new URL(requestUrl).hostname.replace('www.', '').split('.')[0];
-      const domainBrand = domainName.charAt(0).toUpperCase() + domainName.slice(1);
+      const domainBrand = domainName
+        .split('-')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
       
       // Special handling for known designer sites
       if (url.includes('ceciliebahnsen.com')) {
@@ -356,6 +497,44 @@ const scrapeShopify = async (url) => {
       product.description = $('.product__description').text().trim() ||
                             $('[itemprop="description"]').text().trim() ||
                             $('.product-single__description').text().trim();
+    }
+
+    if (!product.description || product.description.length < 20) {
+      const jsonLd = extractJsonLdProduct($);
+      if (jsonLd.description) {
+        product.description = normalizeText(jsonLd.description);
+      }
+    }
+
+    if (!product.description || product.description.length < 40) {
+      const detailsSelectors = [
+        '[data-product-description]',
+        '.product__description',
+        '.product__description p',
+        '.product-single__description',
+        '.product__text',
+        '.product__info',
+        '.product__details',
+        '.product__accordion .accordion__content',
+        '.product__accordion-content',
+        '.accordion__content',
+        '.Accordion__Panel',
+        '.accordion__panel',
+        '.product-tabs__content',
+        '.product__tab-content',
+        '[data-accordion-content]',
+        '.rte'
+      ];
+
+      const detailsText = extractTextFromSelectors($, detailsSelectors);
+      if (detailsText) {
+        const normalizedExisting = normalizeText(product.description || '');
+        if (!normalizedExisting) {
+          product.description = detailsText;
+        } else if (!normalizedExisting.includes(detailsText)) {
+          product.description = uniqueTextJoin([normalizedExisting, detailsText]);
+        }
+      }
     }
     
     // Ensure prices are numbers (not strings with currency symbols)

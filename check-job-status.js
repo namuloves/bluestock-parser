@@ -3,14 +3,14 @@ const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY
 );
 
 async function checkJobStatus(jobId) {
   console.log(`🔍 Checking status for job: ${jobId}\n`);
 
   const { data, error } = await supabase
-    .from('scrape_jobs')
+    .from('job_queue')
     .select('*')
     .eq('id', jobId)
     .single();
