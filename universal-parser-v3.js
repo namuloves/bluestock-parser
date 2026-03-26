@@ -793,6 +793,15 @@ class UniversalParserV3 {
         }
       }
       if (strategy.description && !result.description) result.description = strategy.description;
+      if (strategy.material && !result.material) result.material = strategy.material;
+      if (strategy.dimensions && !result.dimensions) result.dimensions = strategy.dimensions;
+    }
+
+    // Extract material/dimensions from accordion/collapsible HTML if not yet found
+    if (!result.material || !result.dimensions) {
+      const accordionData = this.extractAccordionContent($);
+      if (accordionData.material && !result.material) result.material = accordionData.material;
+      if (accordionData.dimensions && !result.dimensions) result.dimensions = accordionData.dimensions;
     }
 
     // Extract inline gallery data used by some storefront themes (e.g., Hyvä)
@@ -922,6 +931,28 @@ class UniversalParserV3 {
 
           result.description = product.description;
 
+          // Extract additionalProperty array (material, dimensions, features, etc.)
+          if (product.additionalProperty && Array.isArray(product.additionalProperty)) {
+            const materialKeywords = ['material', 'fabric', 'composition', 'content', 'leather', 'textile'];
+            const dimensionKeywords = ['dimension', 'size', 'width', 'height', 'depth', 'length', 'weight', 'measurement'];
+            const materials = [];
+            const dimensions = [];
+
+            for (const prop of product.additionalProperty) {
+              if (!prop.name || !prop.value) continue;
+              const nameLower = prop.name.toLowerCase();
+
+              if (materialKeywords.some(k => nameLower.includes(k))) {
+                materials.push(prop.value);
+              } else if (dimensionKeywords.some(k => nameLower.includes(k))) {
+                dimensions.push(`${prop.name}: ${prop.value}`);
+              }
+            }
+
+            if (materials.length > 0) result.material = materials.join(', ');
+            if (dimensions.length > 0) result.dimensions = dimensions.join(' | ');
+          }
+
           // Handle images - could be string, array, or object
           if (product.image) {
             const normalizeImageEntry = (img) => {
@@ -1004,6 +1035,44 @@ class UniversalParserV3 {
         // Silent fail
       }
     });
+    return result;
+  }
+
+  extractAccordionContent($) {
+    const result = {};
+    const materialKeywords = ['material', 'fabric', 'composition', 'content', 'care'];
+    const dimensionKeywords = ['dimension', 'size', 'measurement', 'width', 'height', 'depth', 'length'];
+
+    // Selectors that commonly wrap accordion/collapsible content
+    const accordionSelectors = [
+      'details',
+      '[class*="accordion"]',
+      '[class*="collapsible"]',
+      '[class*="expandable"]',
+      '[class*="drawer"]',
+      '[class*="tab-content"]',
+      '[class*="panel"]',
+      '[data-accordion]',
+      '[data-collapsible]'
+    ];
+
+    for (const selector of accordionSelectors) {
+      $(selector).each((i, el) => {
+        const heading = $(el).find('summary, [class*="title"], [class*="heading"], h2, h3, h4, dt').first().text().trim().toLowerCase();
+        const body = $(el).find('[class*="content"], [class*="body"], [class*="inner"], dd, p').text().trim() ||
+                     $(el).text().trim();
+
+        if (!body) return;
+
+        if (materialKeywords.some(k => heading.includes(k)) && !result.material) {
+          result.material = body.replace(/\s+/g, ' ').trim();
+        }
+        if (dimensionKeywords.some(k => heading.includes(k)) && !result.dimensions) {
+          result.dimensions = body.replace(/\s+/g, ' ').trim();
+        }
+      });
+    }
+
     return result;
   }
 
