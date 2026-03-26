@@ -152,10 +152,32 @@ process.on('unhandledRejection', (error) => {
   }
 });
 
-// CORS configuration - fully open in production for now
+// CORS configuration - explicit whitelist of trusted origins
+const ALLOWED_ORIGINS = [
+  'https://www.mmmmood.com',
+  'https://mmmmood.com',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001'
+];
+
 const corsOptions = process.env.NODE_ENV === 'production'
   ? {
-      origin: true, // Allow ALL origins in production
+      origin: function (origin, callback) {
+        // Allow requests with no origin (server-to-server, curl, etc.)
+        if (!origin) return callback(null, true);
+
+        if (
+          ALLOWED_ORIGINS.includes(origin) ||
+          origin.endsWith('.mmmmood.com') ||
+          origin.endsWith('.vercel.app')
+        ) {
+          return callback(null, true);
+        }
+
+        return callback(new Error(`CORS: origin ${origin} not allowed`));
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'Accept', 'Origin'],
@@ -164,22 +186,15 @@ const corsOptions = process.env.NODE_ENV === 'production'
       optionsSuccessStatus: 200
     }
   : {
-      // Stricter in development
+      // Development: allow localhost only
       origin: function (origin, callback) {
-        const allowedOrigins = [
-          'http://localhost:3000',
-          'http://localhost:3001',
-          'http://127.0.0.1:3000',
-          'http://127.0.0.1:3001'
-        ];
-
         if (!origin) return callback(null, true);
 
-        if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('vercel.app')) {
+        if (ALLOWED_ORIGINS.includes(origin)) {
           return callback(null, true);
         }
 
-        callback(new Error('Not allowed by CORS'));
+        callback(new Error(`CORS: origin ${origin} not allowed`));
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
