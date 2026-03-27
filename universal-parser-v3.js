@@ -736,15 +736,40 @@ class UniversalParserV3 {
 
     // If it's a Shopify store, extract images differently
     if (isShopify) {
-      const shopifyImages = this.extractShopifyImages($);
-      if (shopifyImages.length > 0) {
-        result.images = shopifyImages;
-      }
-      if (this.logLevel === 'verbose') {
-        console.log('🛍️ Detected Shopify store, using Shopify-specific image extraction');
-        if (shopifyImages.length === 0) {
-          console.log('   Note: No Shopify CDN images found, will merge from other sources');
+      console.log('🛍️ Detected Shopify store, using Shopify-specific image extraction');
+
+      // Primary: Fetch all images from the Shopify JSON API (most reliable source)
+      let apiImages = [];
+      try {
+        const base = url.split('?')[0].replace(/\.json$/, '');
+        const jsonApiUrl = base.replace(/\/collections\/[^/]+\/products\//, '/products/') + '.json';
+        console.log(`🔍 Fetching Shopify JSON API: ${jsonApiUrl}`);
+        const jsonResp = await axios.get(jsonApiUrl, {
+          headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; ProductScraper/1.0)' },
+          timeout: 10000,
+          validateStatus: s => s === 200
+        });
+        if (jsonResp.data?.product?.images?.length) {
+          apiImages = jsonResp.data.product.images
+            .map(img => typeof img === 'string' ? img : (img.src || img.url))
+            .filter(Boolean);
+          console.log(`✅ Shopify JSON API returned ${apiImages.length} images`);
         }
+      } catch (e) {
+        console.log(`⚠️ Shopify JSON API failed: ${e.message}`);
+      }
+
+      // Fallback: Extract images from HTML (handles stores that block JSON API)
+      const shopifyImages = this.extractShopifyImages($);
+      if (this.logLevel === 'verbose') {
+        console.log(`🖼️ Shopify HTML extraction found ${shopifyImages.length} images`);
+      }
+
+      // Use whichever source returned more images
+      if (apiImages.length >= shopifyImages.length && apiImages.length > 0) {
+        result.images = apiImages;
+      } else if (shopifyImages.length > 0) {
+        result.images = shopifyImages;
       }
     }
 
@@ -764,11 +789,14 @@ class UniversalParserV3 {
       if (strategy.priceText && !result.priceText) result.priceText = strategy.priceText;  // Merge priceText field
       if (strategy.brand && !result.brand) result.brand = strategy.brand;
 
-      // Merge images - for Shopify stores, we'll dedupe later
+      // Merge images - for Shopify stores with JSON API images, skip strategy images
+      // (the JSON API is the authoritative source and strategy images are often
+      // duplicates served from a different CDN hostname that won't dedup correctly)
       if (strategy.images?.length > 0) {
         if (!result.images) result.images = [];
-        // For non-Shopify stores, check for exact duplicates
-        if (!isShopify) {
+        if (isShopify && result.images.length >= 2) {
+          // Already have good Shopify images from JSON API or HTML extraction — skip
+        } else if (!isShopify) {
           for (const img of strategy.images) {
             // Normalize URLs for duplicate checking (remove query params)
             const isDuplicate = result.images.some(existingImg => {
@@ -788,7 +816,7 @@ class UniversalParserV3 {
             }
           }
         } else {
-          // For Shopify stores, just collect all images - we'll dedupe with size awareness later
+          // Shopify store but we have 0-1 images — collect from strategies, we'll dedupe later
           result.images.push(...strategy.images);
         }
       }
@@ -805,9 +833,12 @@ class UniversalParserV3 {
     }
 
     // Extract inline gallery data used by some storefront themes (e.g., Hyvä)
-    const inlineImages = this.extractInitialImages($);
-    if (inlineImages.length > 0) {
-      result.images = inlineImages;
+    // Only use if we don't already have a good set of images (e.g., from Shopify JSON API)
+    if (!result.images || result.images.length < 2) {
+      const inlineImages = this.extractInitialImages($);
+      if (inlineImages.length > 0) {
+        result.images = inlineImages;
+      }
     }
 
     // Calculate confidence
@@ -1849,7 +1880,8 @@ class UniversalParserV3 {
     const ogImage = $('meta[property="og:image"]').attr('content') || '';
     const ogImageUrl = $('meta[property="og:image:url"]').attr('content') || '';
 
-    if (ogImage.includes('cdn.shopify.com') || ogImageUrl.includes('cdn.shopify.com')) {
+    if (ogImage.includes('cdn.shopify.com') || ogImageUrl.includes('cdn.shopify.com') ||
+        ogImage.includes('/cdn/shop/') || ogImageUrl.includes('/cdn/shop/')) {
       return true;
     }
 
