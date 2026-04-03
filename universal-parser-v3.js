@@ -104,6 +104,12 @@ class UniversalParserV3 {
         /api.*product/i,
         /catalog/i,
         /graphql/i
+      ],
+      'goat.com': [
+        /api.*product/i,
+        /graphql/i,
+        /algolia/i,
+        /catalog/i
       ]
     };
 
@@ -180,6 +186,18 @@ class UniversalParserV3 {
           '.single-product .woocommerce-product-gallery img'
         ],
         brand: () => '69mcfly'
+      },
+      'goat.com': {
+        name: ['h1[data-testid="product-title"]', 'h1', '.product-title', '[data-testid="product-name"]'],
+        price: ['[data-testid="product-price"]', '[data-testid="lowest-price"]', '.product-price', '.lowest-price-value'],
+        images: [
+          '[data-testid="product-image"] img',
+          '.product-image img',
+          '.carousel img',
+          'picture img'
+        ],
+        // Extract brand from product title — GOAT titles are like "Brand Name Product Name"
+        brandFromTitle: true
       }
     };
 
@@ -563,32 +581,52 @@ class UniversalParserV3 {
   }
 
   extractFromApiResponse(data, interceptedData, hostname) {
-    // Generic extraction patterns that work across many sites
+    // Collect ALL price candidates with priority scores, then pick the best one
+    const priceCandidates = [];
+
+    // Keys that strongly indicate a retail/list price (higher priority)
+    const retailPriceKeys = ['retailprice', 'retail_price', 'listprice', 'list_price', 'originalprice', 'original_price', 'msrp', 'regularprice', 'regular_price'];
+    // Keys that are generic price fields (medium priority)
+    const genericPriceKeys = ['price', 'productprice', 'product_price', 'currentprice', 'current_price', 'saleprice', 'sale_price'];
+    // Keys that are ambiguous and often wrong (low priority)
+    const ambiguousPriceKeys = ['amount', 'cost', 'value', 'total', 'lowestprice', 'lowest_price', 'highestprice'];
+    // Keys to skip entirely — these are never the product price
+    const skipPriceKeys = ['shipping', 'tax', 'fee', 'discount', 'subscription', 'plan', 'installment', 'deposit'];
+
     const searchObject = (obj, depth = 0, path = '') => {
       if (depth > 10 || !obj) return;
 
       for (const [key, value] of Object.entries(obj)) {
         const lowerKey = key.toLowerCase();
         const currentPath = path ? `${path}.${key}` : key;
+        const pathLower = currentPath.toLowerCase();
 
-        // Price extraction - skip subscription/plan/box prices that aren't product-specific
-        if (!interceptedData.price &&
-            (lowerKey.includes('price') || lowerKey === 'amount' || lowerKey === 'cost')) {
+        // Price extraction — collect candidates with priority
+        if (lowerKey.includes('price') || lowerKey === 'amount' || lowerKey === 'cost' || lowerKey === 'msrp') {
+          // Skip non-product prices
+          const shouldSkip = skipPriceKeys.some(skip => pathLower.includes(skip));
 
-          // Skip subscription, plan, or box-related prices that aren't product prices
-          const pathLower = currentPath.toLowerCase();
-          const isSubscriptionPrice = pathLower.includes('subscription') ||
-                                       pathLower.includes('plan') ||
-                                       (pathLower.includes('box') && !pathLower.includes('product'));
-
-          if (!isSubscriptionPrice) {
+          if (!shouldSkip) {
+            let numericValue = null;
             if (typeof value === 'number' && value > 0 && value < 100000) {
-              interceptedData.price = value;
+              numericValue = value;
             } else if (typeof value === 'string' && /\d/.test(value)) {
               const parsed = parseFloat(value.replace(/[^0-9.]/g, ''));
-              if (!isNaN(parsed) && parsed > 0) {
-                interceptedData.price = parsed;
+              if (!isNaN(parsed) && parsed > 0 && parsed < 100000) {
+                numericValue = parsed;
               }
+            }
+
+            if (numericValue !== null) {
+              // Assign priority: retail > generic > ambiguous
+              let priority = 1;
+              if (retailPriceKeys.some(k => lowerKey.includes(k) || pathLower.includes(k))) {
+                priority = 3;
+              } else if (genericPriceKeys.some(k => lowerKey === k || lowerKey.includes(k))) {
+                priority = 2;
+              }
+
+              priceCandidates.push({ value: numericValue, priority, path: currentPath, key: lowerKey });
             }
           }
         }
@@ -601,11 +639,14 @@ class UniversalParserV3 {
           }
         }
 
-        // Brand extraction
+        // Brand extraction — also check for brandName, designer
         if (!interceptedData.brand &&
-            (lowerKey === 'brand' || lowerKey === 'manufacturer' || lowerKey === 'vendor')) {
+            (lowerKey === 'brand' || lowerKey === 'brandname' || lowerKey === 'brand_name' ||
+             lowerKey === 'manufacturer' || lowerKey === 'vendor' || lowerKey === 'designer')) {
           if (typeof value === 'string' && value.length > 1 && value.length < 100) {
             interceptedData.brand = value;
+          } else if (typeof value === 'object' && value !== null && value.name) {
+            interceptedData.brand = value.name;
           }
         }
 
@@ -673,6 +714,13 @@ class UniversalParserV3 {
       }
     }
 
+    // GOAT-specific: skip all API interception — we get accurate data from __NEXT_DATA__
+    // GOAT's API responses contain recommended products (wrong names), resale prices in cents
+    // (not retail), and size-specific pricing — all of which produce garbage data.
+    if (hostname === 'goat.com' || hostname === 'www.goat.com') {
+      return;
+    }
+
     // GraphQL responses
     if (data.data?.product) {
       const product = data.data.product;
@@ -684,6 +732,21 @@ class UniversalParserV3 {
 
     // Run generic search
     searchObject(data);
+
+    // Pick the best price from candidates (highest priority, then lowest value as tiebreaker
+    // since retail is usually lower than resale)
+    if (!interceptedData.price && priceCandidates.length > 0) {
+      priceCandidates.sort((a, b) => {
+        if (b.priority !== a.priority) return b.priority - a.priority; // Higher priority first
+        return a.value - b.value; // Lower price first (retail < resale)
+      });
+      interceptedData.price = priceCandidates[0].value;
+
+      if (this.logLevel === 'verbose') {
+        console.log(`💰 Price candidates:`, priceCandidates.map(c => `${c.key}=${c.value} (p${c.priority})`).join(', '));
+        console.log(`💰 Selected: ${priceCandidates[0].key} = ${priceCandidates[0].value}`);
+      }
+    }
   }
 
   mergeApiData(result, apiData) {
@@ -872,7 +935,54 @@ class UniversalParserV3 {
       result.name = this.cleanProductTitle(result.name, hostname);
     }
 
+    // Brand fallback — if no brand found from any strategy, try to extract from title/meta
+    if (!result.brand || result.brand === 'Unknown') {
+      result.brand = this.extractBrandFallback($, result.name, hostname);
+    }
+
     return result;
+  }
+
+  /**
+   * Fallback brand extraction when DOM selectors and API data fail.
+   * Tries: meta tags, title parsing, og:site_name, common title patterns.
+   */
+  extractBrandFallback($, productName, hostname) {
+    // 1. Try meta tags that sometimes have brand info
+    const metaBrand = $('meta[name="brand"]').attr('content') ||
+                      $('meta[name="author"]').attr('content') ||
+                      $('meta[property="product:brand"]').attr('content') ||
+                      $('meta[name="twitter:site"]').attr('content');
+    if (metaBrand && metaBrand.length > 1 && metaBrand.length < 100 && metaBrand !== '@') {
+      return metaBrand.replace(/^@/, '');
+    }
+
+    // 2. Try og:site_name (often the brand for DTC sites)
+    const siteName = $('meta[property="og:site_name"]').attr('content');
+    if (siteName && siteName.length > 1 && siteName.length < 60) {
+      // Don't use generic marketplace names as brand
+      const marketplaces = ['amazon', 'ebay', 'etsy', 'goat', 'grailed', 'stockx', 'depop', 'poshmark', 'mercari', 'nordstrom', 'ssense', 'farfetch', 'net-a-porter', 'mytheresa', 'shopify'];
+      if (!marketplaces.some(m => siteName.toLowerCase().includes(m))) {
+        return siteName;
+      }
+    }
+
+    // 3. Try to extract from page title — common format: "Product Name | Brand" or "Brand - Product Name"
+    const pageTitle = $('title').text()?.trim() || '';
+    if (pageTitle) {
+      // "Product Name | Brand Name" or "Product Name - Brand Name"
+      const pipeMatch = pageTitle.match(/\|\s*(.+)$/);
+      if (pipeMatch) {
+        const candidate = pipeMatch[1].trim();
+        // Filter out generic suffixes
+        const genericSuffixes = ['official site', 'official store', 'online store', 'shop', 'buy', 'free shipping'];
+        if (candidate.length > 1 && candidate.length < 60 && !genericSuffixes.some(s => candidate.toLowerCase().includes(s))) {
+          return candidate;
+        }
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -1132,10 +1242,39 @@ class UniversalParserV3 {
         const nextData = JSON.parse(scriptContent);
         const pageProps = nextData?.props?.pageProps;
 
-        if (pageProps?.product) {
-          const product = pageProps.product;
+        // GOAT: productTemplate structure
+        if (pageProps?.productTemplate) {
+          const pt = pageProps.productTemplate;
+          if (pt.name) result.name = pt.name;
+          if (pt.brandName) result.brand = pt.brandName;
+          if (pt.details) result.description = pt.details;
+          if (pt.storyHtml) result.description = result.description || pt.storyHtml.replace(/<[^>]*>/g, '');
 
-          // Extract basic product info
+          // Price: GOAT doesn't have retail price — use lowest new price in cents
+          if (pt.specialDisplayPriceCents) {
+            result.price = pt.specialDisplayPriceCents / 100;
+          } else if (pt.newLowestPriceCents) {
+            result.price = pt.newLowestPriceCents / 100;
+          } else if (pt.lowestPriceCents) {
+            result.price = pt.lowestPriceCents / 100;
+          }
+
+          // Images
+          const images = [];
+          if (pt.mainPictureUrl) images.push(pt.mainPictureUrl);
+          if (pt.gridPictureUrl && pt.gridPictureUrl !== pt.mainPictureUrl) images.push(pt.gridPictureUrl);
+          // External pictures (additional angles)
+          if (pt.productTemplateExternalPictures && Array.isArray(pt.productTemplateExternalPictures)) {
+            pt.productTemplateExternalPictures.forEach(pic => {
+              if (pic.mainPictureUrl) images.push(pic.mainPictureUrl);
+            });
+          }
+          if (images.length > 0) result.images = images;
+        }
+
+        // Generic: pageProps.product structure (Clarks, etc.)
+        if (!result.name && pageProps?.product) {
+          const product = pageProps.product;
           if (product.name) result.name = product.name;
           if (product.brand) result.brand = product.brand;
           if (product.description) result.description = product.description;
@@ -1144,16 +1283,13 @@ class UniversalParserV3 {
           if (product.priceRanges?.now) {
             const priceInCents = product.priceRanges.now.minPrice || product.priceRanges.now.maxPrice;
             if (priceInCents) {
-              result.price = priceInCents / 100; // Convert cents to dollars
+              result.price = priceInCents / 100;
             }
           }
 
-          // Extract images from imageUrls array (Clarks format)
           if (product.imageUrls && Array.isArray(product.imageUrls)) {
             result.images = product.imageUrls.filter(url => this.isValidImageUrl(url));
-          }
-          // Fallback to generic image field
-          else if (product.images && Array.isArray(product.images)) {
+          } else if (product.images && Array.isArray(product.images)) {
             result.images = product.images.filter(url => this.isValidImageUrl(url));
           }
         }
@@ -1244,6 +1380,87 @@ class UniversalParserV3 {
       if (result.name && result.price) {
         return result;
       }
+    }
+
+    // Special handling for GOAT - extract from __NEXT_DATA__ and parse brand from title
+    if (hostname === 'goat.com' || hostname === 'www.goat.com') {
+      const result = {};
+      const nextDataScript = $('#__NEXT_DATA__');
+
+      if (nextDataScript.length > 0) {
+        try {
+          const nextData = JSON.parse(nextDataScript.html());
+          const pageProps = nextData?.props?.pageProps;
+
+          // GOAT stores product data in various locations in pageProps
+          const product = pageProps?.product || pageProps?.productTemplate || pageProps;
+
+          if (product) {
+            // Name
+            if (product.name) result.name = product.name;
+            else if (product.slug) result.name = product.slug.replace(/-/g, ' ');
+
+            // Brand - GOAT has a brandName or brand field
+            if (product.brandName) result.brand = product.brandName;
+            else if (product.brand) result.brand = typeof product.brand === 'string' ? product.brand : product.brand.name;
+
+            // Price - prefer retail price over resale
+            if (product.retailPrice) result.price = product.retailPrice / 100;
+            else if (product.lowestPriceCents) result.price = product.lowestPriceCents.lowestPriceCents / 100;
+
+            // Images
+            if (product.mainPictureUrl) result.images = [product.mainPictureUrl];
+            if (product.pictureUrl) result.images = [product.pictureUrl];
+            if (product.gridPictureUrl) {
+              result.images = result.images || [];
+              result.images.push(product.gridPictureUrl);
+            }
+          }
+        } catch (e) {
+          // Continue to DOM extraction
+        }
+      }
+
+      // Fallback: extract brand from page title / h1
+      if (!result.brand) {
+        const title = $('h1').first().text()?.trim() || $('title').text()?.trim() || '';
+        // GOAT titles: "Brand Name Product Name - Details | GOAT"
+        // Common patterns: "adidas", "Nike", "New Balance", "Wales Bonner x adidas"
+        const cleanTitle = title.replace(/\s*\|\s*GOAT.*$/i, '').replace(/\s*-\s*IF\w+.*$/i, '').trim();
+        if (cleanTitle) {
+          // Known sneaker brands to match against
+          const knownBrands = [
+            'adidas', 'Nike', 'New Balance', 'Jordan', 'Puma', 'Reebok', 'Converse',
+            'Vans', 'ASICS', 'Salomon', 'On', 'Hoka', 'Brooks', 'Saucony',
+            'Yeezy', 'Fear of God', 'Wales Bonner', 'Sacai', 'Off-White',
+            'Maison Margiela', 'Rick Owens', 'Balenciaga', 'Gucci', 'Prada',
+            'Dior', 'Louis Vuitton', 'Alexander McQueen', 'Bottega Veneta',
+            'Common Projects', 'Golden Goose', 'Birkenstock', 'Dr. Martens',
+            'Timberland', 'UGG', 'Crocs', 'Clarks'
+          ];
+          for (const brand of knownBrands) {
+            if (cleanTitle.toLowerCase().includes(brand.toLowerCase())) {
+              result.brand = brand;
+              break;
+            }
+          }
+          // If collab format "Brand x Brand2 Model", extract the first brand
+          if (!result.brand) {
+            const collabMatch = cleanTitle.match(/^(.+?)\s+x\s+/i);
+            if (collabMatch) result.brand = collabMatch[1].trim();
+          }
+        }
+      }
+
+      // Clean up the product name — remove "Buy" prefix and "| GOAT" suffix
+      if (result.name) {
+        result.name = result.name
+          .replace(/^Buy\s+/i, '')
+          .replace(/\s*\|\s*GOAT.*$/i, '')
+          .trim();
+      }
+
+      if (result.name || result.brand) return result;
     }
 
     if (!patterns) return {};
@@ -1489,29 +1706,41 @@ class UniversalParserV3 {
   cleanProductTitle(title, hostname) {
     if (!title || typeof title !== 'string') return title;
 
-    // Remove site-specific suffixes
-    const cleanupRules = [
-      // Bespoke Post: "Product Name | Bespoke Post"
-      { pattern: /\s*\|\s*Bespoke Post\s*$/i, sites: ['bespokepost.com'] },
-      // Generic cleanup: "Product Name | Brand Name" (only if hostname matches)
-      { pattern: /\s*\|\s*[^|]+\s*$/, sites: ['nordstrom.com', 'bloomingdales.com'] },
-      // Remove trailing hyphens or pipes
-      { pattern: /\s*[-|]\s*$/, sites: [] } // Apply to all sites
+    const original = title;
+
+    // Remove common prefixes
+    title = title.replace(/^(Buy|Shop|Order)\s+/i, '');
+
+    // Remove site name suffixes — "Product Name | GOAT", "Product Name - SSENSE", etc.
+    // Common separators: |, -, –, —
+    const siteNames = [
+      'GOAT', 'SSENSE', 'Nordstrom', 'Bloomingdales', 'Farfetch', 'Net-a-Porter',
+      'Mytheresa', 'MatchesFashion', 'Mr Porter', 'Bespoke Post', 'Grailed',
+      'StockX', 'Depop', 'Poshmark', 'eBay', 'Amazon', 'Etsy', 'Saks Fifth Avenue',
+      'Neiman Marcus', 'Barneys', 'END.', 'LUISAVIAROMA', 'Selfridges'
     ];
+    for (const site of siteNames) {
+      const escaped = site.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`\\s*[|\\-–—]\\s*${escaped}\\s*$`, 'i');
+      title = title.replace(regex, '').trim();
+    }
 
-    for (const rule of cleanupRules) {
-      // If rule has specific sites, only apply if hostname matches
-      if (rule.sites.length > 0 && !rule.sites.some(site => hostname.includes(site))) {
-        continue;
-      }
+    // Generic: remove " | Site Name" pattern at the end (catches sites not in the list)
+    // Only if the suffix is short (likely a site name, not product info)
+    const pipeMatch = title.match(/^(.+?)\s*[|]\s*([^|]{1,30})$/);
+    if (pipeMatch && pipeMatch[1].length > 10) {
+      title = pipeMatch[1].trim();
+    }
 
-      const cleaned = title.replace(rule.pattern, '').trim();
-      if (cleaned && cleaned !== title) {
-        if (this.logLevel === 'verbose') {
-          console.log(`🧹 Cleaned title: "${title}" → "${cleaned}"`);
-        }
-        title = cleaned;
-      }
+    // Remove SKU/style codes at the end like "- IF6703", "- IH1513 004", "- Style #12345"
+    title = title.replace(/\s*-\s*[A-Z]{1,3}\d{3,}[\s\d]*$/i, '').trim();
+    title = title.replace(/\s*-\s*Style\s*#?\w+$/i, '').trim();
+
+    // Remove trailing separators
+    title = title.replace(/\s*[-|–—]\s*$/, '').trim();
+
+    if (this.logLevel === 'verbose' && title !== original) {
+      console.log(`🧹 Cleaned title: "${original}" → "${title}"`);
     }
 
     return title;
