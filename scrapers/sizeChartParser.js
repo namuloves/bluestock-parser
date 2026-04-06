@@ -83,9 +83,14 @@ class SizeChartParser {
         return sizeData;
       }
 
-      // Strategy 2: Extract visible tables
+      // Strategy 1b: After any click attempt, re-scan the entire page for
+      // measurement tables — drawers/dialogs (e.g. Uniqlo) inject the table
+      // into the DOM but may not match known modal container selectors.
       sizeData = await this.extractTables(page);
-      if (sizeData) return sizeData;
+      if (sizeData) {
+        console.log('Found size data from post-click page scan');
+        return sizeData;
+      }
 
       // Strategy 3: Look for structured data
       sizeData = await this.extractStructuredData(page);
@@ -114,7 +119,9 @@ class SizeChartParser {
     try {
       // Find and click size guide elements using page evaluation
       const clickResult = await page.evaluate(() => {
-        const elements = document.querySelectorAll('button, a, div[role="button"], span');
+        const elements = document.querySelectorAll(
+          'button, a, div[role="button"], span, p, [data-test*="size" i], [data-testid*="size" i]'
+        );
         console.log('Total elements to check:', elements.length);
         
         for (const el of elements) {
@@ -151,9 +158,30 @@ class SizeChartParser {
       const clicked = clickResult.clicked;
       if (clicked) {
         console.log('Clicked size guide:', clickResult.text);
-        // Wait for modal to appear
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
+        // Wait for modal/drawer content to render. Some sites (Uniqlo) lazy-load
+        // the size table inside a drawer that animates in over ~1s.
+        await new Promise(resolve => setTimeout(resolve, 4000));
+
+        // Wait for any table containing measurement-related headers to appear.
+        try {
+          await page.waitForFunction(() => {
+            const tables = document.querySelectorAll('table');
+            for (const t of tables) {
+              const text = (t.textContent || '').toLowerCase();
+              if (
+                text.includes('chest') || text.includes('bust') ||
+                text.includes('waist') || text.includes('shoulder') ||
+                text.includes('sleeve') || text.includes('length')
+              ) {
+                return true;
+              }
+            }
+            return false;
+          }, { timeout: 5000 });
+        } catch {
+          // No measurement table appeared — fall through to other strategies.
+        }
+
         // Look for modal content
         const modalData = await this.extractModalContent(page);
         if (modalData) return modalData;
