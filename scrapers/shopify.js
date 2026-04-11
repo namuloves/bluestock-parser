@@ -80,6 +80,119 @@ const extractTextFromSelectors = ($, selectors) => {
   return uniqueTextJoin(collected);
 };
 
+const fetchWithDnsFallback = async (url, buildAxiosConfig, retryLabel) => {
+  let requestUrl = url;
+  let axiosConfig = buildAxiosConfig(requestUrl);
+  let response;
+
+  try {
+    response = await axios.get(requestUrl, axiosConfig);
+  } catch (error) {
+    if (isDnsResolutionError(error)) {
+      const fallbackUrl = getHostnameFallbackUrl(requestUrl);
+      if (fallbackUrl) {
+        console.log(`🔁 DNS fallback: retrying ${retryLabel} without www prefix`);
+        requestUrl = fallbackUrl;
+        axiosConfig = buildAxiosConfig(requestUrl);
+        response = await axios.get(requestUrl, axiosConfig);
+      } else {
+        throw error;
+      }
+    } else {
+      throw error;
+    }
+  }
+
+  return { response, requestUrl, axiosConfig };
+};
+
+const buildNetworkError = (error, url, context) => ({
+  isShopify: false,
+  fetched: false,
+  errorType: 'network_error',
+  error: `${context}: ${error.message}`,
+  details: {
+    code: error.code || error.errno || null,
+    url
+  }
+});
+
+const looksLikeShopifyProductPath = (url) => {
+  try {
+    const { pathname } = new URL(url);
+    return /^\/products\/[^/]+/i.test(pathname) || /^\/collections\/.+\/products\/[^/]+/i.test(pathname);
+  } catch (error) {
+    return false;
+  }
+};
+
+const detectShopifyStore = async (url) => {
+  try {
+    // Exclude known non-Shopify sites that use Shopify CDN
+    const hostname = new URL(url).hostname.toLowerCase();
+    if (hostname.includes('fredhome.com.au')) {
+      console.log('❌ fredhome.com.au is not a real Shopify store (Nuxt.js app)');
+      return {
+        isShopify: false,
+        fetched: true,
+        requestUrl: url,
+        reason: 'known_non_shopify_domain'
+      };
+    }
+
+    const buildConfig = (targetUrl) => getAxiosConfig(targetUrl, {
+      timeout: 10000,
+      maxRedirects: 5,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+      }
+    });
+
+    const { response, requestUrl } = await fetchWithDnsFallback(
+      url,
+      buildConfig,
+      'Shopify detection fetch'
+    );
+
+    const html = String(response.data || '').toLowerCase();
+
+    // More specific Shopify detection - look for actual Shopify markers, not just CDN usage
+    const hasShopifyMarkers = (
+      html.includes('shopify.com/s/files') ||  // Actual Shopify file structure
+      html.includes('myshopify.com') ||        // Shopify subdomain
+      html.includes('/cdn/shop/') ||           // Shopify shop CDN
+      html.includes('shopify_checkout') ||     // Shopify checkout
+      html.includes('shopify.analytics') ||    // Shopify analytics
+      html.includes('var shopify =') ||        // Shopify JS object
+      html.includes('"shopify":') ||           // Shopify in JSON
+      html.includes('shopify-section') ||      // Shopify theme sections
+      html.includes('shopify-digital-wallet')  // Shopify wallet meta tag
+    );
+
+    return {
+      isShopify: hasShopifyMarkers,
+      fetched: true,
+      requestUrl,
+      reason: hasShopifyMarkers ? 'shopify_markers_found' : 'shopify_markers_not_found'
+    };
+  } catch (error) {
+    if (isDnsResolutionError(error) || error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT') {
+      return buildNetworkError(error, url, 'Shopify detection failed to reach the site');
+    }
+
+    return {
+      isShopify: false,
+      fetched: false,
+      errorType: 'detection_error',
+      error: `Shopify detection failed: ${error.message}`,
+      details: {
+        code: error.code || error.errno || null,
+        url
+      }
+    };
+  }
+};
+
 const scrapeShopify = async (url) => {
   console.log('🛍️ Starting Shopify scraper for:', url);
   
@@ -104,27 +217,13 @@ const scrapeShopify = async (url) => {
       validateStatus: (status) => status < 500
     });
 
-    let axiosConfig = buildAxiosConfig(requestUrl);
     console.log('📡 Fetching Shopify page...');
-
-    let response;
-    try {
-      response = await axios.get(requestUrl, axiosConfig);
-    } catch (error) {
-      if (isDnsResolutionError(error)) {
-        const fallbackUrl = getHostnameFallbackUrl(requestUrl);
-        if (fallbackUrl) {
-          console.log('🔁 DNS fallback: retrying Shopify fetch without www prefix');
-          requestUrl = fallbackUrl;
-          axiosConfig = buildAxiosConfig(requestUrl);
-          response = await axios.get(requestUrl, axiosConfig);
-        } else {
-          throw error;
-        }
-      } else {
-        throw error;
-      }
-    }
+    const { response, requestUrl: resolvedRequestUrl, axiosConfig } = await fetchWithDnsFallback(
+      requestUrl,
+      buildAxiosConfig,
+      'Shopify fetch'
+    );
+    requestUrl = resolvedRequestUrl;
     
     if (response.status !== 200) {
       throw new Error(`HTTP ${response.status}: Failed to fetch page`);
@@ -552,10 +651,12 @@ const scrapeShopify = async (url) => {
     
   } catch (error) {
     console.error('❌ Shopify scraping error:', error.message);
-    
-    // Return partial data with error
+
     return {
       url,
+      errorType: isDnsResolutionError(error) || error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT'
+        ? 'network_error'
+        : 'parse_error',
       error: error.message,
       timestamp: new Date().toISOString()
     };
@@ -564,60 +665,13 @@ const scrapeShopify = async (url) => {
 
 // Check if a URL is a Shopify store
 const isShopifyStore = async (url) => {
-  try {
-    // Exclude known non-Shopify sites that use Shopify CDN
-    const hostname = new URL(url).hostname.toLowerCase();
-    if (hostname.includes('fredhome.com.au')) {
-      console.log('❌ fredhome.com.au is not a real Shopify store (Nuxt.js app)');
-      return false;
-    }
-
-    let requestUrl = url;
-    const buildConfig = (targetUrl) => ({
-      timeout: 10000,
-      maxRedirects: 5,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
-      }
-    });
-
-    let response;
-    try {
-      response = await axios.get(requestUrl, buildConfig(requestUrl));
-    } catch (error) {
-      if (isDnsResolutionError(error)) {
-        const fallbackUrl = getHostnameFallbackUrl(requestUrl);
-        if (fallbackUrl) {
-          console.log('🔁 DNS fallback: retrying Shopify detection without www prefix');
-          requestUrl = fallbackUrl;
-          response = await axios.get(requestUrl, buildConfig(requestUrl));
-        } else {
-          throw error;
-        }
-      } else {
-        throw error;
-      }
-    }
-
-    const html = response.data.toLowerCase();
-
-    // More specific Shopify detection - look for actual Shopify markers, not just CDN usage
-    const hasShopifyMarkers = (
-      html.includes('shopify.com/s/files') ||  // Actual Shopify file structure
-      html.includes('myshopify.com') ||        // Shopify subdomain
-      html.includes('/cdn/shop/') ||            // Shopify shop CDN
-      html.includes('shopify_checkout') ||      // Shopify checkout
-      html.includes('shopify.analytics') ||     // Shopify analytics
-      html.includes('var shopify =') ||         // Shopify JS object
-      html.includes('"shopify":') ||            // Shopify in JSON
-      html.includes('shopify-section')          // Shopify theme sections
-    );
-
-    // Just having cdn.shopify in images is not enough - many sites use Shopify CDN
-    return hasShopifyMarkers;
-  } catch (error) {
-    return false;
-  }
+  const result = await detectShopifyStore(url);
+  return result.isShopify;
 };
 
-module.exports = { scrapeShopify, isShopifyStore };
+module.exports = {
+  scrapeShopify,
+  isShopifyStore,
+  detectShopifyStore,
+  looksLikeShopifyProductPath
+};

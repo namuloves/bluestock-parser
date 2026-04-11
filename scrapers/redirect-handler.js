@@ -144,16 +144,28 @@ const handleRedirect = async (url) => {
 // Direct product scraping without redirect detection
 const scrapeProductDirect = async (url) => {
   // Import here to avoid circular dependency
-  const { scrapeShopify, isShopifyStore } = require('./shopify');
+  const { scrapeShopify, detectShopifyStore, looksLikeShopifyProductPath } = require('./shopify');
   const { detectCategory } = require('../utils/categoryDetection');
   
   try {
     // Check if it's a Shopify store
-    const isShopify = await isShopifyStore(url);
-    
-    if (isShopify) {
-      console.log('✅ Detected as Shopify store');
+    const shopifyDetection = await detectShopifyStore(url);
+    const shouldAttemptShopify = shopifyDetection.isShopify ||
+      (shopifyDetection.errorType === 'network_error' && looksLikeShopifyProductPath(url));
+
+    if (shouldAttemptShopify) {
+      console.log('🛍️ Using Shopify scraper');
       const shopifyProduct = await scrapeShopify(url);
+
+      if (shopifyProduct.error && shopifyProduct.errorType === 'network_error') {
+        return {
+          success: false,
+          error: `Network error while scraping Shopify product: ${shopifyProduct.error}`,
+          error_type: 'network_error',
+          url,
+          timestamp: new Date().toISOString()
+        };
+      }
       
       // Format the response
       let priceNumeric = 0;

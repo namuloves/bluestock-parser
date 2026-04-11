@@ -89,7 +89,11 @@ const { scrapeSsenseFallback } = require('./ssense-fallback');
 const { scrapeSaksFifthAvenue } = require('./saksfifthavenue');
 const { scrapeEtsy } = require('./etsy');
 const { scrapePoshmark } = require('./poshmark');
-const { scrapeShopify, isShopifyStore } = require('./shopify');
+const {
+  scrapeShopify,
+  detectShopifyStore,
+  looksLikeShopifyProductPath
+} = require('./shopify');
 const { scrapeShopStyle } = require('./shopstyle');
 const { handleRedirect } = require('./redirect-handler');
 const { scrapeInstagram } = require('./instagram');
@@ -2584,11 +2588,33 @@ const scrapeProduct = async (url, options = {}) => {
 
         // STEP 2: Try to detect if it's a Shopify store dynamically
         console.log('🔍 Checking if site is Shopify...');
-        const mightBeShopify = await isShopifyStore(url);
-        
-        if (mightBeShopify) {
-          console.log('✅ Detected as Shopify store, using Shopify scraper');
+        const shopifyDetection = await detectShopifyStore(url);
+        const shouldAttemptShopify = shopifyDetection.isShopify ||
+          (shopifyDetection.errorType === 'network_error' && looksLikeShopifyProductPath(url));
+
+        if (shopifyDetection.errorType === 'network_error') {
+          console.log(`⚠️ Shopify detection hit a network error: ${shopifyDetection.error}`);
+          if (shouldAttemptShopify && !shopifyDetection.isShopify) {
+            console.log('🛍️ URL looks like a Shopify product page, trying Shopify scraper anyway');
+          }
+        }
+
+        if (shouldAttemptShopify) {
+          console.log('🛍️ Using Shopify scraper');
           const shopifyProduct = await scrapeShopify(url);
+
+          if (shopifyProduct.error) {
+            console.log(`⚠️ Shopify scraper failed: ${shopifyProduct.error}`);
+
+            if (shopifyProduct.errorType === 'network_error') {
+              return {
+                success: false,
+                error: `Network error while scraping Shopify product: ${shopifyProduct.error}`,
+                error_type: 'network_error',
+                product: null
+              };
+            }
+          }
           
           // Extract price number from string or number
           let shopifyPriceNumeric = 0;
@@ -2697,6 +2723,15 @@ const scrapeProduct = async (url, options = {}) => {
 
         // STEP 4: All fallbacks exhausted
         console.log('❌ All scraping methods exhausted for this site');
+        if (shopifyDetection?.errorType === 'network_error') {
+          return {
+            success: false,
+            error: shopifyDetection.error,
+            error_type: 'network_error',
+            product: null
+          };
+        }
+
         return {
           success: false,
           error: 'No scraper available for this site and all fallbacks failed',
