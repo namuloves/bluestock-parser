@@ -1,0 +1,13 @@
+{
+  "comment": "Maps URLs to fixture files. Keys are normalized: no protocol, no www., no query string. Used by test/helpers/fixture-adapter.js. Add entries with: node tools/capture-fixture.js <url> <name>",
+  "fixtures": {
+    "sorrythanksiloveyou.com/collections/new-arrivals/products/mm6-black-logo-t-shirt-copy": "sorrythanksiloveyou/page.html",
+    "sorrythanksiloveyou.com/products/mm6-black-logo-t-shirt-copy": "sorrythanksiloveyou/page.html",
+    "sorrythanksiloveyou.com/products/mm6-black-logo-t-shirt-copy.json": "sorrythanksiloveyou/product.json",
+    "sorrythanksiloveyou.com/collections/new-arrivals/products/mm6-black-logo-t-shirt-copy.json": "sorrythanksiloveyou/product.json",
+    "rachelcomey.com/products/yanni-skirt-organza-bouquet": "rachelcomey/page.html",
+    "rachelcomey.com/products/yanni-skirt-organza-bouquet.json": "rachelcomey/product.json",
+    "soeur.fr/products/sandales-velika-gris-anthracite-cha1309velika23wgri03": "soeur/page.html",
+    "soeur.fr/products/sandales-velika-gris-anthracite-cha1309velika23wgri03.json": "soeur/product.json"
+  }
+}
