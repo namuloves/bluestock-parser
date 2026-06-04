@@ -629,7 +629,17 @@ const scrapeProduct = async (url, options = {}) => {
   let specificResult = null;
 
   // Check if URL is from sites with dedicated scrapers that work better
-  const hostname = new URL(url).hostname.replace('www.', '');
+  let hostname;
+  try {
+    hostname = new URL(url).hostname.replace('www.', '');
+  } catch {
+    return {
+      success: false,
+      error: `Invalid URL: ${url}`,
+      error_type: 'invalid_url',
+      product: null
+    };
+  }
 
   // Sites to skip Universal Parser for - they have optimized dedicated scrapers
   const skipUniversalSites = [

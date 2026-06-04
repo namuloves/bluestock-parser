@@ -124,9 +124,16 @@ const SITE_REGISTRY = {
 
 // Derive per-request flags from the registry — do not edit these directly
 const getSiteConfig = (urlOrHostname) => {
-  const hostname = urlOrHostname.includes('://')
-    ? new URL(urlOrHostname).hostname.toLowerCase()
-    : urlOrHostname.toLowerCase();
+  let hostname;
+  try {
+    hostname = urlOrHostname.includes('://')
+      ? new URL(urlOrHostname).hostname.toLowerCase()
+      : urlOrHostname.toLowerCase();
+  } catch {
+    // Malformed URL — fall back to the default config; the route's own
+    // URL validation will reject it with a proper 400
+    hostname = String(urlOrHostname || '').toLowerCase();
+  }
   const match = Object.keys(SITE_REGISTRY).find(domain => hostname.includes(domain));
   return match ? SITE_REGISTRY[match] : { scraper: 'universal', timeout: 30000 };
 };
@@ -374,7 +381,19 @@ app.post('/scrape', scrapeLimiter, async (req, res) => {
         error: 'URL parameter is required'
       });
     }
-    
+
+    // Validate URL shape up front so downstream new URL(url) calls can't throw
+    try {
+      const parsed = new URL(url);
+      if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('bad protocol');
+    } catch {
+      clearTimeout(timeout);
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid URL - must be a valid http(s) URL'
+      });
+    }
+
     console.log('🔍 Scraping URL:', url);
     console.log('🔍 Scraping started at:', new Date().toISOString());
 
@@ -544,7 +563,9 @@ app.post('/scrape', scrapeLimiter, async (req, res) => {
               brand: v3Result.brand,
               description: v3Result.description,
               sale_price: v3Result.salePrice || v3Result.sale_price,
+              original_price: v3Result.originalPrice || v3Result.original_price,
               currency: v3Result.currency || 'USD',
+              currency_source: v3Result.currencySource || v3Result.currency_source,
               url: url
             });
           } catch (validationError) {
@@ -587,11 +608,15 @@ app.post('/scrape', scrapeLimiter, async (req, res) => {
               product_name: validatedProduct.name,
               brand: validatedProduct.brand || 'Unknown',
               price: validatedProduct.price,
-              original_price: v3Result.originalPrice || validatedProduct.price,
+              original_price: v3Result.originalPrice || validatedProduct.original_price || validatedProduct.price,
               sale_price: validatedProduct.sale_price || validatedProduct.price,
               images: validatedProduct.images,
               image_urls: validatedProduct.images,
               description: validatedProduct.description || '',
+              // Carry canonical currency through — dropping it here caused
+              // the detector to re-guess (and mislabel) downstream
+              currency: validatedProduct.currency || v3Result.currency,
+              currency_source: validatedProduct.currency_source || v3Result.currencySource || v3Result.currency_source,
               is_on_sale: !!validatedProduct.sale_price,
               discount_percentage: validatedProduct.sale_price
                 ? Math.round((1 - validatedProduct.sale_price / validatedProduct.price) * 100)
@@ -1102,88 +1127,26 @@ process.on('SIGINT', async () => {
 // MONITORING DASHBOARD ENDPOINTS
 // ============================================
 
-// Parser performance dashboard
+// Parser performance dashboard (reports the parsers actually in production: v3 + lean)
 app.get('/api/parser/dashboard', async (req, res) => {
   try {
-    const UniversalParserV2 = require('./universal-parser-v2');
     const { getMetricsCollector } = require('./monitoring/metrics-collector');
-    const { getUniversalConfig } = require('./config/universal-config');
+    const collectorMetrics = await getMetricsCollector().getMetrics();
 
-    const v2Parser = new UniversalParserV2();
-    const metricsCollector = getMetricsCollector();
-    const config = getUniversalConfig();
-
-    // Get V2 metrics
-    const v2Metrics = v2Parser.getMetrics ? v2Parser.getMetrics() : v2Parser.metrics;
-
-    // Get collector metrics
-    const collectorMetrics = await metricsCollector.getMetrics();
-
-    // Get configuration status
-    const configStatus = config.getStatus();
-
-    // Calculate performance comparison
-    const comparison = {
-      successRate: {
-        v1: collectorMetrics.v1?.successRate || 0,
-        v2: (v2Metrics.successes / (v2Metrics.attempts || 1)) * 100,
-        improvement: null
-      },
-      avgConfidence: {
-        v1: collectorMetrics.v1?.avgConfidence || 0,
-        v2: collectorMetrics.v2?.avgConfidence || 0,
-        improvement: null
-      },
-      strategyBreakdown: v2Metrics.byStrategy
-    };
-
-    // Calculate improvements
-    if (comparison.successRate.v1 > 0) {
-      comparison.successRate.improvement =
-        ((comparison.successRate.v2 - comparison.successRate.v1) / comparison.successRate.v1) * 100;
-    }
-
-    if (comparison.avgConfidence.v1 > 0) {
-      comparison.avgConfidence.improvement =
-        comparison.avgConfidence.v2 - comparison.avgConfidence.v1;
-    }
-
-    // Generate recommendations
-    const recommendations = [];
-
-    if (comparison.successRate.v2 > 80 && configStatus.mode === 'shadow') {
-      recommendations.push({
-        action: 'PROMOTE_TO_PARTIAL',
-        reason: 'V2 parser showing 80%+ success rate',
-        command: 'node universal-manager.js mode partial'
-      });
-    }
-
-    if (v2Metrics.byStrategy.puppeteer.attempts > v2Metrics.byStrategy.direct.attempts) {
-      recommendations.push({
-        action: 'OPTIMIZE_PROXY',
-        reason: 'High Puppeteer usage indicates many sites blocking direct access',
-        sites: ['cos.com', 'hm.com', 'aritzia.com']
-      });
-    }
-
-    const dashboard = {
+    res.json({
       timestamp: new Date().toISOString(),
-      mode: configStatus.mode,
-      v2Parser: {
-        ...v2Metrics,
-        successRate: (v2Metrics.successes / (v2Metrics.attempts || 1)) * 100
+      primary_parser: PARSER_VERSION,
+      parsers: {
+        v3: v3Parser ? 'initialized' : 'not available',
+        lean: leanParser ? `initialized (${leanParser.version || 'v4.0.0-lean'})` : 'not available'
       },
-      comparison,
-      recommendations,
-      config: {
-        mode: configStatus.mode,
-        enabledSites: configStatus.enabled_sites,
-        confidenceThreshold: configStatus.confidence_threshold
-      }
-    };
-
-    res.json(dashboard);
+      rollout: {
+        mode: rolloutConfig.mode,
+        lean_percentage: rolloutConfig.leanParserPercentage,
+        metrics: rolloutConfig.metrics
+      },
+      metrics: collectorMetrics
+    });
   } catch (error) {
     res.status(500).json({
       error: 'Failed to generate dashboard',
@@ -1192,7 +1155,7 @@ app.get('/api/parser/dashboard', async (req, res) => {
   }
 });
 
-// A/B Testing endpoint
+// A/B Testing endpoint: compares the two live parsers (v3 vs lean) on one URL
 app.get('/api/parser/abtest', async (req, res) => {
   const { url } = req.query;
 
@@ -1200,43 +1163,38 @@ app.get('/api/parser/abtest', async (req, res) => {
     return res.status(400).json({ error: 'URL parameter required' });
   }
 
-  try {
-    const { scrapeProduct } = require('./scrapers');
+  const results = {};
 
-    // Run V1 parser
-    process.env.USE_PARSER_V2 = 'false';
-    const v1Start = Date.now();
-    const v1Result = await scrapeProduct(url);
-    const v1Time = Date.now() - v1Start;
-
-    // Run V2 parser
-    process.env.USE_PARSER_V2 = 'true';
-    const v2Start = Date.now();
-    const v2Result = await scrapeProduct(url);
-    const v2Time = Date.now() - v2Start;
-
-    res.json({
-      url,
-      v1: {
-        success: v1Result.success,
-        confidence: v1Result.confidence || 0,
-        time: v1Time,
-        hasData: !!(v1Result.product?.product_name && v1Result.product?.sale_price)
-      },
-      v2: {
-        success: v2Result.success,
-        confidence: v2Result.confidence || 0,
-        time: v2Time,
-        hasData: !!(v2Result.product?.product_name && v2Result.product?.sale_price)
-      },
-      winner: v2Result.confidence > v1Result.confidence ? 'V2' : 'V1'
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: 'A/B test failed',
-      message: error.message
-    });
+  if (v3Parser) {
+    const start = Date.now();
+    try {
+      const r = await v3Parser.parse(url);
+      results.v3 = {
+        success: (r.confidence || 0) > 0.5,
+        confidence: r.confidence || 0,
+        time: Date.now() - start,
+        hasData: !!(r.name && r.price)
+      };
+    } catch (e) {
+      results.v3 = { success: false, error: e.message, time: Date.now() - start };
+    }
   }
+
+  if (leanParser) {
+    const start = Date.now();
+    try {
+      const r = await leanParser.parse(url, { bypassCache: true });
+      results.lean = {
+        success: !!r.success,
+        time: Date.now() - start,
+        hasData: !!(r.product?.name && r.product?.price)
+      };
+    } catch (e) {
+      results.lean = { success: false, error: e.message, time: Date.now() - start };
+    }
+  }
+
+  res.json({ url, ...results });
 });
 
 // Quality Gate metrics endpoint
