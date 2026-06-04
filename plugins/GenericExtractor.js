@@ -83,13 +83,15 @@ class GenericExtractor {
 
     if (metaTitle) {
       // Clean up meta title (remove site name, etc.)
-      return metaTitle.replace(/\s*[\|\-–—]\s*[^|\-–—]+$/, '').trim();
+      // Separator must be surrounded by whitespace so hyphenated words
+      // like "T-shirt" are not truncated
+      return metaTitle.replace(/(?:\s*\|\s*|\s+[\-–—]\s+)[^|\-–—]+$/, '').trim();
     }
 
     // Strategy 3: Page title
     const pageTitle = $('title').text();
     if (pageTitle) {
-      return pageTitle.replace(/\s*[\|\-–—]\s*[^|\-–—]+$/, '').trim();
+      return pageTitle.replace(/(?:\s*\|\s*|\s+[\-–—]\s+)[^|\-–—]+$/, '').trim();
     }
 
     return null;

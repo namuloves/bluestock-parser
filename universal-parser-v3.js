@@ -812,11 +812,22 @@ class UniversalParserV3 {
           timeout: 10000,
           validateStatus: s => s === 200
         });
-        if (jsonResp.data?.product?.images?.length) {
-          apiImages = jsonResp.data.product.images
+        const apiProduct = jsonResp.data?.product;
+        if (apiProduct?.images?.length) {
+          apiImages = apiProduct.images
             .map(img => typeof img === 'string' ? img : (img.src || img.url))
             .filter(Boolean);
           console.log(`✅ Shopify JSON API returned ${apiImages.length} images`);
+        }
+        // The Shopify "vendor" field is the brand/merchant (critical for
+        // multi-brand boutiques where og:site_name is the store, not the brand)
+        if (apiProduct?.vendor && !result.brand) {
+          result.brand = apiProduct.vendor.trim();
+          result.brandSource = 'shopify_json';
+          console.log(`✅ Shopify JSON API vendor (brand): ${result.brand}`);
+        }
+        if (apiProduct?.title && !result.name) {
+          result.name = apiProduct.title;
         }
       } catch (e) {
         console.log(`⚠️ Shopify JSON API failed: ${e.message}`);

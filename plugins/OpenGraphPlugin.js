@@ -244,8 +244,9 @@ class OpenGraphPlugin {
     if (!title) return '';
 
     return title
-      // Remove site name suffixes
-      .replace(/\s*[\|\-–—]\s*[^|\-–—]+$/, '')
+      // Remove site name suffixes (separator must be surrounded by whitespace
+      // so hyphenated words like "T-shirt" are not truncated)
+      .replace(/(?:\s*\|\s*|\s+[\-–—]\s+)[^|\-–—]+$/, '')
       // Remove "Buy" prefixes
       .replace(/^(Buy|Shop|Get)\s+/i, '')
       // Clean whitespace

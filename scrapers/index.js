@@ -674,15 +674,16 @@ const scrapeProduct = async (url, options = {}) => {
       if (universalResult && universalResult.confidence > 0.7) {
         console.log('✅ Universal Parser succeeded with confidence:', universalResult.confidence);
 
-        // Collect metrics if enabled
+        // Collect metrics if enabled (never let metrics errors break scraping)
         if (metricsCollector) {
-          metricsCollector.recordScrape({
-            url,
-            success: true,
-            method: 'universal',
-            confidence: universalResult.confidence,
-            duration: Date.now() - startTime
-          });
+          try {
+            await metricsCollector.recordRequest(url, universalResult, null, {
+              startTime,
+              endTime: Date.now()
+            });
+          } catch (metricsError) {
+            console.log('⚠️ Metrics recording failed:', metricsError.message);
+          }
         }
 
         return universalResult;

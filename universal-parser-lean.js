@@ -164,6 +164,10 @@ class UniversalParserLean {
     // Step 2: Extract with plugins
     const extracted = await this.pluginManager.extract($, url, { policy });
 
+    // Step 2.5: Shopify enrichment - the /products/<handle>.json endpoint is the
+    // most reliable source for the full image set and the vendor (brand)
+    await this.enrichFromShopifyJson(url, $, extracted);
+
     // Step 3: Validate with Quality Gate - but be SMART about it
     const validation = this.qualityGate.validate(extracted);
 
@@ -220,6 +224,65 @@ class UniversalParserLean {
       extraction_method: 'lean_parser',
       plugins_used: extracted._extraction_metadata?.plugins_used || []
     };
+  }
+
+  /**
+   * Enrich extracted data from the Shopify product JSON endpoint.
+   * Works for any Shopify store (including unknown domains): grabs the full
+   * image set and the vendor field, which is the actual brand/merchant on
+   * multi-brand boutiques where og:site_name is just the store name.
+   */
+  async enrichFromShopifyJson(url, $, extracted) {
+    let jsonUrl;
+    try {
+      const u = new URL(url);
+      const match = u.pathname.match(/\/products\/([^/?#]+)/);
+      if (!match) return; // Not a Shopify-style product URL
+      const handle = match[1].replace(/\.json$/, '');
+      jsonUrl = `${u.origin}/products/${handle}.json`;
+    } catch {
+      return;
+    }
+
+    try {
+      console.log(`🛍️ Shopify enrichment: ${jsonUrl}`);
+      const resp = await axios.get(jsonUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': this.policies?.defaults?.user_agent || 'Mozilla/5.0 (compatible; ProductScraper/1.0)'
+        },
+        timeout: 8000,
+        validateStatus: s => s === 200
+      });
+      const product = resp.data?.product;
+      if (!product) return;
+
+      // Images: prefer the JSON API set if it has more than what plugins found
+      const apiImages = (product.images || [])
+        .map(img => (typeof img === 'string' ? img : (img.src || img.url)))
+        .filter(Boolean);
+      if (apiImages.length > (extracted.images?.length || 0)) {
+        extracted.images = apiImages;
+      }
+
+      // Brand: vendor is authoritative on Shopify. Override when brand is
+      // missing or when plugins picked up the store name instead of the brand.
+      const siteName = ($('meta[property="og:site_name"]').attr('content') || '').trim().toLowerCase();
+      const currentBrand = (extracted.brand || '').trim().toLowerCase();
+      if (product.vendor && (!currentBrand || currentBrand === siteName)) {
+        extracted.brand = product.vendor.trim();
+      }
+
+      // Fallbacks for other fields
+      if (!extracted.name && product.title) extracted.name = product.title;
+      if (!extracted.price && product.variants?.[0]?.price) {
+        extracted.price = this.parsePrice(product.variants[0].price);
+      }
+
+      console.log(`✅ Shopify enrichment: ${apiImages.length} images, vendor: ${product.vendor || 'n/a'}`);
+    } catch (e) {
+      console.log(`⚠️ Shopify enrichment skipped: ${e.message}`);
+    }
   }
 
   /**
