@@ -829,6 +829,29 @@ class UniversalParserV3 {
         if (apiProduct?.title && !result.name) {
           result.name = apiProduct.title;
         }
+        // Canonical price + currency: rendered pages can show geo-converted
+        // prices (Shopify Markets converts by visitor IP), but the JSON
+        // endpoint returns the store's real listing price with an explicit
+        // currency. Prefer it over anything scraped from the DOM.
+        const variant = apiProduct?.variants?.find(v => v.available !== false) || apiProduct?.variants?.[0];
+        if (variant?.price) {
+          const canonicalPrice = parseFloat(String(variant.price).replace(/[^0-9.]/g, ''));
+          if (canonicalPrice > 0) {
+            result.price = canonicalPrice;
+            result.priceSource = 'shopify_json';
+            const compareAt = parseFloat(String(variant.compare_at_price || '').replace(/[^0-9.]/g, '')) || 0;
+            if (compareAt > canonicalPrice) {
+              result.originalPrice = compareAt;
+              result.sale_price = canonicalPrice;
+            }
+            console.log(`✅ Shopify JSON API canonical price: ${canonicalPrice}${compareAt > canonicalPrice ? ` (was ${compareAt})` : ''}`);
+          }
+          if (variant.price_currency) {
+            result.currency = variant.price_currency;
+            result.currencySource = 'shopify_json';
+            console.log(`✅ Shopify JSON API currency: ${result.currency}`);
+          }
+        }
       } catch (e) {
         console.log(`⚠️ Shopify JSON API failed: ${e.message}`);
       }
@@ -919,10 +942,14 @@ class UniversalParserV3 {
     result.confidence = this.calculateConfidence(result);
 
     // Detect currency from price text if we have it
-    if (result.priceText) {
+    // (skip if a canonical source like the Shopify JSON API already set it —
+    // displayed symbols are unreliable: geo-converted prices show "$" for USD,
+    // AUD, CAD, etc.)
+    if (result.priceText && !result.currency) {
       const detectedCurrency = this.detectCurrencyFromText(result.priceText);
       if (detectedCurrency) {
         result.currency = detectedCurrency;
+        result.currencySource = 'displayed'; // symbol guess from DOM — low trust
         console.log(`💰 Detected currency from price text: ${detectedCurrency} (text: ${result.priceText})`);
       }
     }

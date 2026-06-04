@@ -223,9 +223,11 @@ class QualityGate {
 
       // Optional fields with defaults
       currency: product.currency || 'USD',
+      currency_source: product.currency_source || product.currencySource || null,
       brand: product.brand ? product.brand.trim() : null,
       description: product.description ? product.description.trim() : null,
       sale_price: product.sale_price ? Number(product.sale_price) : null,
+      original_price: product.original_price ? Number(product.original_price) : null,
       availability: product.availability || 'in_stock',
       url: product.url || null,
 

@@ -273,13 +273,31 @@ class UniversalParserLean {
         extracted.brand = product.vendor.trim();
       }
 
-      // Fallbacks for other fields
-      if (!extracted.name && product.title) extracted.name = product.title;
-      if (!extracted.price && product.variants?.[0]?.price) {
-        extracted.price = this.parsePrice(product.variants[0].price);
+      // Canonical price + currency: rendered pages can show geo-converted
+      // prices (Shopify Markets converts by visitor IP), but this endpoint
+      // returns the store's real listing price with an explicit currency.
+      // Always prefer it over DOM-scraped prices.
+      const variant = (product.variants || []).find(v => v.available !== false) || product.variants?.[0];
+      if (variant?.price) {
+        const canonicalPrice = this.parsePrice(variant.price);
+        if (canonicalPrice > 0) {
+          extracted.price = canonicalPrice;
+          const compareAt = this.parsePrice(variant.compare_at_price);
+          if (compareAt && compareAt > canonicalPrice) {
+            extracted.original_price = compareAt;
+            extracted.sale_price = canonicalPrice;
+          }
+        }
+        if (variant.price_currency) {
+          extracted.currency = variant.price_currency;
+          extracted.currency_source = 'shopify_json';
+        }
       }
 
-      console.log(`✅ Shopify enrichment: ${apiImages.length} images, vendor: ${product.vendor || 'n/a'}`);
+      // Fallbacks for other fields
+      if (!extracted.name && product.title) extracted.name = product.title;
+
+      console.log(`✅ Shopify enrichment: ${apiImages.length} images, vendor: ${product.vendor || 'n/a'}, price: ${variant?.price || 'n/a'} ${variant?.price_currency || ''}`);
     } catch (e) {
       console.log(`⚠️ Shopify enrichment skipped: ${e.message}`);
     }

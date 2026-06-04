@@ -717,49 +717,52 @@ app.post('/scrape', scrapeLimiter, async (req, res) => {
       let finalCurrency = null;
       let currencySource = 'unknown';
 
-      // If currency already has a source, respect it and skip detection
-      if (productData.currency && (productData.currency_detection_source || productData.currency_source)) {
+      const reportedSource = productData.currency_detection_source || productData.currency_source || productData.currencySource;
+
+      // Canonical sources: the store's own structured data. These state the
+      // currency explicitly and are immune to geo-converted display prices.
+      const CANONICAL_CURRENCY_SOURCES = ['shopify_json', 'jsonld', 'json_ld', 'microdata', 'opengraph', 'meta_tags', 'recipe', 'api', 'site_config'];
+
+      // Priority 1: Canonical structured-data currency (what the original site says)
+      if (productData.currency && CANONICAL_CURRENCY_SOURCES.includes(reportedSource)) {
         finalCurrency = productData.currency;
-        currencySource = productData.currency_detection_source || productData.currency_source;
-        console.log(`💰 Keeping existing currency: ${finalCurrency} (source: ${currencySource})`);
+        currencySource = reportedSource;
+        console.log(`💰 Using canonical currency: ${finalCurrency} (source: ${currencySource})`);
       }
-      // Priority 1: Displayed price currency (from GenericExtractor)
-      else if (productData.currency && productData.currency_source === 'displayed') {
+      // Priority 2: Other parser-detected currency that is NOT a guess from a
+      // displayed price symbol ("$" can mean USD, AUD, CAD, NZD...)
+      else if (productData.currency && reportedSource && reportedSource !== 'displayed' && reportedSource !== 'displayed_price') {
         finalCurrency = productData.currency;
-        currencySource = 'displayed_price';
-        console.log(`💰 Using displayed price currency: ${finalCurrency}`);
+        currencySource = reportedSource;
+        console.log(`💰 Using parser currency: ${finalCurrency} (source: ${currencySource})`);
       }
-      // Priority 2: Parser-detected currency from JSON-LD (but lower priority)
-      else if (productData.currency && productData.currency_source === 'jsonld') {
-        // JSON-LD currency might not match what US visitors see
-        // Only use it if we don't have displayed price currency
-        finalCurrency = productData.currency;
-        currencySource = 'jsonld';
-        console.log(`💰 Using JSON-LD currency: ${finalCurrency} (may differ from displayed price)`);
-      }
-      // Priority 3: Any other parser-detected currency
-      else if (productData.currency) {
-        finalCurrency = productData.currency;
-        currencySource = 'parser';
-        console.log(`💰 Using parser-detected currency: ${finalCurrency}`);
-      }
-      // Priority 4: Fallback to currency detector
+      // Priority 3: Currency detector (JSON-LD/meta/lang/TLD from raw HTML)
       else {
         const currencyDetector = getCurrencyDetector();
-
-        // Get HTML content for detection (if available)
         const htmlContent = productData.html || scrapeResult.html || '';
-
-        // Get price text for detection - use original text with currency symbols
         const priceText = productData.price_text ||
                          productData.sale_price?.toString() ||
                          productData.price?.toString() || '';
 
-        // Detect currency
         const currencyInfo = currencyDetector.detect(htmlContent, url, priceText);
-        finalCurrency = currencyInfo.currency;
-        currencySource = currencyInfo.source;
-        console.log(`💰 Detected currency: ${finalCurrency} (confidence: ${currencyInfo.confidence}, source: ${currencyInfo.source})`);
+
+        if (currencyInfo.currency && currencyInfo.source !== 'default') {
+          finalCurrency = currencyInfo.currency;
+          currencySource = currencyInfo.source;
+          console.log(`💰 Detected currency: ${finalCurrency} (confidence: ${currencyInfo.confidence}, source: ${currencyInfo.source})`);
+        }
+        // Priority 4: Displayed price symbol guess (last resort before USD)
+        else if (productData.currency) {
+          finalCurrency = productData.currency;
+          currencySource = reportedSource || 'displayed_price';
+          console.log(`💰 Using displayed price currency (low trust): ${finalCurrency}`);
+        }
+        // Priority 5: Detector default (USD)
+        else {
+          finalCurrency = currencyInfo.currency;
+          currencySource = currencyInfo.source;
+          console.log(`💰 No currency signal found, defaulting to ${finalCurrency}`);
+        }
       }
 
       // Store final currency

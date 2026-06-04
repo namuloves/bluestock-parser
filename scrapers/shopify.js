@@ -444,6 +444,13 @@ const scrapeShopify = async (url) => {
             }
           }
 
+          // Canonical currency: Shopify variants carry an explicit
+          // price_currency (the store's real currency, not geo-converted)
+          if (availableVariant.price_currency) {
+            product.currency = availableVariant.price_currency;
+            product.currencySource = 'shopify_json';
+          }
+
           product.inStock = availableVariant.available !== false;
         }
       }

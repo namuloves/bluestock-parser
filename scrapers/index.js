@@ -45,16 +45,18 @@ async function tryUniversalParser(url) {
 
 // Convert universal parser output to match existing format
 function normalizeToExistingFormat(data) {
+  const isOnSale = !!(data.originalPrice && data.price && data.originalPrice > data.price);
   return {
     product_name: data.name,
     brand: data.brand || 'Unknown',
-    original_price: data.price || 0,
+    original_price: data.originalPrice || data.price || 0,
     sale_price: data.sale_price || data.price || 0,
-    is_on_sale: false,
-    discount_percentage: null,
+    is_on_sale: isOnSale,
+    discount_percentage: isOnSale ? Math.round((1 - data.price / data.originalPrice) * 100) : null,
     image_urls: data.images || [],
     description: data.description || '',
     currency: data.currency || 'USD',
+    currency_source: data.currencySource || data.currency_source,
     availability: data.availability || 'in_stock',
     vendor_url: data.url,
     html: data.html || data._rawHtml,  // Preserve HTML for post-processors
