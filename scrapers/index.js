@@ -713,24 +713,9 @@ const scrapeProduct = async (url, options = {}) => {
           return universalResult;
         }
       }
-    } else if (mode === 'full') {
-      // Full mode: try universal parser for all sites
-      universalResult = await tryUniversalParser(url);
-      if (universalResult) {
-        console.log('✅ Universal parser succeeded');
-
-        // Record metrics
-        if (metricsCollector) {
-          await metricsCollector.recordRequest(url, universalResult, universalResult, {
-            startTime,
-            endTime: Date.now()
-          });
-        }
-
-        return universalResult;
-      }
-      console.log('📌 Falling back to site-specific scraper');
     }
+    // (removed: duplicate `mode === 'full'` branch — unreachable because the
+    // `mode === 'full' || mode === 'partial'` branch above catches it first)
   }
   // ============================================
   // END UNIVERSAL PARSER INTEGRATION

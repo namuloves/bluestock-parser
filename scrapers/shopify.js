@@ -251,11 +251,15 @@ const scrapeShopify = async (url) => {
     
     // Try to get Shopify product JSON from script tags
     let productJson = null;
-    
+    // ShopifyAnalytics "var meta" exposes variant prices in CENTS (integers);
+    // every other source (.json endpoint, productJSON, data blocks) uses
+    // decimal strings. Track the source so we only divide by 100 when correct.
+    let pricesInCents = false;
+
     // Method 1: Look for ProductJSON in scripts
     $('script').each((i, script) => {
       const scriptContent = $(script).html() || '';
-      
+
       // Look for product JSON patterns
       if (scriptContent.includes('var meta = ') || scriptContent.includes('window.ShopifyAnalytics')) {
         const productMatch = scriptContent.match(/var meta = ({.*?});/s);
@@ -264,6 +268,7 @@ const scrapeShopify = async (url) => {
             const metaData = JSON.parse(productMatch[1]);
             if (metaData.product) {
               productJson = metaData.product;
+              pricesInCents = true;
             }
           } catch (e) {
             // Continue to next method
@@ -278,6 +283,7 @@ const scrapeShopify = async (url) => {
         if (jsonMatch) {
           try {
             productJson = JSON.parse(jsonMatch[1]);
+            pricesInCents = false; // productJSON uses decimal prices
           } catch (e) {
             // Continue to next method
           }
@@ -418,15 +424,12 @@ const scrapeShopify = async (url) => {
             const cleanPrice = availableVariant.price.replace(/[^0-9.]/g, '');
             product.price = parseFloat(cleanPrice) || 0;
           } else if (typeof availableVariant.price === 'number') {
-            // Check if price looks like cents (typically > 100 for most products)
-            // But also check if it has decimals already
-            if (Number.isInteger(availableVariant.price) && availableVariant.price > 100) {
-              // Likely in cents, convert to dollars
-              product.price = availableVariant.price / 100;
-            } else {
-              // Already in dollars
-              product.price = availableVariant.price;
-            }
+            // Only divide by 100 when the source provides cents (ShopifyAnalytics
+            // meta). Guessing from magnitude broke real prices: a $150 item
+            // became $1.50.
+            product.price = (pricesInCents && Number.isInteger(availableVariant.price))
+              ? availableVariant.price / 100
+              : availableVariant.price;
           }
 
           if (availableVariant.compare_at_price) {
@@ -435,12 +438,10 @@ const scrapeShopify = async (url) => {
               const cleanPrice = availableVariant.compare_at_price.replace(/[^0-9.]/g, '');
               product.originalPrice = parseFloat(cleanPrice) || 0;
             } else if (typeof availableVariant.compare_at_price === 'number') {
-              // Same logic for compare price
-              if (Number.isInteger(availableVariant.compare_at_price) && availableVariant.compare_at_price > 100) {
-                product.originalPrice = availableVariant.compare_at_price / 100;
-              } else {
-                product.originalPrice = availableVariant.compare_at_price;
-              }
+              // Same source-based logic as price
+              product.originalPrice = (pricesInCents && Number.isInteger(availableVariant.compare_at_price))
+                ? availableVariant.compare_at_price / 100
+                : availableVariant.compare_at_price;
             }
           }
 

@@ -150,12 +150,19 @@ async function scrapeChiclara(url) {
             if (variant.option2) colors.add(variant.option2);
             if (variant.option3) colors.add(variant.option3);
 
-            // Get price from first available variant
+            // Get price from first available variant.
+            // Theme-rendered product JSON uses integer cents ("5900"); other
+            // sources use decimal strings ("59.00") — only divide cents by 100.
+            const toPrice = (v) => {
+              const n = parseFloat(v);
+              if (!Number.isFinite(n)) return 0;
+              return (Number.isInteger(n) && !String(v).includes('.')) ? n / 100 : n;
+            };
             if (!product.sale_price && variant.price) {
-              product.sale_price = parseFloat(variant.price) / 100;
+              product.sale_price = toPrice(variant.price);
             }
             if (!product.original_price && variant.compare_at_price) {
-              product.original_price = parseFloat(variant.compare_at_price) / 100;
+              product.original_price = toPrice(variant.compare_at_price);
             }
           }
         });

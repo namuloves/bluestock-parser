@@ -126,6 +126,20 @@ class PluginManager {
       }
     }
 
+    // Images exception: JSON-LD/OpenGraph often expose just one hero image
+    // while a lower-priority plugin found the full gallery. If the priority
+    // winner has fewer than 3 images, take the largest valid set instead.
+    if (merged.images && merged.images.length < 3) {
+      for (const result of results) {
+        if (!result.success && result.errors?.length > 0) continue;
+        const candidate = result.data.images;
+        if (this.isValidValue(candidate, 'images') && candidate.length > merged.images.length) {
+          merged.images = candidate;
+          merged._images_source = result.plugin;
+        }
+      }
+    }
+
     // Merge any additional fields not in standard list
     for (const result of results) {
       if (!result.success && result.errors?.length > 0) continue;
