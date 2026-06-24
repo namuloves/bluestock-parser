@@ -23,3 +23,6 @@ test-*.js
 .idea/
 *.swp
 *.swo
+
+# Runtime-generated learned-patterns DB (regenerated on every successful scrape)
+pattern-db.json
