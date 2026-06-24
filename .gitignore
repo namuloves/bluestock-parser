@@ -7,3 +7,22 @@ dist/
 build/
 test-*.js
 .claude/
+
+# macOS metadata (AppleDouble files from non-HFS volumes)
+._*
+
+# Debug artifacts (screenshots and page dumps)
+*.png
+*.html
+# ...but keep real assets: the dashboard page and regression test fixtures
+!dashboard.html
+!test/fixtures/**/*.html
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Runtime-generated learned-patterns DB (regenerated on every successful scrape)
+pattern-db.json

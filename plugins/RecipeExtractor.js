@@ -20,6 +20,10 @@ class RecipeExtractor {
   loadRecipes() {
     try {
       const files = fs.readdirSync(this.recipesPath)
+        // Skip dotfiles, notably macOS AppleDouble files (._foo.yml) which are
+        // binary resource forks that end in .yml but fail YAML parsing with
+        // "null byte is not allowed in input".
+        .filter(file => !file.startsWith('.'))
         .filter(file => file.endsWith('.yml') || file.endsWith('.yaml'));
 
       for (const file of files) {
