@@ -6,6 +6,9 @@ class RedisCache {
     this.prefix = options.prefix || 'parser:';
     this.defaultTTL = options.ttl || 3600; // 1 hour default
 
+    // Max time a single GET/SET may block before we fall back (miss / no-op).
+    this.opTimeoutMs = parseInt(process.env.REDIS_OP_TIMEOUT_MS, 10) || 1000;
+
     // TTL by confidence level (in seconds)
     this.ttlByConfidence = {
       high: 86400,    // 24 hours for high confidence (>0.8)
@@ -112,6 +115,18 @@ class RedisCache {
     return `${this.prefix}${parserVersion}:${hostname}:${Buffer.from(path).toString('base64')}`;
   }
 
+  // Cap how long a single Redis op can block the request. Graceful degradation
+  // already handles Redis being *down*; this handles Redis being *slow* (e.g. a
+  // GC pause or network blip), which would otherwise stall every request inline.
+  // On timeout we reject so the caller's catch falls back (get → miss, set → no-op).
+  withTimeout(promise, ms, label) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`Redis ${label} timed out after ${ms}ms`)), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+  }
+
   determineTTL(hostname, confidence) {
     // Check for site-specific TTL
     if (this.ttlBySite[hostname]) {
@@ -135,7 +150,7 @@ class RedisCache {
 
     try {
       const key = this.generateKey(url, parserVersion);
-      const cached = await this.client.get(key);
+      const cached = await this.withTimeout(this.client.get(key), this.opTimeoutMs, 'GET');
 
       if (cached) {
         this.metrics.hits++;
@@ -183,11 +198,10 @@ class RedisCache {
         _ttl: ttl
       };
 
-      await this.client.set(
-        key,
-        JSON.stringify(dataToCache),
-        'EX',
-        ttl
+      await this.withTimeout(
+        this.client.set(key, JSON.stringify(dataToCache), 'EX', ttl),
+        this.opTimeoutMs,
+        'SET'
       );
 
       this.metrics.sets++;

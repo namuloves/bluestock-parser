@@ -16,12 +16,28 @@ let lastJobProcessedAt = Date.now();
 let jobsProcessed = 0;
 let jobsFailed = 0;
 
+// Guard against the poll interval re-entering processNextJob() while a scrape
+// is still running. A single scrape can take longer than the poll interval, so
+// without this the same loop would stack concurrent scrapes on one event loop.
+let isProcessing = false;
+
+// Hard ceiling on a single scrape. resetStuckJobs() reclaims at 5 min, so keep
+// this comfortably under that. A hung Puppeteer page would otherwise block the
+// worker indefinitely.
+const JOB_TIMEOUT_MS = 2 * 60 * 1000;
+
 /**
  * Process a single job from the queue
  */
 async function processNextJob() {
+  // Skip this tick if a job is already in flight.
+  if (isProcessing) return;
+  isProcessing = true;
   try {
-    // Get next queued job using Postgres row locking to prevent race conditions
+    // Get next queued job. NOTE: this select-then-update is NOT atomic — safe
+    // only because a single worker runs (guarded by isProcessing). Before scaling
+    // to multiple workers, claim jobs atomically (e.g. an UPDATE ... WHERE
+    // status='queued' RETURNING via an RPC) to prevent two workers grabbing one job.
     const { data: jobs, error: fetchError } = await supabase
       .from('job_queue')
       .select('*')
@@ -62,7 +78,18 @@ async function processNextJob() {
     let scrapeError = null;
 
     try {
-      result = await scrapeProduct(job.vendor_url);
+      let timer;
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`Job timed out after ${JOB_TIMEOUT_MS / 1000}s`)),
+          JOB_TIMEOUT_MS
+        );
+      });
+      try {
+        result = await Promise.race([scrapeProduct(job.vendor_url), timeout]);
+      } finally {
+        clearTimeout(timer);
+      }
       const duration = ((Date.now() - startTime) / 1000).toFixed(2);
       console.log(`✅ Scraping completed in ${duration}s`);
     } catch (error) {
@@ -100,6 +127,8 @@ async function processNextJob() {
 
   } catch (error) {
     console.error('❌ Unexpected error in processNextJob:', error);
+  } finally {
+    isProcessing = false;
   }
 }
 

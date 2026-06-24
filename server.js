@@ -140,25 +140,19 @@ const getSiteConfig = (urlOrHostname) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Add error handling for uncaught exceptions
+// After an uncaught exception the process is in an undefined state; keeping it
+// alive risks serving corrupted responses. Exit and let the platform (Railway)
+// restart a clean process instead.
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error);
   console.error('Stack:', error.stack);
-  // Don't exit in production - try to recover
-  if (process.env.NODE_ENV === 'production') {
-    console.error('Attempting to continue despite error...');
-  } else {
-    process.exit(1);
-  }
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (error) => {
   console.error('❌ Unhandled Rejection:', error);
-  // Don't exit in production - try to recover
-  if (process.env.NODE_ENV === 'production') {
-    console.error('Attempting to continue despite rejection...');
-  } else {
-    process.exit(1);
-  }
+  if (error && error.stack) console.error('Stack:', error.stack);
+  process.exit(1);
 });
 
 // CORS configuration - explicit whitelist of trusted origins
@@ -486,11 +480,18 @@ app.post('/scrape', scrapeLimiter, async (req, res) => {
           if (parseResult.success) {
             v3Result = parseResult.product;
 
-            // Mitigation: lean parser sometimes returns limited media (e.g., single image)
+            // Mitigation: lean parser sometimes returns a thin gallery (exactly one
+            // image) for a product that succeeded otherwise. In that case a single
+            // V3 re-parse can recover the full gallery (V3 caches by URL, so the
+            // cost is paid at most once per hour per URL).
+            //
+            // We deliberately do NOT enrich when imageCount === 0: zero images almost
+            // always means lean failed to locate the gallery at all, and a full V3
+            // re-render rarely recovers it — it just doubles latency on the slow path.
             const imageCount = Array.isArray(v3Result?.images) ? v3Result.images.length : 0;
-            if (parserUsed === 'lean' && v3Parser && imageCount <= 1) {
+            if (parserUsed === 'lean' && v3Parser && imageCount === 1) {
               try {
-                console.log(`⚠️ Lean parser returned ${imageCount} images. Fetching V3 parser for richer gallery...`);
+                console.log(`⚠️ Lean parser returned 1 image. Re-parsing with V3 for a richer gallery...`);
                 const richResult = await v3Parser.parse(url);
 
                 if (richResult && Array.isArray(richResult.images) && richResult.images.length > imageCount) {
