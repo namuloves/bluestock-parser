@@ -63,7 +63,16 @@ async function scrapeSsenseSimple(url) {
     
     const html = response.data;
     console.log('📄 HTML length:', html.length);
-    
+
+    // Guard: bail if Cloudflare served a challenge page instead of the product.
+    // Otherwise og:title is missing and we'd return "Unknown Product" / price 0
+    // as a "success", short-circuiting the fallback chain before Firecrawl.
+    const challengeMarkers = ['security verification', 'just a moment', 'attention required', 'checking your browser', 'cf-challenge'];
+    const lowerHtml = (typeof html === 'string' ? html : '').toLowerCase();
+    if (challengeMarkers.some(m => lowerHtml.includes(m))) {
+      throw new Error('SSENSE_CLOUDFLARE_CHALLENGE');
+    }
+
     // Extract all image URLs from the HTML
     const extractImages = (html) => {
       const images = [];

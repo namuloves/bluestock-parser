@@ -56,8 +56,19 @@ async function scrapeSsense(url) {
     // Wait for the page to render
     await page.waitForSelector('body', { timeout: 10000 });
 
-    // Additional wait for dynamic content
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Wait for the real product content rather than a blind timer. If Cloudflare
+    // shows an interstitial first, it usually auto-clears within a few seconds;
+    // waiting on the product title/JSON-LD catches the page once it actually
+    // loads. Best-effort: if the selector never appears (challenge persists or
+    // markup changed) we fall through — the title guard below still catches a
+    // stuck challenge page.
+    await page.waitForSelector(
+      '.pdp-product-title__name, script[type="application/ld+json"]',
+      { timeout: 25000 }
+    ).catch(() => {});
+
+    // Small settle for any remaining dynamic content
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     // Scroll to trigger lazy loading of images
     await page.evaluate(() => {
@@ -78,6 +89,16 @@ async function scrapeSsense(url) {
 
     const pageTitle = await page.title();
     console.log('Page title:', pageTitle);
+
+    // Guard: detect Cloudflare / bot-challenge interstitials. Without this we
+    // read the challenge page and "succeed" with junk (title as product name,
+    // price 0), which stops the fallback chain in scrapeSsenseWithFallbacks
+    // before it can reach Firecrawl. Throwing here forces that chain onward.
+    const challengeMarkers = ['security verification', 'just a moment', 'attention required', 'checking your browser'];
+    const lowerTitle = (pageTitle || '').toLowerCase();
+    if (challengeMarkers.some(m => lowerTitle.includes(m))) {
+      throw new Error('SSENSE_CLOUDFLARE_CHALLENGE');
+    }
 
     console.log('🔍 Extracting product data...');
 

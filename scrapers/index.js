@@ -418,7 +418,9 @@ const FIRECRAWL_REQUIRED_SITES = [
 
 // Sites that can use Firecrawl as fallback if primary scraper fails
 const FIRECRAWL_FALLBACK_SITES = [
-  // SSENSE moved to FIRECRAWL_REQUIRED_SITES for better image quality
+  // NOTE: SSENSE is intentionally NOT here and NOT in FIRECRAWL_REQUIRED_SITES.
+  // It uses its own tiered chain (scrapeSsenseWithFallbacks) that tries the
+  // cheap scrapers first and falls through to Firecrawl last.
 ];
 
 // Site detection function

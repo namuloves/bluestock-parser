@@ -1,5 +1,15 @@
 # SSENSE Current Setup & Effectiveness
 
+> ⚠️ **STALE (as of 2026-06-25).** The "~100% success" figures below no longer hold.
+> SSENSE tightened its Cloudflare protection: the Puppeteer scraper now lands on a
+> "Just a moment…" challenge page (confirmed locally, so it is not only a Railway-IP
+> issue). The scrapers now **guard against the challenge page** (`ssense.js` /
+> `ssense-simple.js` throw `SSENSE_CLOUDFLARE_CHALLENGE`) so junk is no longer saved,
+> and the fallback chain proceeds to Firecrawl. However, Firecrawl alone currently
+> returns only partial data (name/brand, but price 0 / no images) for blocked
+> products. A **residential proxy (Decodo)** is the likely reliable fix — Decodo
+> creds exist but `USE_PROXY=false` and the Puppeteer scraper has no proxy wiring yet.
+
 ## Current Configuration
 
 ### SSENSE is NOT in `FIRECRAWL_REQUIRED_SITES`
