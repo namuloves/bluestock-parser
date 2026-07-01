@@ -45,7 +45,11 @@ class UniversalParserV3 {
       'saksfifthavenue.com',
       'bloomingdales.com',
       'uniqlo.com',  // Added - loads price dynamically
-      'octobre-editions.com'  // Added - has DataDome bot protection
+      'octobre-editions.com',  // Added - has DataDome bot protection
+      'daydream.ing'  // AI shopping aggregator (Dahlia Labs) behind a site-wide
+                      // Vercel edge challenge — every path returns 429 to plain
+                      // fetch; only a stealth browser passes. OG tags carry the
+                      // name/image (see extractSiteSpecific), price is JS-only.
     ]);
 
     // Sites that block axios requests
@@ -986,13 +990,25 @@ class UniversalParserV3 {
    * Tries: meta tags, title parsing, og:site_name, common title patterns.
    */
   extractBrandFallback($, productName, hostname) {
-    // 1. Try meta tags that sometimes have brand info
+    // 1. Try meta tags that reliably carry the product's brand.
     const metaBrand = $('meta[name="brand"]').attr('content') ||
                       $('meta[name="author"]').attr('content') ||
-                      $('meta[property="product:brand"]').attr('content') ||
-                      $('meta[name="twitter:site"]').attr('content');
+                      $('meta[property="product:brand"]').attr('content');
     if (metaBrand && metaBrand.length > 1 && metaBrand.length < 100 && metaBrand !== '@') {
       return metaBrand.replace(/^@/, '');
+    }
+
+    // twitter:site is usually the *platform's* account (e.g. "@shopondaydream"
+    // on an aggregator), not the product's brand. Only trust it when it doesn't
+    // look like a social handle: a real brand has a space or capitalization
+    // ("Ralph Lauren"), whereas a handle is a single @-prefixed lowercase token.
+    const twitterSite = $('meta[name="twitter:site"]').attr('content')?.trim();
+    if (twitterSite && twitterSite.length > 1 && twitterSite.length < 100) {
+      const looksLikeHandle = twitterSite.startsWith('@') ||
+        (!/\s/.test(twitterSite) && twitterSite === twitterSite.toLowerCase());
+      if (!looksLikeHandle) {
+        return twitterSite;
+      }
     }
 
     // 2. Try og:site_name (often the brand for DTC sites)
@@ -1058,6 +1074,56 @@ class UniversalParserV3 {
     return false;
   }
 
+  /**
+   * Parse JSON-LD that may contain raw, unescaped control characters inside
+   * string literals (e.g. literal newlines/tabs in a product `description`).
+   * Per the JSON spec these must be escaped; some storefronts (e.g. Hender
+   * Scheme) emit them raw, which makes a plain JSON.parse throw and silently
+   * drop the entire Product block — including its image array. We first try a
+   * strict parse, then retry with control characters inside string literals
+   * escaped.
+   */
+  parseJsonLdSafe(scriptContent) {
+    try {
+      return JSON.parse(scriptContent);
+    } catch (e) {
+      // Escape only raw control chars that appear *inside* string literals.
+      // Walk the string tracking whether we're inside a (non-escaped) quote.
+      let out = '';
+      let inString = false;
+      let escaped = false;
+      for (let i = 0; i < scriptContent.length; i++) {
+        const ch = scriptContent[i];
+        const code = ch.charCodeAt(0);
+        if (escaped) {
+          out += ch;
+          escaped = false;
+          continue;
+        }
+        if (ch === '\\') {
+          out += ch;
+          escaped = true;
+          continue;
+        }
+        if (ch === '"') {
+          inString = !inString;
+          out += ch;
+          continue;
+        }
+        if (inString && code < 0x20) {
+          // Raw control character inside a string literal — escape it.
+          if (ch === '\n') out += '\\n';
+          else if (ch === '\r') out += '\\r';
+          else if (ch === '\t') out += '\\t';
+          else out += '\\u' + code.toString(16).padStart(4, '0');
+          continue;
+        }
+        out += ch;
+      }
+      return JSON.parse(out);
+    }
+  }
+
   extractJsonLd($) {
     const result = {};
     $('script[type="application/ld+json"]').each((i, elem) => {
@@ -1067,7 +1133,7 @@ class UniversalParserV3 {
           return; // Skip empty script tags
         }
 
-        let data = JSON.parse(scriptContent);
+        let data = this.parseJsonLdSafe(scriptContent);
 
         // Handle @graph wrapper (common in WordPress/WooCommerce)
         if (data['@graph'] && Array.isArray(data['@graph'])) {
@@ -1341,6 +1407,36 @@ class UniversalParserV3 {
 
   extractSiteSpecific($, hostname) {
     const patterns = this.sitePatterns[hostname];
+
+    // Daydream (daydream.ing) is an AI shopping aggregator, not a store. Product
+    // pages are React-rendered with NO JSON-LD and up to a dozen prices on screen
+    // (the picked product plus AI-suggested alternatives), so generic price
+    // scraping is unsafe. Only the server-rendered OG tags are trustworthy: they
+    // give the real name and image. og:title is "<Retailer> <Product>" (e.g.
+    // "J.Crew Feather jersey cropped T-shirt"), and og:site_name is Daydream's own
+    // handle — neither is a clean brand, so we derive the retailer from the title.
+    if (hostname === 'daydream.ing') {
+      const result = {};
+      const ogTitle = $('meta[property="og:title"]').attr('content')?.trim();
+      const ogImage = $('meta[property="og:image"]').attr('content')?.trim();
+      const ogDesc = $('meta[property="og:description"]').attr('content')?.trim();
+
+      if (ogTitle) {
+        result.name = ogTitle;
+        // Retailer is the leading token of the title (up to the first space).
+        // Covers "J.Crew", "Nike", "Everlane", etc. Fall back to no brand rather
+        // than guessing when the title is a single word.
+        const firstSpace = ogTitle.indexOf(' ');
+        if (firstSpace > 0) {
+          result.brand = ogTitle.slice(0, firstSpace);
+        }
+      }
+      if (ogImage) result.images = [ogImage];
+      if (ogDesc) result.description = ogDesc;
+      // Deliberately no price: it is never in the server-rendered HTML and the
+      // hydrated DOM shows multiple candidate prices. Returning null beats wrong.
+      return result;
+    }
 
     // Special handling for Bespoke Post - extract from inline product cache
     if (hostname === 'bespokepost.com') {

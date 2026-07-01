@@ -103,3 +103,45 @@ test('fixture adapter normalizes URLs consistently', () => {
   );
   assert.equal(normalizeUrl('http://example.com/a/'), 'example.com/a');
 });
+
+// ---------- Brand fallback (bug: twitter:site @handle leaked as brand) ----------
+// Aggregators/marketplaces set twitter:site to their OWN account (e.g.
+// "@shopondaydream"), which must never be treated as the product's brand.
+
+const cheerio = require('cheerio');
+const UniversalParserV3 = require('../universal-parser-v3');
+
+test('extractBrandFallback ignores twitter:site social handles', () => {
+  const parser = new UniversalParserV3({ logLevel: 'quiet' });
+  const brandFrom = (head) =>
+    parser.extractBrandFallback(cheerio.load(`<html><head>${head}</head></html>`), 'Some Product', 'example.com');
+
+  // @-prefixed handle → not a brand
+  assert.equal(brandFrom('<meta name="twitter:site" content="@shopondaydream">'), undefined);
+  // single lowercase token (e.g. "nordstrom") → not a brand
+  assert.equal(brandFrom('<meta name="twitter:site" content="somestore">'), undefined);
+  // a real brand name with a space is still allowed through twitter:site
+  assert.equal(brandFrom('<meta name="twitter:site" content="Ralph Lauren">'), 'Ralph Lauren');
+  // product:brand always wins over a twitter handle
+  assert.equal(
+    brandFrom('<meta property="product:brand" content="Nike"><meta name="twitter:site" content="@somestore">'),
+    'Nike'
+  );
+});
+
+// ---------- Daydream site-specific extraction (OG-only, retailer from title) ----
+
+test('daydream.ing extracts name/image and derives retailer, no price guess', () => {
+  const parser = new UniversalParserV3({ logLevel: 'quiet' });
+  const $ = cheerio.load(`<html><head>
+    <meta property="og:title" content="J.Crew Feather jersey cropped T-shirt">
+    <meta property="og:image" content="https://cdn.dahlialabs.dev/x.webp">
+    <meta property="og:description" content="Introducing feather jersey.">
+    <meta name="twitter:site" content="@shopondaydream">
+  </head></html>`);
+  const r = parser.extractSiteSpecific($, 'daydream.ing');
+  assert.equal(r.name, 'J.Crew Feather jersey cropped T-shirt');
+  assert.equal(r.brand, 'J.Crew');           // derived from title, NOT @shopondaydream
+  assert.deepEqual(r.images, ['https://cdn.dahlialabs.dev/x.webp']);
+  assert.equal(r.price, undefined);           // never guess among on-page prices
+});
