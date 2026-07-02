@@ -205,6 +205,26 @@ try {
 }
 
 /**
+ * Is a parsed product actually usable, or is it thin-render / error-page junk?
+ * A real product needs a plausible name, at least one image, and a non-zero
+ * price. Also reject obvious error-page titles. Accepts both normalized
+ * (product_name/sale_price/image_urls) and raw (name/price/images) shapes.
+ */
+function isUsableProduct(product) {
+  if (!product) return false;
+  const name = (product.product_name || product.name || '').trim();
+  const price = product.sale_price ?? product.price ?? 0;
+  const images = product.image_urls || product.images || [];
+
+  if (!name || name.length < 3) return false;
+  if (/page not found|not found|404|error|just a moment|access denied/i.test(name)) return false;
+  if (!Array.isArray(images) || images.length === 0) return false;
+  const numericPrice = typeof price === 'number' ? price : parseFloat(String(price).replace(/[^\d.]/g, '')) || 0;
+  if (numericPrice <= 0) return false;
+  return true;
+}
+
+/**
  * Normalize SSENSE product data into the expected schema
  */
 function normalizeSsenseProduct(rawProduct = {}, url) {
@@ -790,19 +810,35 @@ const scrapeProduct = async (url, options = {}) => {
           };
         }
 
-        if (firecrawlResult?.success) {
+        // Firecrawl reports success even for a partial/flaky render or an error
+        // page (e.g. "SSENSE - Page not found", price 0, one junk image). Gate on
+        // the actual product so we don't hand the frontend unusable data as
+        // "success" — treat a thin result as a failure and fall through.
+        if (firecrawlResult?.success && isUsableProduct(firecrawlResult.product)) {
           return respondWithFirecrawlResult(firecrawlResult);
         }
 
-        console.log('⚠️ Firecrawl parsing failed');
+        if (firecrawlResult?.success) {
+          console.log('⚠️ Firecrawl returned success but product is unusable (thin render / error page)');
+        } else {
+          console.log('⚠️ Firecrawl parsing failed');
+        }
 
         if (hostname.includes('ssense.com')) {
           const fallback = await scrapeSsenseWithFallbacks(url, { allowFirecrawl: false });
-          if (fallback) {
+          if (fallback?.success && isUsableProduct(fallback.product)) {
             return fallback;
           }
         }
 
+        // Nothing produced a usable product — return a clean failure rather than
+        // passing junk through as success.
+        if (firecrawlResult?.success) {
+          return {
+            success: false,
+            error: 'Firecrawl returned an incomplete product (possible bot block or failed render)'
+          };
+        }
         return respondWithFirecrawlResult(firecrawlResult);
       }
 
@@ -2754,4 +2790,4 @@ const scrapeProduct = async (url, options = {}) => {
   }
 };
 
-module.exports = { scrapeProduct, detectSite };
+module.exports = { scrapeProduct, detectSite, isUsableProduct };

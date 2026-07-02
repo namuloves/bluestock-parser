@@ -174,3 +174,35 @@ test('expandScene7Gallery only acts on a _main Scene7 URL', async () => {
   assert.deepEqual(await parser.expandScene7Gallery('https://example.com/a.jpg', 'https://example.com'), []);
   assert.deepEqual(await parser.expandScene7Gallery('https://x.scene7.com/is/image/X/foo_alternate1', 'https://x.com'), []);
 });
+
+// ---------- isUsableProduct gate (bug: Firecrawl thin-render junk returned as success) ----------
+// SSENSE via Firecrawl sometimes returns a partial render or a "Page not found"
+// page as success. The gate must reject unusable products so the frontend never
+// gets "Could not extract product data" from a fake-success response.
+
+const { isUsableProduct } = require('../scrapers/index');
+
+test('isUsableProduct accepts a real product', () => {
+  assert.equal(isUsableProduct({
+    product_name: 'Gray Rig Chino Jeans', sale_price: 590,
+    image_urls: ['https://img.ssensemedia.com/images/x_1/a.jpg'],
+  }), true);
+});
+
+test('isUsableProduct rejects thin-render / error-page junk', () => {
+  // "Page not found" title
+  assert.equal(isUsableProduct({ product_name: 'SSENSE - Page not found', sale_price: 0, image_urls: ['x'] }), false);
+  // zero price
+  assert.equal(isUsableProduct({ product_name: 'Real Name', sale_price: 0, image_urls: ['x'] }), false);
+  // no images
+  assert.equal(isUsableProduct({ product_name: 'Real Name', sale_price: 100, image_urls: [] }), false);
+  // no name
+  assert.equal(isUsableProduct({ product_name: '', sale_price: 100, image_urls: ['x'] }), false);
+  // null / empty
+  assert.equal(isUsableProduct(null), false);
+  assert.equal(isUsableProduct({}), false);
+});
+
+test('isUsableProduct accepts raw field shape too (name/price/images)', () => {
+  assert.equal(isUsableProduct({ name: 'Thing', price: '42.00', images: ['y'] }), true);
+});
