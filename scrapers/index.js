@@ -2,6 +2,7 @@
 // UNIVERSAL PARSER INTEGRATION - DO NOT DELETE
 // ============================================
 const UniversalParserV3 = require('../universal-parser-v3');
+const { findRoute } = require('../config/site-registry');
 const { getMetricsCollector } = require('../monitoring/metrics-collector');
 const { extractZaraImages, extractZaraProductId, extractZaraPrice } = require('./zara-image-extractor');
 let universalParser;
@@ -422,228 +423,24 @@ function getFirecrawlParser() {
   }
 }
 
-// Sites that require Firecrawl — keep in sync with SITE_REGISTRY in server.js
-// To add a new site: update SITE_REGISTRY in server.js, then add the domain here
-const FIRECRAWL_REQUIRED_SITES = [
-  'rei.com',
-  'ralphlauren.com',
-  'net-a-porter.com',
-  'aritzia.com',
-  'mrporter.com',
-  'etsy.com',
-  'chanel.com',
-  'kolonmall.com',
-  'mammut.com',
-];
-
-// Sites that can use Firecrawl as fallback if primary scraper fails
-const FIRECRAWL_FALLBACK_SITES = [
-  // NOTE: SSENSE is routed to Firecrawl FIRST via detectSite (Cloudflare blocks
-  // the cheap scrapers). If Firecrawl is unavailable it falls back to its own
-  // tiered chain (scrapeSsenseWithFallbacks), so it isn't listed here.
-];
+// Firecrawl-first sites (rei, ralphlauren, ssense, etc.) now live in
+// config/site-registry.js with `requiresFirecrawl: true`. Add new sites there.
 
 // Site detection function
 const detectSite = (url) => {
+  // Routing is data-driven from config/site-registry.js (single source of truth).
   const hostname = new URL(url).hostname.toLowerCase();
+  const hasFirecrawlParser = !!(firecrawlParser?.apiKey || firecrawlParserV2?.apiKey);
 
-  // Check if any Firecrawl parser is available
-  const hasFirecrawlParser = (firecrawlParser?.apiKey) || (firecrawlParserV2?.apiKey);
+  const route = findRoute(hostname);
+  if (!route) return null; // unknown → fall through to Shopify detection / universal
 
-  // SSENSE sits behind Cloudflare, which blocks the simple/Puppeteer scrapers
-  // (403 / "Just a moment..."). Firecrawl runs on its own bot-bypass
-  // infrastructure and gets the full product, so route SSENSE to Firecrawl
-  // FIRST when it's available. The 'firecrawl' case already falls back to
-  // scrapeSsenseWithFallbacks({ allowFirecrawl: false }) if Firecrawl fails.
-  // Without a Firecrawl parser, use the dedicated tiered chain.
-  if (hostname.includes('ssense.com')) {
-    return hasFirecrawlParser ? 'firecrawl' : 'ssense';
+  // Firecrawl-first sites route to Firecrawl only when a parser is configured;
+  // otherwise use the entry's fallback scraper (null → universal).
+  if (route.requiresFirecrawl) {
+    return hasFirecrawlParser ? 'firecrawl' : route.scraper;
   }
-
-  // Our Legacy uses Puppeteer scraper for JavaScript-rendered prices
-  if (hostname.includes('ourlegacy.com')) {
-    return 'ourlegacy';
-  }
-
-  // Check if site requires Firecrawl
-  const requiresFirecrawl = FIRECRAWL_REQUIRED_SITES.some(site =>
-    hostname.includes(site)
-  );
-
-  if (requiresFirecrawl && hasFirecrawlParser) {
-    return 'firecrawl';
-  }
-
-  if (hostname.includes('kolonmall.')) {
-    return 'kolonmall';
-  }
-
-  if (hostname.includes('amazon.')) {
-    return 'amazon';
-  }
-  if (hostname.includes('farfetch.')) {
-    return 'farfetch';
-  }
-  if (hostname.includes('etsy.')) {
-    return 'etsy';
-  }
-  if (hostname.includes('garmentory.')) {
-    return 'garmentory';
-  }
-  if (hostname.includes('ebay.')) {
-    return 'ebay';
-  }
-  if (hostname.includes('ralphlauren.')) {
-    return 'ralphlauren';
-  }
-  if (hostname === 'cos.com' || hostname === 'www.cos.com' || hostname.startsWith('cos.')) {
-    return 'cos';
-  }
-  if (hostname.includes('sezane.')) {
-    return 'sezane';
-  }
-  if (hostname.includes('nordstrom.')) {
-    return 'nordstrom';
-  }
-  // SSENSE removed from here - handled by FIRECRAWL_REQUIRED_SITES above
-  if (hostname.includes('saksfifthavenue.') || hostname.includes('saks.')) {
-    return 'saksfifthavenue';
-  }
-  if (hostname.includes('poshmark.')) {
-    return 'poshmark';
-  }
-  if (hostname.includes('shopstyle.')) {
-    return 'shopstyle';
-  }
-  if (hostname.includes('go.shopmy.us') || hostname.includes('shopmy.us')) {
-    return 'redirect';
-  }
-  if (hostname.includes('bit.ly')) {
-    return 'redirect';
-  }
-  if (hostname.includes('shareasale.com')) {
-    return 'redirect';
-  }
-  if (hostname.includes('click.linksynergy.com')) {
-    return 'redirect';
-  }
-  if (hostname.includes('instagram.com')) {
-    return 'instagram';
-  }
-  // Commented out - let Universal/Firecrawl handle Zara since dedicated scraper can't get images
-  // if (hostname.includes('zara.com')) {
-  //   return 'zara';
-  // }
-  if (hostname.includes('urbanoutfitters.')) {
-    return 'urbanoutfitters';
-  }
-  // Commented out - let Universal Parser handle Free People instead
-  // if (hostname.includes('freepeople.')) {
-  //   return 'freepeople';
-  // }
-  if (hostname.includes('revolve.')) {
-    return 'revolve';
-  }
-  if (hostname.includes('net-a-porter.')) {
-    return 'netaporter';
-  }
-  if (hostname.includes('asos.')) {
-    return 'asos';
-  }
-  if (hostname.includes('reformation.')) {
-    return 'reformation';
-  }
-  if (hostname.includes('everlane.')) {
-    return 'everlane';
-  }
-  if (hostname.includes('anthropologie.')) {
-    return 'anthropologie';
-  }
-  if (hostname.includes('madewell.')) {
-    return 'madewell';
-  }
-  // Aritzia removed - now handled by FIRECRAWL_REQUIRED_SITES above
-  if (hostname.includes('lululemon.')) {
-    return 'lululemon';
-  }
-  if (hostname.includes('stories.')) {
-    return 'stories';
-  }
-  if (hostname.includes('mytheresa.')) {
-    return 'mytheresa';
-  }
-  if (hostname.includes('clothbase.')) {
-    return 'clothbase';
-  }
-  if (hostname.includes('arcteryx.')) {
-    return 'arcteryx';
-  }
-  if (hostname.includes('songforthemute.')) {
-    return 'songforthemute';
-  }
-  if (hostname.includes('massimodutti.')) {
-    return 'massimodutti';
-  }
-  if (hostname.includes('camperlab.')) {
-    return 'camperlab';
-  }
-  if (hostname.includes('fwrd.')) {
-    return 'fwrd';
-  }
-  if (hostname.includes('miumiu.')) {
-    return 'miumiu';
-  }
-  if (hostname.includes('chiclara.')) {
-    return 'chiclara';
-  }
-  if (hostname.includes('gallerydept.')) {
-    return 'gallerydept';
-  }
-  if (hostname.includes('unijay.')) {
-    return 'unijay';
-  }
-  if (hostname.includes('boden.')) {
-    return 'boden';
-  }
-  if (hostname.includes('wconcept.')) {
-    return 'wconcept';
-  }
-  // Note: arket.com requires JavaScript rendering, handled by Universal Parser
-  // if (hostname.includes('arket.')) {
-  //   return 'arket';
-  // }
-
-  // Check for known Shopify domains
-  const shopifyDomains = [
-    'chavastudio.com',
-    'phoebephilo.com',
-    'stoffa.co',
-    'soeur.fr',
-    'shopattersee.com',
-    'babaa.es',
-    'nu-swim.com',
-    'shopneighbour.com',
-    'shop-vestige.com',
-    'rachelcomey.com',
-    'oldstonetrade.com',
-    'flore-flore.com',
-    'emreitz.com',
-    'tibi.com',
-    'fm669.us',
-    'jamesstreetco.com',
-    'gimaguas.com',
-    'footindustry.com',
-    'shopcatandkate.com',
-    'wearing-esme.com'
-  ];
-  
-  for (const domain of shopifyDomains) {
-    if (hostname.includes(domain)) {
-      return 'shopify';
-    }
-  }
-  
-  return null; // Let unknown sites fall through to default case for Shopify detection
+  return route.scraper;
 };
 
 // Main scraping function with site routing

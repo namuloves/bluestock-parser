@@ -3,6 +3,11 @@
  * Each test pins a specific past bug so it can't regress silently.
  */
 
+// Routing for some sites (e.g. SSENSE) depends on a Firecrawl parser being
+// configured. Set a key BEFORE requiring the scrapers so detectSite() reflects
+// production routing deterministically, regardless of the local environment.
+process.env.FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY || 'test-key-for-routing';
+
 const { test } = require('node:test');
 const assert = require('node:assert');
 
@@ -226,4 +231,19 @@ test('looksLikeSeasonCode flags season/label codes, not real brands', () => {
   assert.equal(looksLikeSeasonCode('3x1'), false);   // legit lowercase brand
   assert.equal(looksLikeSeasonCode(''), false);
   assert.equal(looksLikeSeasonCode(null), false);
+});
+
+// ---------- detectSite characterization (guards the routing-config refactor) ----
+// A golden snapshot of detectSite() output across every routing branch. This
+// pins current behavior so consolidating the scattered site config into one
+// source of truth is provably behavior-preserving. If a routing change is
+// intentional, update test/fixtures/detectSite-golden.json deliberately.
+
+const { detectSite } = require('../scrapers/index');
+const detectSiteGolden = require('./fixtures/detectSite-golden.json');
+
+test('detectSite matches golden routing snapshot for all known sites', () => {
+  for (const [url, expected] of Object.entries(detectSiteGolden)) {
+    assert.strictEqual(detectSite(url), expected, `routing changed for ${url}`);
+  }
 });

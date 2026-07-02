@@ -103,6 +103,14 @@ const PORT = process.env.PORT || 3001;
 //           'dedicated'   → routes through scrapers/index.js dedicated scraper
 //           'universal'   → default Lean/V3 pipeline (no entry needed, listed for clarity)
 // timeout:  milliseconds for the entire /scrape request timeout (default 30000)
+// NOTE: This registry drives only server-side per-request flags — the request
+// timeout and the coarse `useDedicatedScraper` decision (whether to skip the
+// universal-parser-first attempt). It intentionally lists FEWER sites than the
+// full routing table in config/site-registry.js: sites absent here still run
+// the universal parser first, then fall through to their dedicated scraper.
+// The actual scraper-per-site routing lives in config/site-registry.js
+// (consumed by detectSite in scrapers/index.js). Do not assume the two lists
+// must match one-to-one.
 const SITE_REGISTRY = {
   // ── Firecrawl required (enterprise bot protection) ──
   'rei.com':           { scraper: 'firecrawl', timeout: 60000 },
