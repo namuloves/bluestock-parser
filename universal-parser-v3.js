@@ -972,6 +972,26 @@ class UniversalParserV3 {
       result.images = this.normalizeImages(result.images, url);
     }
 
+    // Scene7 gallery recovery: storefronts (Calvin Klein, Tommy Hilfiger, other
+    // PVH/Adobe Dynamic Media sites) lazy-load alternate views into the carousel,
+    // so a DOM scrape often yields only the _main image. If we captured a Scene7
+    // _main but a thin gallery, enumerate _alternate1..N to recover the rest.
+    if (result.images && result.images.length < 4) {
+      const mainScene7 = result.images.find(u => /scene7\.com\/is\/image\/.*_main(?:$|\?)/.test(u));
+      if (mainScene7) {
+        const alternates = await this.expandScene7Gallery(mainScene7, url);
+        if (alternates.length > 0) {
+          const seen = new Set(result.images.map(u => u.split('?')[0]));
+          for (const alt of alternates) {
+            if (!seen.has(alt.split('?')[0])) result.images.push(alt);
+          }
+          if (this.logLevel !== 'quiet') {
+            console.log(`🖼️  Scene7: recovered ${alternates.length} alternate view(s)`);
+          }
+        }
+      }
+    }
+
     // Clean site-specific title suffixes
     if (result.name) {
       result.name = this.cleanProductTitle(result.name, hostname);
@@ -1831,10 +1851,57 @@ class UniversalParserV3 {
         img = `${baseUrlObj.protocol}//${baseUrlObj.host}/${img}`;
       }
 
+      // Upgrade Scene7 (Adobe Dynamic Media) URLs to a usable resolution.
+      // Scene7's default render is a tiny ~304px thumbnail, and named presets
+      // ($plp$, $pdpMain$) also resolve to thumbnails — only an explicit wid=
+      // yields a full-size image. Without this, CK/Tommy/PVH product photos get
+      // stored at thumbnail quality. Strip any existing sizing query first so we
+      // don't stack params.
+      if (/\/is\/image\//.test(img) && /scene7\.com/.test(img)) {
+        const base = img.split('?')[0];
+        img = `${base}?wid=1200`;
+      }
+
       normalized.push(img);
     }
 
     return normalized.slice(0, 10);
+  }
+
+  /**
+   * Scene7 (Adobe Dynamic Media) serves a product's gallery under a strict
+   * naming convention: "<style>_<color>_main" plus "<...>_alternate1..N".
+   * Storefronts lazy-load the alternates into the carousel, so a DOM scrape at
+   * load time often captures only _main. Given a _main URL, probe _alternate1..N
+   * (HEAD) until one 404s to recover the full gallery deterministically.
+   * Requires a Referer or Scene7 returns errors/thumbnails.
+   */
+  async expandScene7Gallery(mainUrl, refererUrl) {
+    const m = String(mainUrl || '').match(/^(https?:\/\/[^?]*scene7\.com\/is\/image\/[^?]*?)_main(?:$|\?)/);
+    if (!m) return [];
+    const stem = m[1];
+    const found = [];
+    const referer = (() => { try { return new URL(refererUrl).origin + '/'; } catch { return undefined; } })();
+
+    for (let i = 1; i <= 8; i++) {
+      const url = `${stem}_alternate${i}?wid=1200`;
+      const ok = await new Promise((resolve) => {
+        try {
+          const u = new URL(url);
+          const reqLib = require(u.protocol === 'http:' ? 'http' : 'https');
+          const req = reqLib.request({
+            hostname: u.hostname, path: u.pathname + u.search, method: 'HEAD',
+            headers: { 'User-Agent': 'Mozilla/5.0', ...(referer ? { 'Referer': referer } : {}) },
+          }, (res) => { res.resume(); resolve(res.statusCode >= 200 && res.statusCode < 300); });
+          req.on('error', () => resolve(false));
+          req.setTimeout(5000, () => { req.destroy(); resolve(false); });
+          req.end();
+        } catch { resolve(false); }
+      });
+      if (!ok) break; // alternates are contiguous; first gap ends the gallery
+      found.push(url);
+    }
+    return found;
   }
 
   cleanProductTitle(title, hostname) {

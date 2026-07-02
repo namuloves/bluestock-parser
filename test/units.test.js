@@ -145,3 +145,32 @@ test('daydream.ing extracts name/image and derives retailer, no price guess', ()
   assert.deepEqual(r.images, ['https://cdn.dahlialabs.dev/x.webp']);
   assert.equal(r.price, undefined);           // never guess among on-page prices
 });
+
+// ---------- Scene7 image handling (bugs: 304px thumbnails + only _main image) --
+// Calvin Klein / PVH sites serve images via Adobe Scene7. Default renders are
+// tiny thumbnails, and carousels lazy-load alternates so scrapes catch only _main.
+
+test('normalizeImages upgrades Scene7 URLs to wid=1200 and strips existing sizing', () => {
+  const parser = new UniversalParserV3({ logLevel: 'quiet' });
+  const out = parser.normalizeImages([
+    'https://calvinklein.scene7.com/is/image/CalvinKlein/470210G_YAF_main',
+    'https://calvinklein.scene7.com/is/image/CalvinKlein/470210G_YAF_alternate1?$plp$',
+  ], 'https://www.calvinklein.us/en/x.html');
+  assert.equal(out[0], 'https://calvinklein.scene7.com/is/image/CalvinKlein/470210G_YAF_main?wid=1200');
+  assert.equal(out[1], 'https://calvinklein.scene7.com/is/image/CalvinKlein/470210G_YAF_alternate1?wid=1200');
+});
+
+test('normalizeImages leaves non-Scene7 URLs untouched', () => {
+  const parser = new UniversalParserV3({ logLevel: 'quiet' });
+  const out = parser.normalizeImages([
+    'https://cdn.shopify.com/s/files/x_720x.jpg?v=1',
+  ], 'https://example.com/p');
+  assert.equal(out[0], 'https://cdn.shopify.com/s/files/x_720x.jpg?v=1');
+});
+
+test('expandScene7Gallery only acts on a _main Scene7 URL', async () => {
+  const parser = new UniversalParserV3({ logLevel: 'quiet' });
+  // Non-Scene7 or non-_main URLs must return [] without any network calls.
+  assert.deepEqual(await parser.expandScene7Gallery('https://example.com/a.jpg', 'https://example.com'), []);
+  assert.deepEqual(await parser.expandScene7Gallery('https://x.scene7.com/is/image/X/foo_alternate1', 'https://x.com'), []);
+});
