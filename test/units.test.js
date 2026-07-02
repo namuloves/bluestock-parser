@@ -206,3 +206,24 @@ test('isUsableProduct rejects thin-render / error-page junk', () => {
 test('isUsableProduct accepts raw field shape too (name/price/images)', () => {
   assert.equal(isUsableProduct({ name: 'Thing', price: '42.00', images: ['y'] }), true);
 });
+
+// ---------- Shopify season-code brand guard (bug: Leset brand = "HSPF26 MAY") --
+// Some single-brand Shopify stores put a season/label code in vendor + JSON-LD
+// brand. That code must never be used as the brand — the domain/og:site_name
+// fallback should supply the real one.
+
+const { looksLikeSeasonCode } = require('../scrapers/shopify');
+
+test('looksLikeSeasonCode flags season/label codes, not real brands', () => {
+  // codes → true
+  assert.equal(looksLikeSeasonCode('HSPF26 MAY'), true);
+  assert.equal(looksLikeSeasonCode('SS24'), true);
+  assert.equal(looksLikeSeasonCode('FW2025'), true);
+  // real brands → false
+  assert.equal(looksLikeSeasonCode('Leset'), false);
+  assert.equal(looksLikeSeasonCode('Ralph Lauren'), false);
+  assert.equal(looksLikeSeasonCode('A.P.C.'), false);
+  assert.equal(looksLikeSeasonCode('3x1'), false);   // legit lowercase brand
+  assert.equal(looksLikeSeasonCode(''), false);
+  assert.equal(looksLikeSeasonCode(null), false);
+});

@@ -64,6 +64,19 @@ const extractJsonLdProduct = ($) => {
   };
 };
 
+// Some single-brand Shopify stores put a season/label code in the vendor field
+// (e.g. Leset uses "HSPF26 MAY"), and that code leaks into JSON-LD brand too.
+// It's an internal code, not a brand — reject it so the domain/og:site_name
+// fallback can supply the real brand.
+const looksLikeSeasonCode = (value = '') => {
+  const v = String(value).trim();
+  if (!v) return false;
+  // Uppercase letters followed by digits (HSPF26, SS24, FW2025), optionally with
+  // a trailing token — i.e. an all-caps/alnum code containing a number.
+  return /^[A-Z]{2,}\d{2,}(\s|$)/.test(v) ||
+         (/^[A-Z0-9]{4,}(\s+[A-Z]+)?$/.test(v) && /\d/.test(v));
+};
+
 const extractTextFromSelectors = ($, selectors) => {
   const collected = [];
 
@@ -345,17 +358,32 @@ const scrapeShopify = async (url) => {
       if (url.includes('stussy.com')) {
         product.brand = 'Stussy';
       } else {
-        product.brand = productJson.vendor || '';
+        // Skip season/label codes in the vendor field; the fallback below will
+        // derive the real brand from meta/og:site_name/domain.
+        const vendor = (productJson.vendor || '').trim();
+        product.brand = looksLikeSeasonCode(vendor) ? '' : vendor;
       }
 
       product.description = productJson.description || productJson.body_html || '';
-      
+
       // Clean HTML from description
       if (product.description.includes('<')) {
         const $desc = cheerio.load(product.description);
         product.description = $desc.text().trim();
       }
-      
+
+      // Country of origin ("Made in ...") often lives in a fabric/care metafield
+      // (e.g. Leset's "The Fabric" dropdown: "Made in Los Angeles, CA"), which is
+      // in the page HTML but NOT in the product .json body_html. Scan the raw page.
+      if (!product.origin) {
+        const pageText = String(response.data || '');
+        // Match "Made in <place>" up to a sentence end; strip HTML/JSON escapes.
+        const originMatch = pageText.match(/Made in ([A-Z][A-Za-z .,'&-]{2,60}?)(?:[.<"\\]|\s*<)/);
+        if (originMatch) {
+          product.origin = ('Made in ' + originMatch[1].trim()).replace(/[,\s]+$/, '');
+        }
+      }
+
       // Extract images — always fetch the .json endpoint to get ALL images (all color variants)
       // The embedded page JSON only contains the selected variant's images
       try {
@@ -487,7 +515,8 @@ const scrapeShopify = async (url) => {
 
       if (!product.brand) {
         const jsonLd = extractJsonLdProduct($);
-        if (jsonLd.brand) product.brand = jsonLd.brand;
+        // JSON-LD brand can also be the season/label code (Leset), so guard it.
+        if (jsonLd.brand && !looksLikeSeasonCode(jsonLd.brand)) product.brand = jsonLd.brand;
       }
 
       if (!product.brand) {
@@ -681,5 +710,6 @@ module.exports = {
   scrapeShopify,
   isShopifyStore,
   detectShopifyStore,
-  looksLikeShopifyProductPath
+  looksLikeShopifyProductPath,
+  looksLikeSeasonCode
 };
