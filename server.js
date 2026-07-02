@@ -11,6 +11,7 @@ const { enhanceWithAI } = require('./scrapers/ebay');
 const ClaudeAIService = require('./services/claude-ai');
 const SizeChartParser = require('./scrapers/sizeChartParser');
 const SlackNotificationService = require('./services/slack-notifications');
+const { recordFailure } = require('./services/failure-log');
 const ProductEnhancer = require('./utils/productEnhancer');
 const healthRoutes = require('./routes/health');
 const duplicateCheckRoutes = require('./routes/duplicate-check');
@@ -912,6 +913,13 @@ app.post('/scrape', scrapeLimiter, async (req, res) => {
         hasName: !!normalizedProduct.product_name,
         hasImages: normalizedProduct.image_urls && normalizedProduct.image_urls.length > 0
       });
+      // Returned 200 but the result is unusable — the silent-failure case the
+      // auto-fix loop most needs to catch (e.g. an SPA yielding homepage junk).
+      const missing = [
+        !normalizedProduct.product_name && 'name',
+        (!normalizedProduct.image_urls || normalizedProduct.image_urls.length === 0) && 'images',
+      ].filter(Boolean).join(', ');
+      recordFailure({ url, error: `missing critical fields: ${missing}`, resultKind: 'low_confidence' });
     }
 
     // Return in the expected format for frontend
@@ -923,6 +931,9 @@ app.post('/scrape', scrapeLimiter, async (req, res) => {
   } catch (error) {
     console.error('❌ Scraping error:', error);
     console.error('Stack trace:', error.stack);
+
+    // Durable failure log for the scheduled auto-fix loop (best-effort).
+    recordFailure({ url, error: error.message || 'Unknown error', resultKind: 'threw' });
 
     // Send Slack notification for parsing failure
     try {
