@@ -418,18 +418,26 @@ const FIRECRAWL_REQUIRED_SITES = [
 
 // Sites that can use Firecrawl as fallback if primary scraper fails
 const FIRECRAWL_FALLBACK_SITES = [
-  // NOTE: SSENSE is intentionally NOT here and NOT in FIRECRAWL_REQUIRED_SITES.
-  // It uses its own tiered chain (scrapeSsenseWithFallbacks) that tries the
-  // cheap scrapers first and falls through to Firecrawl last.
+  // NOTE: SSENSE is routed to Firecrawl FIRST via detectSite (Cloudflare blocks
+  // the cheap scrapers). If Firecrawl is unavailable it falls back to its own
+  // tiered chain (scrapeSsenseWithFallbacks), so it isn't listed here.
 ];
 
 // Site detection function
 const detectSite = (url) => {
   const hostname = new URL(url).hostname.toLowerCase();
 
-  // SSENSE uses dedicated scrapers with Firecrawl fallback
+  // Check if any Firecrawl parser is available
+  const hasFirecrawlParser = (firecrawlParser?.apiKey) || (firecrawlParserV2?.apiKey);
+
+  // SSENSE sits behind Cloudflare, which blocks the simple/Puppeteer scrapers
+  // (403 / "Just a moment..."). Firecrawl runs on its own bot-bypass
+  // infrastructure and gets the full product, so route SSENSE to Firecrawl
+  // FIRST when it's available. The 'firecrawl' case already falls back to
+  // scrapeSsenseWithFallbacks({ allowFirecrawl: false }) if Firecrawl fails.
+  // Without a Firecrawl parser, use the dedicated tiered chain.
   if (hostname.includes('ssense.com')) {
-    return 'ssense';
+    return hasFirecrawlParser ? 'firecrawl' : 'ssense';
   }
 
   // Our Legacy uses Puppeteer scraper for JavaScript-rendered prices
@@ -441,9 +449,6 @@ const detectSite = (url) => {
   const requiresFirecrawl = FIRECRAWL_REQUIRED_SITES.some(site =>
     hostname.includes(site)
   );
-
-  // Check if any Firecrawl parser is available
-  const hasFirecrawlParser = (firecrawlParser?.apiKey) || (firecrawlParserV2?.apiKey);
 
   if (requiresFirecrawl && hasFirecrawlParser) {
     return 'firecrawl';
